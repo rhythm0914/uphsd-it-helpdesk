@@ -23,6 +23,17 @@ export async function submitRequest(formData: FormData) {
     redirect("/portal/request?error=All+required+fields+must+be+filled");
   }
 
+  const { data: mapping } = await supabase
+    .from("service_categories")
+    .select("service_id")
+    .eq("service_id", serviceId)
+    .eq("category_id", categoryId)
+    .single();
+
+  if (!mapping) {
+    redirect("/portal/request?error=Invalid+service+and+category+combination");
+  }
+
   const { data, error } = await supabase
     .from("tickets")
     .insert({

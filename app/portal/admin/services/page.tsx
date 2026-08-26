@@ -84,7 +84,7 @@ export default async function ServicesPage() {
       </div>
 
       <div className="mt-8">
-        <ServiceManagement />
+        <ServiceManagement services={services} categories={categories} />
       </div>
     </div>
   );

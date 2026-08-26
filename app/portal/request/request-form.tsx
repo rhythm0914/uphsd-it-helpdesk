@@ -1,20 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { submitRequest } from "./actions";
 
 export function RequestForm({
   services,
-  categories,
   hasLoadError,
   isEmpty,
 }: {
   services: any[];
-  categories: any[];
   hasLoadError: boolean;
   isEmpty: boolean;
 }) {
   const [selectedService, setSelectedService] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState(false);
+
+  useEffect(() => {
+    if (!selectedService) {
+      setCategories([]);
+      setCategoriesError(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCategoriesLoading(true);
+    setCategoriesError(false);
+
+    fetch(`/api/service-categories?service_id=${selectedService}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load categories");
+        const data = await res.json();
+        if (!cancelled) {
+          setCategories(data.categories || []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCategoriesError(true);
+          setCategories([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCategoriesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedService]);
 
   function handleServiceChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setSelectedService(e.target.value);
@@ -69,19 +106,30 @@ export function RequestForm({
               id="category_id"
               name="category_id"
               required
-              disabled={!selectedService}
+              disabled={!selectedService || categoriesLoading}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">
-                {selectedService ? "Select a category" : "Select a service first"}
+                {!selectedService
+                  ? "Select a service first"
+                  : categoriesLoading
+                  ? "Loading categories..."
+                  : categories.length === 0 && !categoriesError
+                  ? "No categories available"
+                  : "Select a category"}
               </option>
-              {selectedService &&
-                categories.map((category: any) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
+              {categories.map((category: any) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
             </select>
+            {categoriesError && (
+              <p className="mt-1 text-xs text-red-600">Unable to load categories. Please try again.</p>
+            )}
+            {!categoriesError && selectedService && categories.length === 0 && !categoriesLoading && (
+              <p className="mt-1 text-xs text-amber-600">No categories are available for this service yet.</p>
+            )}
           </div>
 
           <div>

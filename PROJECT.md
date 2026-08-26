@@ -588,6 +588,25 @@ Users cannot submit tickets without valid service and category selections.
   - Documented database initialization and seed data process
   - Verified production deployment
 
+### Phase 6.4: Service → Category Relationship & Dynamic Category Filtering
+- **Status:** Completed and Deployed
+- **Work:**
+  - Added `service_categories` junction table to `supabase/schema.sql`
+  - Added RLS policies for `service_categories`
+  - Added seed mappings for default service/category relationships
+  - Created `/api/service-categories` API route for fetching categories by service
+  - Updated `/portal/request` to dynamically load categories based on selected service
+  - Category dropdown is disabled until a service is selected
+  - Changing service resets category selection and reloads categories
+  - Added empty/error states for category loading
+  - Added server-side validation in `submitRequest` to reject invalid service/category combinations
+  - Updated admin `/portal/admin/services` with service-category mapping management UI
+  - Admin can view mapped/unmapped categories per service
+  - Admin can add/remove category mappings
+  - Updated import validation to reject unmapped service/category combinations
+  - Preserved all existing tickets and data compatibility
+  - Verified production deployment
+
 ### Phase 7: Testing
 - [ ] Unit tests
 - [ ] Integration tests
@@ -610,6 +629,7 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+(uncommitted) Phase 6.4: Service → Category Relationship & Dynamic Category Filtering
 (uncommitted) Phase 6.3: Production Data Seeding + Auth Callback Hardening
 (uncommitted) Phase 6.2: Import/Export & Duplicate Detection
 (uncommitted) Phase 6: Authentication & User Onboarding
@@ -651,6 +671,9 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - [x] Duplicate detection works
 - [x] Production auth callback configured
 - [x] Default services/categories seeded
+- [x] Service-category relationship implemented
+- [x] Dynamic category filtering implemented
+- [x] Server-side service/category validation implemented
 - [ ] Mobile layout works
 - [ ] Error states work
 - [ ] Unauthorized access is blocked
@@ -696,4 +719,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-27*  
-*Current phase: Phase 6.3 complete, preparing for Phase 7*
+*Current phase: Phase 6.4 complete, preparing for Phase 7*

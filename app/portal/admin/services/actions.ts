@@ -170,3 +170,100 @@ export async function toggleCategoryStatus(categoryId: string, currentStatus: bo
 
   return { success: true };
 }
+
+export async function getServiceCategories(serviceId: string) {
+  const supabase = await getSupabase();
+
+  const { data: mappings } = await supabase
+    .from("service_categories")
+    .select(`
+      category_id,
+      category:ticket_categories!inner(*)
+    `)
+    .eq("service_id", serviceId)
+    .order("category:name");
+
+  return {
+    categories: (mappings || []).map((m: any) => m.category),
+  };
+}
+
+export async function addServiceCategory(serviceId: string, categoryId: string) {
+  const supabase = await getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || !["admin", "manager"].includes(profile.role)) {
+    redirect("/portal");
+  }
+
+  const { error } = await supabase
+    .from("service_categories")
+    .insert({ service_id: serviceId, category_id: categoryId });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function removeServiceCategory(serviceId: string, categoryId: string) {
+  const supabase = await getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || !["admin", "manager"].includes(profile.role)) {
+    redirect("/portal");
+  }
+
+  const { error } = await supabase
+    .from("service_categories")
+    .delete()
+    .eq("service_id", serviceId)
+    .eq("category_id", categoryId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function getUnmappedCategories(serviceId: string) {
+  const supabase = await getSupabase();
+
+  const { data: mappedCategories } = await supabase
+    .from("service_categories")
+    .select("category_id")
+    .eq("service_id", serviceId);
+
+  const mappedIds = new Set((mappedCategories || []).map((m: any) => m.category_id));
+
+  const { data: allCategories } = await supabase
+    .from("ticket_categories")
+    .select("*")
+    .order("name");
+
+  return {
+    categories: (allCategories || []).filter((c: any) => !mappedIds.has(c.id)),
+  };
+}

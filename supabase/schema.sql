@@ -230,6 +230,82 @@ INSERT INTO public.ticket_categories (name, description) VALUES
   ('General IT Question', 'Other technology questions and support')
 ON CONFLICT (name) DO NOTHING;
 
+-- Service categories junction table
+CREATE TABLE IF NOT EXISTS public.service_categories (
+  service_id UUID REFERENCES public.services(id) ON DELETE CASCADE NOT NULL,
+  category_id UUID REFERENCES public.ticket_categories(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (service_id, category_id)
+);
+
+-- Indexes for service categories
+CREATE INDEX IF NOT EXISTS idx_service_categories_service_id ON public.service_categories(service_id);
+CREATE INDEX IF NOT EXISTS idx_service_categories_category_id ON public.service_categories(category_id);
+
+-- Enable RLS on service categories
+ALTER TABLE public.service_categories ENABLE ROW LEVEL SECURITY;
+
+-- Service categories are readable by all authenticated users
+CREATE POLICY "Service categories are readable by authenticated users" ON public.service_categories
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Only admins and managers can manage service categories
+CREATE POLICY "Admins can manage service categories" ON public.service_categories
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'manager')
+    )
+  );
+
+-- Insert default service-category mappings
+INSERT INTO public.service_categories (service_id, category_id)
+SELECT s.id, c.id
+FROM public.services s
+JOIN public.ticket_categories c ON c.name IN (
+  'Account & Password',
+  'Email',
+  'Microsoft 365 / Teams',
+  'Canvas',
+  'Network / Wi-Fi',
+  'Hardware',
+  'Software',
+  'Printer',
+  'Access Request',
+  'General IT Question'
+)
+WHERE s.name IN (
+  'University Email',
+  'Microsoft 365',
+  'Microsoft Teams',
+  'Canvas',
+  'Network / Wi-Fi',
+  'Computer Support',
+  'Printer Support',
+  'Software Support',
+  'Account & Access',
+  'General IT Support'
+)
+ON CONFLICT (service_id, category_id) DO NOTHING;
+
+-- Additional specific mappings
+INSERT INTO public.service_categories (service_id, category_id)
+SELECT s.id, c.id
+FROM public.services s
+CROSS JOIN public.ticket_categories c
+WHERE
+  (s.name = 'University Email' AND c.name IN ('Account & Password', 'Email'))
+  OR (s.name = 'Microsoft 365' AND c.name = 'Microsoft 365 / Teams')
+  OR (s.name = 'Microsoft Teams' AND c.name = 'Microsoft 365 / Teams')
+  OR (s.name = 'Canvas' AND c.name = 'Canvas')
+  OR (s.name = 'Network / Wi-Fi' AND c.name = 'Network / Wi-Fi')
+  OR (s.name = 'Computer Support' AND c.name IN ('Hardware', 'Software'))
+  OR (s.name = 'Printer Support' AND c.name = 'Printer')
+  OR (s.name = 'Software Support' AND c.name = 'Software')
+  OR (s.name = 'Account & Access' AND c.name IN ('Account & Password', 'Access Request'))
+  OR (s.name = 'General IT Support' AND c.name = 'General IT Question')
+ON CONFLICT (service_id, category_id) DO NOTHING;
+
 -- Function to generate ticket numbers
 CREATE OR REPLACE FUNCTION public.generate_ticket_number()
 RETURNS TEXT AS $$

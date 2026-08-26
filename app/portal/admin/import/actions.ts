@@ -294,6 +294,18 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
     {}
   );
 
+  const serviceCategoryMap = new Map<string, Set<string>>();
+  const { data: mappings } = await supabase
+    .from("service_categories")
+    .select("service_id, category_id");
+
+  (mappings || []).forEach((m: any) => {
+    if (!serviceCategoryMap.has(m.service_id)) {
+      serviceCategoryMap.set(m.service_id, new Set());
+    }
+    serviceCategoryMap.get(m.service_id)!.add(m.category_id);
+  });
+
   const filename = validRows[0]?._filename || "unknown";
 
   let imported = 0;
@@ -319,6 +331,13 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
     if (!serviceId || !categoryId || !requesterId) {
       rejected++;
       errors.push(`Row ${row._rowNum || "?"}: missing service, category, or requester`);
+      continue;
+    }
+
+    const validCategories = serviceCategoryMap.get(serviceId);
+    if (!validCategories || !validCategories.has(categoryId)) {
+      rejected++;
+      errors.push(`Row ${row._rowNum || "?"}: category is not mapped to the selected service`);
       continue;
     }
 

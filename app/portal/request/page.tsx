@@ -12,17 +12,15 @@ export default async function RequestPage() {
     redirect("/auth/sign-in");
   }
 
-  const [servicesResult, categoriesResult] = await Promise.all([
-    supabase.from("services").select("*").eq("is_active", true).order("name"),
-    supabase.from("ticket_categories").select("*").eq("is_active", true).order("name"),
-  ]);
+  const servicesResult = await supabase
+    .from("services")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
 
   const services = servicesResult.data || [];
-  const categories = categoriesResult.data || [];
-  const servicesError = servicesResult.error;
-  const categoriesError = categoriesResult.error;
-  const hasLoadError = Boolean(servicesError || categoriesError);
-  const isEmpty = !hasLoadError && services.length === 0 && categories.length === 0;
+  const hasLoadError = Boolean(servicesResult.error);
+  const isEmpty = !hasLoadError && services.length === 0;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -35,7 +33,6 @@ export default async function RequestPage() {
 
       <RequestForm
         services={services}
-        categories={categories}
         hasLoadError={hasLoadError}
         isEmpty={isEmpty}
       />
