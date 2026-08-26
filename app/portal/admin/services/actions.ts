@@ -180,11 +180,12 @@ export async function getServiceCategories(serviceId: string) {
       category_id,
       category:ticket_categories!inner(*)
     `)
-    .eq("service_id", serviceId)
-    .order("category:name");
+    .eq("service_id", serviceId);
 
   return {
-    categories: (mappings || []).map((m: any) => m.category),
+    categories: (mappings || [])
+      .map((m: any) => m.category)
+      .sort((a: any, b: any) => a.name.localeCompare(b.name)),
   };
 }
 

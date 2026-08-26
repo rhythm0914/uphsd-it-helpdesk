@@ -18,10 +18,11 @@ export async function GET(request: Request) {
       category_id,
       category:ticket_categories!inner(*)
     `)
-    .eq("service_id", serviceId)
-    .order("category:name");
+    .eq("service_id", serviceId);
 
-  const categories = (mappings || []).map((m: any) => m.category);
+  const categories = (mappings || [])
+    .map((m: any) => m.category)
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   return NextResponse.json({ categories });
 }
