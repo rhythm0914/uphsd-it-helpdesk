@@ -103,6 +103,31 @@
   - Made `createClient` async and properly awaited `supabase.auth.getUser()`
   - Verified `npm run build` and `npm run build:vinext` both pass
 
+### Phase 2.9: UPHSD Full Rebrand
+- **Status:** Completed
+- **Commit:** `93c9389` - "feat: align help desk with UPHSD branding"
+- **Work:**
+  - Replaced blue/dark-mode SaaS aesthetic with UPHSD institutional maroon/gold/light theme
+  - Updated `globals.css` with new UPHSD color tokens:
+    - Primary Maroon: #7C0000
+    - Dark Maroon: #5C0000
+    - Gold: #FFB603
+    - Light backgrounds: #FAFAFA, #F7F7F7
+    - Dark text: #1A1A1A
+    - Border: #E5E5E5
+  - Removed blue as primary brand color
+  - Light mode is now the default experience
+  - Redesigned navbar: white background, maroon text, official UPHSD logo
+  - Redesigned hero: clean white background, maroon heading, gold accents
+  - Redesigned services: white cards with subtle borders, maroon icons
+  - Redesign FAQ: clean cards with maroon/gold accents
+  - Added dedicated IT Help Desk Business Hours section
+  - Redesigned footer: maroon background with white/gold text
+  - Updated all CTAs to maroon buttons
+  - Removed placeholder Picsum images from service cards
+  - Added business hours to FAQ and footer
+  - Hardened middleware with complete try/catch wrapper to prevent production 500 crashes
+
 ---
 
 ## 3. Current File Structure
@@ -191,6 +216,10 @@ npm run build:vinext   # Build for Cloudflare Workers
 npm run deploy:vinext  # Deploy to Cloudflare Workers
 ```
 
+### Deployment Prerequisite
+- Set `CLOUDFLARE_API_TOKEN` environment variable before running `npm run deploy:vinext`
+- Alternatively, deploy through the Cloudflare Dashboard using the GitHub integration
+
 ### Production Issue History
 - **Issue:** Production returned HTTP 500 Internal Server Error
 - **Root Cause:** Supabase environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) were not available in the Cloudflare Worker runtime
@@ -198,6 +227,7 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - **Why Cloudflare runtime failed:** The deployed Worker had no `vars` configuration. The generated `dist/server/wrangler.json` had `"vars": {}`
 - **Fix:** Added the public Supabase vars to `wrangler.jsonc` under `[vars]`, which flows through to the generated `dist/server/wrangler.json` and the deployed Worker
 - **Additional fix:** Added defensive error handling in `utils/supabase/middleware.ts` so missing env vars don't crash the entire site
+- **Additional hardening:** Wrapped entire middleware in try/catch to prevent any unhandled exception from causing site-wide 500
 
 ---
 
@@ -207,10 +237,11 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - [x] Update copy to include students as primary audience
 - [x] Remove fake operational metrics
 - [x] Replace Picsum placeholder images with appropriate imagery (still using Picsum, pending official UPHSD imagery)
-- [x] Apply official UPHSD branding colors (maroon, white, blue, gold)
+- [x] Apply official UPHSD branding colors (maroon, white, gold)
 - [x] Add official UPHSD logo/seal assets
 - [x] Update navigation to include FAQ
 - [x] Add business hours
+- [x] Rebrand to UPHSD institutional identity
 
 ### Phase 3: Student/Employee Portal
 - [ ] Create Supabase database schema
@@ -267,6 +298,8 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 ## 7. Git History
 
 ```
+93c9389 feat: align help desk with UPHSD branding
+3a880b5 docs: update PROJECT.md with production fix and current state
 9a3dbc8 fix: resolve production HTTP 500 by adding Supabase env vars to wrangler.jsonc
 8a95396 feat: update landing page branding and audience
 0f8a40b docs: add project documentation
@@ -301,7 +334,7 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - [ ] No secrets are exposed
 - [x] Production build succeeds
 - [x] Cloudflare deployment configuration fixed
-- [ ] Cloudflare deployment verified (pending user redeploy)
+- [ ] Cloudflare deployment verified (pending user redeploy with CLOUDFLARE_API_TOKEN)
 
 ---
 
@@ -313,7 +346,7 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 4. **Priority levels** are configurable (Low, Normal, High, Urgent) but not yet confirmed
 5. **Service categories** are database-driven and configurable
 6. **AI chatbot** is deferred to Phase 8
-7. **Official UPHSD branding** includes maroon, white, blue, and gold
+7. **Official UPHSD branding** includes maroon (#7C0000), white, gold (#FFB603), and dark text (#1A1A1A)
 8. **Request ID format:** `IT-YYYY-NNNNNN` (example)
 9. **Initial statuses:** Pending, In Progress, Completed, Cancelled
 10. **Initial roles:** student, employee, it_staff, admin, manager
@@ -340,4 +373,4 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 ---
 
 *Last updated: 2026-08-26*  
-*Current phase: Phase 2.8 complete, preparing for Phase 3*
+*Current phase: Phase 2.9 complete, preparing for Phase 3*
