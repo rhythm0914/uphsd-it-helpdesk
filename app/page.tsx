@@ -90,6 +90,11 @@ const faqItems = [
       "All UPHSD students and employees can submit requests. IT staff and administrators have separate workspaces.",
   },
   {
+    question: "What are the IT Help Desk business hours?",
+    answer:
+      "Monday through Friday, 8:00 AM to 5:00 PM. Requests submitted outside these hours will be processed on the next business day.",
+  },
+  {
     question: "How do I track my request?",
     answer:
       "Use the Track Request page with your Request ID to see current status, updates, and history.",
@@ -455,6 +460,9 @@ export default function Home() {
               </p>
               <p className="mt-1 text-sm text-foreground/60">
                 University of Perpetual Help System DALTA
+              </p>
+              <p className="mt-1 text-sm text-foreground/60">
+                Monday – Friday, 8:00 AM – 5:00 PM
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-6 text-sm text-foreground/60">
