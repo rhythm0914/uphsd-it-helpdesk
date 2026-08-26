@@ -65,6 +65,7 @@ export async function signUp(formData: FormData) {
         full_name: fullName,
         role: normalizedRole,
       },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback`,
     },
   });
 

@@ -419,6 +419,60 @@ Middleware checks:
 - Confirmation field must match
 - Enforced on signup and password reset
 
+### Supabase Dashboard Configuration
+The following must be configured in the Supabase Dashboard for production:
+
+**Authentication → URL Configuration:**
+- **Site URL:** `https://uphsd-it-helpdesk.rycanano.workers.dev`
+- **Allowed redirect URLs:**
+  - `https://uphsd-it-helpdesk.rycanano.workers.dev/auth/callback`
+  - `http://localhost:3000/auth/callback` (for local development)
+
+**Email Templates:**
+- Ensure confirmation emails reference the production Site URL
+- The application explicitly sets `emailRedirectTo` for signup and password reset emails
+
+### Environment Variables
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (public)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` - Supabase anon/publishable key (public)
+- `NEXT_PUBLIC_BASE_URL` - Application base URL
+  - Production: `https://uphsd-it-helpdesk.rycanano.workers.dev`
+  - Local: `http://localhost:3000`
+
+### Database Initialization
+The Supabase database schema is defined in `supabase/schema.sql`. To initialize production:
+
+1. Open Supabase Dashboard → SQL Editor
+2. Paste contents of `supabase/schema.sql`
+3. Execute the script
+
+This creates:
+- Tables: `profiles`, `services`, `ticket_categories`, `tickets`, `ticket_status_history`, `ticket_messages`, `imports`
+- Enums: `user_role`, `ticket_status`, `ticket_priority`
+- Indexes for performance
+- RLS policies for security
+- Triggers for auto-generated ticket numbers and updated_at timestamps
+- **Default seed data:** 10 services and 10 ticket categories (idempotent via `ON CONFLICT DO NOTHING`)
+
+**Default Services:**
+University Email, Microsoft 365, Microsoft Teams, Canvas, Network / Wi-Fi, Computer Support, Printer Support, Software Support, Account & Access, General IT Support
+
+**Default Categories:**
+Account & Password, Email, Microsoft 365 / Teams, Canvas, Network / Wi-Fi, Hardware, Software, Printer, Access Request, General IT Question
+
+### Ongoing Service/Category Management
+After initialization, admin/manager users can manage services and categories at:
+- `/portal/admin/services`
+
+Do not manually edit database records unless necessary. Use the admin UI for ongoing management.
+
+### Request Form Data
+`/portal/request` queries active services and categories from the database. If the database is empty or unavailable:
+- Error state: Shows "Services and categories are currently unavailable"
+- Empty state: Shows "No services or categories are configured yet"
+
+Users cannot submit tickets without valid service and category selections.
+
 ---
 
 ## 7. Ticket System (Phase 3)
@@ -522,6 +576,18 @@ Middleware checks:
 - [x] Role-based access control
 - [x] CSV formula injection protection
 
+### Phase 6.3: Production Data Initialization & Auth Callback Hardening
+- **Status:** Completed and Deployed
+- **Work:**
+  - Added `emailRedirectTo` to signup server action pointing to `/auth/callback`
+  - Added `NEXT_PUBLIC_BASE_URL` environment variable with production fallback
+  - Updated `.env.example` with `NEXT_PUBLIC_BASE_URL`
+  - Updated `wrangler.jsonc` with `NEXT_PUBLIC_BASE_URL`
+  - Improved `/portal/request` error/empty states for services/categories
+  - Documented Supabase dashboard configuration requirements
+  - Documented database initialization and seed data process
+  - Verified production deployment
+
 ### Phase 7: Testing
 - [ ] Unit tests
 - [ ] Integration tests
@@ -544,6 +610,7 @@ Middleware checks:
 ## 7. Git History
 
 ```
+(uncommitted) Phase 6.3: Production Data Seeding + Auth Callback Hardening
 (uncommitted) Phase 6.2: Import/Export & Duplicate Detection
 (uncommitted) Phase 6: Authentication & User Onboarding
 (uncommitted) Phase 5: Administrator Dashboard
@@ -582,6 +649,8 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - [x] Archive works
 - [x] Import works
 - [x] Duplicate detection works
+- [x] Production auth callback configured
+- [x] Default services/categories seeded
 - [ ] Mobile layout works
 - [ ] Error states work
 - [ ] Unauthorized access is blocked
@@ -627,4 +696,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-27*  
-*Current phase: Phase 6.2 complete, preparing for Phase 7*
+*Current phase: Phase 6.3 complete, preparing for Phase 7*

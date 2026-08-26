@@ -10,7 +10,7 @@ async function submitRequest(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
   const serviceId = formData.get("service_id") as string;
@@ -50,7 +50,7 @@ export default async function RequestPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
   const [servicesResult, categoriesResult] = await Promise.all([
@@ -60,6 +60,10 @@ export default async function RequestPage() {
 
   const services = servicesResult.data || [];
   const categories = categoriesResult.data || [];
+  const servicesError = servicesResult.error;
+  const categoriesError = categoriesResult.error;
+  const hasLoadError = servicesError || categoriesError;
+  const isEmpty = !hasLoadError && services.length === 0 && categories.length === 0;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -71,7 +75,24 @@ export default async function RequestPage() {
       </div>
 
       <form action={submitRequest} className="space-y-6">
-        <div className="rounded-2xl border border-border bg-background p-6 space-y-6">
+        {hasLoadError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+            <p className="text-sm text-red-700">
+              Services and categories are currently unavailable. Please try again later or contact IT support.
+            </p>
+          </div>
+        )}
+
+        {isEmpty && !hasLoadError && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+            <p className="text-sm text-amber-700">
+              No services or categories are configured yet. Please contact IT support to set up available services.
+            </p>
+          </div>
+        )}
+
+        {!hasLoadError && !isEmpty && (
+          <div className="rounded-2xl border border-border bg-background p-6 space-y-6">
           <div>
             <label htmlFor="service_id" className="block text-sm font-medium mb-2">
               Service <span className="text-brand-primary">*</span>
@@ -156,6 +177,7 @@ export default async function RequestPage() {
             </select>
           </div>
         </div>
+        )}
 
         <div className="flex items-center justify-end gap-4">
           <a
