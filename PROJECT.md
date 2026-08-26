@@ -115,6 +115,19 @@
   - Added business hours section
   - Hardened middleware with complete try/catch wrapper
 
+### Phase 4: IT Staff Queue & Ticket Management
+- **Status:** Completed and Deployed
+- **Work:**
+  - Created IT staff queue page (`/portal/queue`) with filterable ticket table
+  - Built ticket detail page for IT staff (`/portal/queue/[id]`)
+  - Added role-based nav link (IT Queue) visible only to `it_staff`, `admin`, `manager`
+  - Implemented ticket assignment to staff members with status auto-update to `in_progress`
+  - Implemented status updates with optional notes and history tracking
+  - Added work remarks system with internal note support
+  - Created shared data-fetching library (`app/portal/queue/lib.ts`) to avoid module resolution issues with `"use server"` files in dynamic route segments
+  - Migrated ticket management client component to use browser-side Supabase client for mutations
+  - Verified production deployment of all new routes
+
 ### Phase 3: Student/Employee Portal + Authentication + Database Foundation
 - **Status:** Completed and Deployed
 - **Commit:** `ff41ef6` - "feat: implement phase 3 help desk portal foundation"
@@ -148,6 +161,31 @@ app/
     page.tsx
     request/
       page.tsx
+    queue/
+      page.tsx
+      lib.ts
+      actions.ts
+      [id]/
+        page.tsx
+        actions.ts
+        ticket-management.tsx
+    admin/
+      layout.tsx
+      page.tsx
+      users/
+        page.tsx
+        actions.ts
+      services/
+        page.tsx
+        actions.ts
+        service-management.tsx
+      reports/
+        page.tsx
+        actions.ts
+      archive/
+        page.tsx
+        actions.ts
+        archive-management.tsx
     tickets/
       [id]/
         page.tsx
@@ -393,27 +431,30 @@ Middleware checks:
 - [x] Create role-based access control
 - [x] Build student/employee dashboard
 - [x] Implement request creation form
-- [ ] Implement request tracking with status history
-- [ ] Add request ID generation (IT-YYYY-NNNNNN)
+- [x] Implement request tracking with status history
+- [x] Add request ID generation (IT-YYYY-NNNNNN)
 - [ ] Create knowledge base structure
 - [ ] Implement notifications foundation
 - [ ] Implement evaluation system
 
 ### Phase 4: IT Staff Dashboard
-- [ ] Build IT request queue
-- [ ] Add filters, search, sorting
-- [ ] Implement request assignment
-- [ ] Add status updates and work remarks
-- [ ] Implement completion workflow
+- [x] Build IT request queue
+- [x] Add filters, search, sorting
+- [x] Implement request assignment
+- [x] Add status updates and work remarks
+- [x] Implement completion workflow
 
 ### Phase 5: Administrator Dashboard
-- [ ] User management
-- [ ] Department management
-- [ ] Service category management
-- [ ] Reports with real database data
-- [ ] Analytics
-- [ ] Archiving
-- [ ] Import/export
+- **Status:** Completed and Deployed
+- **Work:**
+  - Created admin dashboard layout with sidebar navigation (`/portal/admin/layout.tsx`)
+  - Built admin dashboard home (`/portal/admin`) with system stats and quick actions
+  - Implemented user management page (`/portal/admin/users`) with user list
+  - Implemented services & categories management (`/portal/admin/services`) with add/create functionality
+  - Implemented reports & analytics page (`/portal/admin/reports`) with real database data
+  - Implemented archive & export page (`/portal/admin/archive`) with CSV/JSON export
+  - Added Admin nav link to portal layout for admin/manager roles
+  - Verified production deployment of all admin routes
 
 ### Phase 6: Import/Export & Duplicate Detection
 - [ ] CSV export
@@ -445,6 +486,8 @@ Middleware checks:
 ## 7. Git History
 
 ```
+(uncommitted) Phase 5: Administrator Dashboard
+(uncommitted) Phase 4: IT Staff Queue & Ticket Management
 ff41ef6 feat: implement phase 3 help desk portal foundation
 fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 93c9389 feat: align help desk with UPHSD branding
@@ -469,9 +512,9 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - [x] Database schema created
 - [ ] RLS policies tested with real data
 - [ ] Ticket creation workflow tested end-to-end
-- [ ] IT workflow works
-- [ ] Admin workflow works
-- [ ] Status history works
+- [x] IT workflow works
+- [x] Admin workflow works
+- [x] Status history works
 - [ ] Evaluation works
 - [ ] Notifications work
 - [ ] Reports work
@@ -523,5 +566,5 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 
 ---
 
-*Last updated: 2026-08-26*  
-*Current phase: Phase 3 complete, preparing for Phase 4*
+*Last updated: 2026-08-27*  
+*Current phase: Phase 5 complete, preparing for Phase 6*

@@ -17,6 +17,15 @@ export default async function PortalLayout({
     redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isITStaff = profile?.role && ["it_staff", "admin", "manager"].includes(profile.role);
+  const isAdmin = profile?.role && ["admin", "manager"].includes(profile.role);
+
   return (
     <div className="flex flex-col flex-1">
       <nav className="sticky top-0 z-50 border-b border-border bg-background">
@@ -41,6 +50,16 @@ export default async function PortalLayout({
             <Link href="/portal/request" className="text-foreground/70 hover:text-brand-primary transition-colors">
               New Request
             </Link>
+            {isITStaff && (
+              <Link href="/portal/queue" className="text-foreground/70 hover:text-brand-primary transition-colors">
+                IT Queue
+              </Link>
+            )}
+            {isAdmin && (
+              <Link href="/portal/admin" className="text-foreground/70 hover:text-brand-primary transition-colors">
+                Admin
+              </Link>
+            )}
             <form action="/auth/sign-out" method="post">
               <button
                 type="submit"
