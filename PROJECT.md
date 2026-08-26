@@ -607,6 +607,57 @@ Users cannot submit tickets without valid service and category selections.
   - Preserved all existing tickets and data compatibility
   - Verified production deployment
 
+### Phase 6.4.1: Admin Authorization & Portal Caching Fix
+- **Status:** Completed, not yet deployed
+- **Commit:** `f15599b` - "fix: resolve admin authorization and portal caching"
+- **Root Cause:**
+  - vinext static analysis cannot detect dynamic API usage (`headers()`, `cookies()`, `redirect()`), causing authenticated portal routes to risk incorrect caching/statically rendered responses
+  - Profile lookup errors were silently ignored, treating database/RLS failures identically to "not an admin"
+  - Inconsistent unauthenticated redirects (`/login` vs `/auth/sign-in`)
+- **Fix:**
+  - Added `export const dynamic = 'force-dynamic'` to all authenticated portal pages to prevent vinext from caching user-specific responses
+  - Added explicit Supabase profile error handling in all portal layouts/pages
+  - Standardized all unauthenticated redirects to `/auth/sign-in`
+  - Admin authorization now uses explicit role comparison (`role !== 'admin' && role !== 'manager'`) instead of `.includes()`
+- **Files Changed:**
+  - `app/portal/admin/layout.tsx`
+  - `app/portal/admin/page.tsx`
+  - `app/portal/admin/reports/page.tsx`
+  - `app/portal/admin/services/page.tsx`
+  - `app/portal/admin/users/page.tsx`
+  - `app/portal/layout.tsx`
+  - `app/portal/page.tsx`
+  - `app/portal/queue/page.tsx`
+  - `app/portal/queue/[id]/page.tsx`
+  - `app/portal/request/page.tsx`
+  - `app/portal/tickets/[id]/page.tsx`
+- **Authorization Logic:**
+  ```
+  supabase.auth.getUser() → user.id
+  → profiles query WHERE id = user.id
+  → profiles.role
+  → admin/manager → allow
+  → all others → redirect /portal
+  ```
+- **Navigation:**
+  - Admin Dashboard visible to `admin` and `manager` roles
+  - IT Queue visible to `it_staff`, `admin`, and `manager` roles
+  - Client-side nav hiding is complementary; server-side authorization remains authoritative
+- **Verification:**
+  - `npm run lint` — PASS
+  - `npm run build` — PASS
+  - `npm run build:vinext` — PASS
+- **Production Deployment:** Pending — requires `CLOUDFLARE_API_TOKEN`
+
+### Phase 6.4.2: Service-Category Order Syntax Fix
+- **Status:** Completed and Deployed
+- **Commit:** `f6e65fe` - "fix: resolve service-category order syntax and empty results"
+- **Root Cause:** `.order("category:name")` is invalid Supabase JS syntax, causing PostgREST parse errors that returned empty arrays instead of mapped categories
+- **Fix:** Removed invalid `.order("category:name")` and replaced with client-side `localeCompare` sorting
+- **Files Changed:**
+  - `app/api/service-categories/route.ts`
+  - `app/portal/admin/services/actions.ts`
+
 ### Phase 7: Testing
 - [ ] Unit tests
 - [ ] Integration tests
@@ -629,12 +680,13 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
-(uncommitted) Phase 6.4: Service → Category Relationship & Dynamic Category Filtering
-(uncommitted) Phase 6.3: Production Data Seeding + Auth Callback Hardening
-(uncommitted) Phase 6.2: Import/Export & Duplicate Detection
-(uncommitted) Phase 6: Authentication & User Onboarding
-(uncommitted) Phase 5: Administrator Dashboard
-(uncommitted) Phase 4: IT Staff Queue & Ticket Management
+f6e65fe fix: resolve service-category order syntax and empty results
+f15599b fix: resolve admin authorization and portal caching
+be979ec feat: implement service-category relationship and dynamic filtering (Phase 6.4)
+6bf66ff fix: implement dependent service/category dropdowns in request form
+c2af438 fix: harden production auth callbacks and seed default help desk data (Phase 6.3)
+3a405e4 feat: implement phase 6.2 import/export and duplicate detection
+299f1b6 feat: implement authentication and user onboarding (Phase 6.1)
 ff41ef6 feat: implement phase 3 help desk portal foundation
 fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 93c9389 feat: align help desk with UPHSD branding
@@ -660,7 +712,7 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - [ ] RLS policies tested with real data
 - [ ] Ticket creation workflow tested end-to-end
 - [x] IT workflow works
-- [x] Admin workflow works
+- [x] Admin workflow works (server-side authorization verified)
 - [x] Status history works
 - [ ] Evaluation works
 - [ ] Notifications work
@@ -674,13 +726,16 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - [x] Service-category relationship implemented
 - [x] Dynamic category filtering implemented
 - [x] Server-side service/category validation implemented
+- [x] Admin authorization hardened with explicit error handling
+- [x] Portal pages forced dynamic to prevent caching
 - [ ] Mobile layout works
 - [ ] Error states work
-- [ ] Unauthorized access is blocked
+- [x] Unauthorized access is blocked
 - [ ] No secrets are exposed
 - [x] Production build succeeds
 - [x] Cloudflare deployment configuration fixed
 - [x] Cloudflare deployment verified
+- [ ] Admin authorization fix deployed to production
 
 ---
 
@@ -719,4 +774,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-27*  
-*Current phase: Phase 6.4 complete, preparing for Phase 7*
+*Current phase: Phase 6.4.2 complete, preparing for Phase 7*
