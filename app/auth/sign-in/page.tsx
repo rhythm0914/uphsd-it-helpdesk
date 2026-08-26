@@ -1,0 +1,107 @@
+import { signIn } from "../actions";
+import Link from "next/link";
+import Image from "next/image";
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>;
+}) {
+  const params = await searchParams;
+  const error = params?.error;
+  const message = params?.message;
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <Image
+              src="/branding/uphsd-logo.png"
+              alt="UPHSD Logo"
+              width={120}
+              height={40}
+              className="h-10 w-auto"
+            />
+          </Link>
+          <h1 className="text-2xl font-semibold">Sign In</h1>
+          <p className="mt-2 text-sm text-foreground/60">
+            Access the IT Help Desk portal
+          </p>
+        </div>
+
+        <form action={signIn} className="space-y-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+              <p className="text-sm text-red-700">
+                {decodeURIComponent(error)}
+              </p>
+            </div>
+          )}
+
+          {message && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+              <p className="text-sm text-green-700">
+                {message === "check_email" && "Please check your UPHSD email to verify your account before signing in."}
+                {message === "password_updated" && "Password updated successfully. Please sign in."}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              placeholder="you@perpetual.edu.ph"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-brand-primary hover:text-brand-primary-hover font-medium"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-foreground/60">
+            Don&apos;t have an account?{" "}
+            <Link href="/auth/sign-up" className="text-brand-primary hover:text-brand-primary-hover font-medium">
+              Create account
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

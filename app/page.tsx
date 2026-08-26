@@ -131,7 +131,7 @@ export default function Home() {
               FAQ
             </Link>
             <Link
-              href="/login"
+              href="/auth/sign-in"
               className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
             >
               Sign In
@@ -428,12 +428,12 @@ export default function Home() {
                 >
                   Submit a Request
                 </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-surface"
-                >
-                  Sign In
-                </Link>
+                 <Link
+                   href="/auth/sign-in"
+                   className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-surface"
+                 >
+                   Sign In
+                 </Link>
               </div>
             </div>
           </div>

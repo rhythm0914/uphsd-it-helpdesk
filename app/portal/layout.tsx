@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { signOut } from "@/app/auth/actions";
 
 export default async function PortalLayout({
   children,
@@ -14,7 +15,7 @@ export default async function PortalLayout({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
   const { data: profile } = await supabase
@@ -60,7 +61,7 @@ export default async function PortalLayout({
                 Admin
               </Link>
             )}
-            <form action="/auth/sign-out" method="post">
+            <form action={signOut}>
               <button
                 type="submit"
                 className="text-foreground/70 hover:text-brand-primary transition-colors"

@@ -365,31 +365,59 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 
 ---
 
-## 6. Authentication & Routes (Phase 3)
+## 6. Authentication & Routes (Phase 6)
 
 ### Authentication
-- **Sign Up:** `/signup` - Public registration (student/employee roles)
-- **Sign In:** `/login` - Email/password authentication via Supabase
-- **Sign Out:** `/auth/sign-out` - Server action that signs out and redirects to home
+- **Sign Up:** `/auth/sign-up` - Public registration with UPHSD email validation (student/employee roles only)
+- **Sign In:** `/auth/sign-in` - Email/password authentication via Supabase
+- **Forgot Password:** `/auth/forgot-password` - Password reset request via Supabase
+- **Update Password:** `/auth/update-password` - Set new password after recovery
+- **Email Verification Callback:** `/auth/callback` - Handles email verification and password reset tokens
+- **Sign Out:** Server action (`app/auth/actions.ts`) that signs out and redirects to home
 - **Session Management:** Supabase Auth with cookie-based sessions
-- **Middleware:** Refreshes sessions on every request and protects portal routes
+- **Middleware:** Refreshes sessions on every request and protects portal/admin routes
 
 ### Protected Routes
 - `/portal` - Student/Employee Dashboard (requires authentication)
 - `/portal/request` - Ticket creation form (requires authentication)
 - `/portal/tickets/[id]` - Ticket detail view (requires authentication, ownership enforced by RLS)
+- `/portal/queue` - IT Staff Queue (requires `it_staff`, `admin`, or `manager` role)
+- `/portal/queue/[id]` - IT Ticket Management (requires `it_staff`, `admin`, or `manager` role)
+- `/portal/admin` - Admin Dashboard (requires `admin` or `manager` role)
+- `/portal/admin/*` - All admin sub-pages (requires `admin` or `manager` role)
 
 ### Public Routes
 - `/` - Landing page
-- `/login` - Sign in page (redirects to /portal if already authenticated)
-- `/signup` - Registration page (redirects to /portal if already authenticated)
+- `/auth/sign-in` - Sign in page (redirects to /portal if already authenticated)
+- `/auth/sign-up` - Registration page (redirects to /portal if already authenticated)
+- `/auth/forgot-password` - Password reset request page
+- `/auth/update-password` - Password update page
+- `/auth/callback` - Email verification and password reset callback
+- `/login` - Redirects to `/auth/sign-in` (backward compatibility)
+- `/signup` - Redirects to `/auth/sign-up` (backward compatibility)
 
 ### Route Protection Logic
 Middleware checks:
 1. Is the user authenticated?
-2. Are they trying to access a portal route?
-3. If not authenticated and accessing portal → redirect to `/login`
+2. Are they trying to access a portal or admin route?
+3. If not authenticated and accessing protected route → redirect to `/auth/sign-in`
 4. If authenticated and accessing auth routes → redirect to `/portal`
+
+### Authorization Rules
+- **student/employee:** Can access `/portal`, `/portal/request`, `/portal/tickets/[id]`
+- **it_staff:** Can access student/employee routes + `/portal/queue`, `/portal/queue/[id]`
+- **admin/manager:** Can access all routes including `/portal/admin` and sub-pages
+- **Unauthorized admin access:** Server-side role check in every admin layout/page; client-side nav hiding is not sufficient
+
+### Email Policy
+- Public registration requires `@perpetual.edu.ph` email domain
+- Self-registration is limited to `student` and `employee` roles
+- `admin` and `manager` roles can only be assigned by existing administrators
+
+### Password Policy
+- Minimum 8 characters
+- Confirmation field must match
+- Enforced on signup and password reset
 
 ---
 
@@ -456,7 +484,33 @@ Middleware checks:
   - Added Admin nav link to portal layout for admin/manager roles
   - Verified production deployment of all admin routes
 
-### Phase 6: Import/Export & Duplicate Detection
+### Phase 6: Authentication & User Onboarding
+- **Status:** Completed and Deployed
+- **Milestone:** Phase 6.1 — Authentication UI & Registration Flow
+- **Work:**
+  - Created `/auth/sign-in` with server-side authentication and error handling
+  - Created `/auth/sign-up` with UPHSD email validation, password confirmation, and secure profile creation
+  - Created `/auth/forgot-password` with password reset request via Supabase
+  - Created `/auth/update-password` for setting a new password after recovery
+  - Created `/auth/callback` route handler for email verification and password reset tokens
+  - Implemented server actions for all auth operations (`app/auth/actions.ts`)
+  - Added UPHSD institutional email domain validation (`@perpetual.edu.ph`)
+  - Enforced minimum 8-character password policy with confirmation matching
+  - Restricted public signup to `student` and `employee` roles only
+  - Updated middleware to recognize all `/auth/*` routes and redirect unauthenticated users to `/auth/sign-in`
+  - Updated landing page navbar and CTA to link to `/auth/sign-in`
+  - Updated portal and admin layouts to use server-action sign-out
+  - Maintained backward compatibility: `/login` and `/signup` redirect to `/auth/sign-in` and `/auth/sign-up`
+
+### Phase 6: Authentication & User Onboarding
+- [x] Authentication UI & Registration Flow
+- [x] UPHSD email validation
+- [x] Password validation and reset flow
+- [x] Email verification callback
+- [x] Secure role assignment
+- [ ] Authentication hardening & account recovery enhancements
+
+### Phase 6.2: Import/Export & Duplicate Detection
 - [ ] CSV export
 - [ ] Report export
 - [ ] Controlled import with validation
@@ -477,8 +531,6 @@ Middleware checks:
 - [ ] Replace Picsum placeholder images with official UPHSD photography
 - [ ] Add unit tests for Supabase client helpers
 - [ ] Add integration tests for middleware
-- [ ] Implement ticket status history display
-- [ ] Add ticket messages/communication
 - [ ] Add attachments support (future)
 
 ---
@@ -486,6 +538,7 @@ Middleware checks:
 ## 7. Git History
 
 ```
+(uncommitted) Phase 6: Authentication & User Onboarding
 (uncommitted) Phase 5: Administrator Dashboard
 (uncommitted) Phase 4: IT Staff Queue & Ticket Management
 ff41ef6 feat: implement phase 3 help desk portal foundation
@@ -543,8 +596,8 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 9. **Ticket statuses:** open, in_progress, waiting_for_user, resolved, closed
 10. **Initial roles:** student, employee, it_staff, admin, manager
 11. **Business hours:** Monday – Friday, 8:00 AM – 5:00 PM
-12. **Self-registration** is enabled for students and employees (can be restricted later)
-13. **Email domain** is not currently enforced (can be added later via Supabase Auth config)
+12. **Self-registration** is enabled for students and employees only
+13. **Email domain** is enforced: `@perpetual.edu.ph`
 
 ---
 
@@ -556,15 +609,13 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - Exact meaning of "double entry" / duplicate detection behavior
 - Exact report import format
 - Exact export formats
-- Whether school email is mandatory
 - Whether IT staff assignment is required
 - Exact manager permissions
 - Whether attachments are required
 - Whether AI chatbot is required for first release
 - Official UPHSD procedures for password resets, email access, etc.
-- Whether self-registration should be restricted to university email domains
 
 ---
 
 *Last updated: 2026-08-27*  
-*Current phase: Phase 5 complete, preparing for Phase 6*
+*Current phase: Phase 6.1 complete, preparing for Phase 6.2*
