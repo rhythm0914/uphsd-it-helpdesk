@@ -108,25 +108,26 @@
 - **Commit:** `93c9389` - "feat: align help desk with UPHSD branding"
 - **Work:**
   - Replaced blue/dark-mode SaaS aesthetic with UPHSD institutional maroon/gold/light theme
-  - Updated `globals.css` with new UPHSD color tokens:
-    - Primary Maroon: #7C0000
-    - Dark Maroon: #5C0000
-    - Gold: #FFB603
-    - Light backgrounds: #FAFAFA, #F7F7F7
-    - Dark text: #1A1A1A
-    - Border: #E5E5E5
+  - Updated `globals.css` with new UPHSD color tokens
   - Removed blue as primary brand color
   - Light mode is now the default experience
-  - Redesigned navbar: white background, maroon text, official UPHSD logo
-  - Redesigned hero: clean white background, maroon heading, gold accents
-  - Redesigned services: white cards with subtle borders, maroon icons
-  - Redesign FAQ: clean cards with maroon/gold accents
-  - Added dedicated IT Help Desk Business Hours section
-  - Redesigned footer: maroon background with white/gold text
-  - Updated all CTAs to maroon buttons
-  - Removed placeholder Picsum images from service cards
-  - Added business hours to FAQ and footer
-  - Hardened middleware with complete try/catch wrapper to prevent production 500 crashes
+  - Redesigned navbar, hero, services, FAQ, footer
+  - Added business hours section
+  - Hardened middleware with complete try/catch wrapper
+
+### Phase 3: Student/Employee Portal + Authentication + Database Foundation
+- **Status:** Completed and Deployed
+- **Commit:** `ff41ef6` - "feat: implement phase 3 help desk portal foundation"
+- **Work:**
+  - Created Supabase database schema (`supabase/schema.sql`)
+  - Implemented authentication pages (`/login`, `/signup`)
+  - Created protected portal layout (`/portal/layout.tsx`)
+  - Built student/employee dashboard (`/portal`)
+  - Implemented ticket creation form (`/portal/request`)
+  - Created ticket detail page (`/portal/tickets/[id]`)
+  - Updated middleware with route protection
+  - Added server-side authorization checks
+  - Verified production deployment
 
 ---
 
@@ -138,6 +139,18 @@ app/
   globals.css
   layout.tsx
   page.tsx
+  login/
+    page.tsx
+  signup/
+    page.tsx
+  portal/
+    layout.tsx
+    page.tsx
+    request/
+      page.tsx
+    tickets/
+      [id]/
+        page.tsx
 middleware.ts
 utils/
   supabase/
@@ -152,6 +165,8 @@ public/
   next.svg
   vercel.svg
   window.svg
+supabase/
+  schema.sql
 vite.config.ts
 wrangler.jsonc
 next.config.ts
@@ -189,6 +204,87 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8b
 ```
 
 **Note:** These are public Supabase publishable keys, not secrets. They are safe to include in the Worker configuration. The private service-role key is never committed.
+
+---
+
+## 5. Database Schema (Phase 3)
+
+### Tables Created
+
+#### `profiles`
+- `id` (UUID, PK, references auth.users)
+- `email` (TEXT, NOT NULL)
+- `full_name` (TEXT, NOT NULL)
+- `role` (user_role enum: student, employee, it_staff, admin, manager)
+- `department` (TEXT, nullable)
+- `student_number` (TEXT, nullable)
+- `employee_id` (TEXT, nullable)
+- `phone` (TEXT, nullable)
+- `avatar_url` (TEXT, nullable)
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+
+#### `services`
+- `id` (UUID, PK)
+- `name` (TEXT, UNIQUE, NOT NULL)
+- `description` (TEXT, nullable)
+- `is_active` (BOOLEAN, DEFAULT TRUE)
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+
+#### `ticket_categories`
+- `id` (UUID, PK)
+- `name` (TEXT, UNIQUE, NOT NULL)
+- `description` (TEXT, nullable)
+- `is_active` (BOOLEAN, DEFAULT TRUE)
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+
+#### `tickets`
+- `id` (UUID, PK)
+- `ticket_number` (TEXT, UNIQUE, NOT NULL)
+- `requester_id` (UUID, FK to profiles)
+- `assigned_to` (UUID, FK to profiles, nullable)
+- `service_id` (UUID, FK to services)
+- `category_id` (UUID, FK to ticket_categories)
+- `subject` (TEXT, NOT NULL)
+- `description` (TEXT, NOT NULL)
+- `priority` (ticket_priority enum: low, normal, high, urgent)
+- `status` (ticket_status enum: open, in_progress, waiting_for_user, resolved, closed)
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+- `closed_at` (TIMESTAMPTZ, nullable)
+
+#### `ticket_status_history`
+- `id` (UUID, PK)
+- `ticket_id` (UUID, FK to tickets)
+- `old_status` (ticket_status, nullable)
+- `new_status` (ticket_status, NOT NULL)
+- `changed_by` (UUID, FK to profiles, nullable)
+- `notes` (TEXT, nullable)
+- `created_at` (TIMESTAMPTZ)
+
+#### `ticket_messages`
+- `id` (UUID, PK)
+- `ticket_id` (UUID, FK to tickets)
+- `sender_id` (UUID, FK to profiles)
+- `message` (TEXT, NOT NULL)
+- `is_internal` (BOOLEAN, DEFAULT FALSE)
+- `created_at` (TIMESTAMPTZ)
+
+### Row Level Security (RLS)
+
+All tables have RLS enabled with the following policies:
+- **profiles:** Users can view/update their own profile. Admins can view all profiles.
+- **services/ticket_categories:** Readable by all authenticated users.
+- **tickets:** Users can view their own tickets. IT staff/admin/manager can view all tickets. Users can create tickets. IT staff/admin/manager can update tickets.
+- **ticket_status_history:** Users can view history of accessible tickets.
+- **ticket_messages:** Users can view/create messages for accessible tickets.
+
+### Default Data
+- 10 default services inserted
+- 10 default ticket categories inserted
+- Ticket numbers auto-generated using database trigger (`IT-YYYY-NNNNNN` format)
 
 ---
 
@@ -231,25 +327,73 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 
 ---
 
-## 6. Current Known Issues / TODOs
+## 6. Authentication & Routes (Phase 3)
 
-### Landing Page
-- [x] Update copy to include students as primary audience
-- [x] Remove fake operational metrics
-- [x] Replace Picsum placeholder images with appropriate imagery (still using Picsum, pending official UPHSD imagery)
-- [x] Apply official UPHSD branding colors (maroon, white, gold)
-- [x] Add official UPHSD logo/seal assets
-- [x] Update navigation to include FAQ
-- [x] Add business hours
-- [x] Rebrand to UPHSD institutional identity
+### Authentication
+- **Sign Up:** `/signup` - Public registration (student/employee roles)
+- **Sign In:** `/login` - Email/password authentication via Supabase
+- **Sign Out:** `/auth/sign-out` - Server action that signs out and redirects to home
+- **Session Management:** Supabase Auth with cookie-based sessions
+- **Middleware:** Refreshes sessions on every request and protects portal routes
+
+### Protected Routes
+- `/portal` - Student/Employee Dashboard (requires authentication)
+- `/portal/request` - Ticket creation form (requires authentication)
+- `/portal/tickets/[id]` - Ticket detail view (requires authentication, ownership enforced by RLS)
+
+### Public Routes
+- `/` - Landing page
+- `/login` - Sign in page (redirects to /portal if already authenticated)
+- `/signup` - Registration page (redirects to /portal if already authenticated)
+
+### Route Protection Logic
+Middleware checks:
+1. Is the user authenticated?
+2. Are they trying to access a portal route?
+3. If not authenticated and accessing portal → redirect to `/login`
+4. If authenticated and accessing auth routes → redirect to `/portal`
+
+---
+
+## 7. Ticket System (Phase 3)
+
+### Ticket Lifecycle
+1. **open** - Newly submitted request
+2. **in_progress** - IT staff is working on it
+3. **waiting_for_user** - Waiting for requester response
+4. **resolved** - Issue resolved, awaiting confirmation
+5. **closed** - Fully completed
+
+### Priority Levels
+- **low** - Minor issue, no immediate impact
+- **normal** - Standard request
+- **high** - Important, affects work/study
+- **urgent** - Critical, blocking work/study
+
+### Ticket Number Format
+- Auto-generated: `IT-YYYY-NNNNNN` (e.g., `IT-2026-000001`)
+- Generated by database trigger on insert
+- Human-readable, unique per ticket
+
+### Ticket Creation
+- Service selection (required)
+- Category selection (required)
+- Subject (required, max 200 chars)
+- Description (required)
+- Priority (optional, defaults to normal)
+- Status auto-set to `open`
+
+---
+
+## 8. Current Known Issues / TODOs
 
 ### Phase 3: Student/Employee Portal
-- [ ] Create Supabase database schema
-- [ ] Implement authentication (login/logout)
-- [ ] Create role-based access control
-- [ ] Build student/employee dashboard
-- [ ] Implement request creation form
-- [ ] Implement request tracking
+- [x] Create Supabase database schema
+- [x] Implement authentication (login/logout)
+- [x] Create role-based access control
+- [x] Build student/employee dashboard
+- [x] Implement request creation form
+- [ ] Implement request tracking with status history
 - [ ] Add request ID generation (IT-YYYY-NNNNNN)
 - [ ] Create knowledge base structure
 - [ ] Implement notifications foundation
@@ -292,12 +436,17 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - [ ] Replace Picsum placeholder images with official UPHSD photography
 - [ ] Add unit tests for Supabase client helpers
 - [ ] Add integration tests for middleware
+- [ ] Implement ticket status history display
+- [ ] Add ticket messages/communication
+- [ ] Add attachments support (future)
 
 ---
 
 ## 7. Git History
 
 ```
+ff41ef6 feat: implement phase 3 help desk portal foundation
+fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 93c9389 feat: align help desk with UPHSD branding
 3a880b5 docs: update PROJECT.md with production fix and current state
 9a3dbc8 fix: resolve production HTTP 500 by adding Supabase env vars to wrangler.jsonc
@@ -315,11 +464,11 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 
 - [x] Landing page loads
 - [x] Navigation works
-- [ ] Authentication works
-- [ ] Protected routes work
-- [ ] Database connection works
-- [ ] RLS works
-- [ ] Employee workflow works
+- [x] Authentication works
+- [x] Protected routes work
+- [x] Database schema created
+- [ ] RLS policies tested with real data
+- [ ] Ticket creation workflow tested end-to-end
 - [ ] IT workflow works
 - [ ] Admin workflow works
 - [ ] Status history works
@@ -334,7 +483,7 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - [ ] No secrets are exposed
 - [x] Production build succeeds
 - [x] Cloudflare deployment configuration fixed
-- [ ] Cloudflare deployment verified (pending user redeploy with CLOUDFLARE_API_TOKEN)
+- [x] Cloudflare deployment verified
 
 ---
 
@@ -343,34 +492,36 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 1. **Cloudflare Workers + vinext** is the correct deployment path for full-stack Next.js 16
 2. **Supabase** is the backend platform (authentication + PostgreSQL)
 3. **Students are primary users** alongside employees
-4. **Priority levels** are configurable (Low, Normal, High, Urgent) but not yet confirmed
+4. **Priority levels** are configurable (Low, Normal, High, Urgent)
 5. **Service categories** are database-driven and configurable
 6. **AI chatbot** is deferred to Phase 8
 7. **Official UPHSD branding** includes maroon (#7C0000), white, gold (#FFB603), and dark text (#1A1A1A)
-8. **Request ID format:** `IT-YYYY-NNNNNN` (example)
-9. **Initial statuses:** Pending, In Progress, Completed, Cancelled
+8. **Ticket number format:** `IT-YYYY-NNNNNN` (auto-generated by database trigger)
+9. **Ticket statuses:** open, in_progress, waiting_for_user, resolved, closed
 10. **Initial roles:** student, employee, it_staff, admin, manager
 11. **Business hours:** Monday – Friday, 8:00 AM – 5:00 PM
+12. **Self-registration** is enabled for students and employees (can be restricted later)
+13. **Email domain** is not currently enforced (can be added later via Supabase Auth config)
 
 ---
 
 ## 10. Unresolved Client Requirements
 
 - Exact notification mechanism (in-app only for now)
-- Exact priority levels (configurable, not yet confirmed)
+- Exact priority levels (configurable: low, normal, high, urgent)
 - Exact scheduling rules
 - Exact meaning of "double entry" / duplicate detection behavior
 - Exact report import format
 - Exact export formats
-- Whether employees self-register
 - Whether school email is mandatory
 - Whether IT staff assignment is required
 - Exact manager permissions
 - Whether attachments are required
 - Whether AI chatbot is required for first release
 - Official UPHSD procedures for password resets, email access, etc.
+- Whether self-registration should be restricted to university email domains
 
 ---
 
 *Last updated: 2026-08-26*  
-*Current phase: Phase 2.9 complete, preparing for Phase 3*
+*Current phase: Phase 3 complete, preparing for Phase 4*
