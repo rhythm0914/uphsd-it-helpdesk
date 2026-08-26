@@ -78,6 +78,31 @@
   - Fixed TypeScript error in middleware cookie handling
   - Verified `npm run build` and `npm run build:vinext` both pass
 
+### Phase 2.7: Branding & Audience Update
+- **Status:** Completed
+- **Commit:** `8a95396` - "feat: update landing page branding and audience"
+- **Work:**
+  - Changed audience from "employees and IT staff" to "students and employees"
+  - Removed fake operational metrics (147 requests, 2.4 days, 4.6/5, 8 staff)
+  - Replaced reports card grid with neutral editorial section about real database records
+  - Added FAQ section with student/employee-focused questions
+  - Added business hours: Monday – Friday, 8:00 AM – 5:00 PM
+  - Updated services to student/employee-relevant categories
+  - Added official UPHSD logo (`public/branding/uphsd-logo.png`)
+  - Added UPHSD institutional brand colors (maroon, gold, blue)
+  - Updated navigation and footer
+  - Added favicon reference to UPHSD logo
+
+### Phase 2.8: Production HTTP 500 Fix
+- **Status:** Completed
+- **Commit:** `9a3dbc8` - "fix: resolve production HTTP 500 by adding Supabase env vars to wrangler.jsonc"
+- **Work:**
+  - Identified root cause: Supabase environment variables were not available in Cloudflare Worker runtime
+  - Added `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to `wrangler.jsonc` under `[vars]`
+  - Added defensive error handling in `utils/supabase/middleware.ts` to prevent crashes when env vars are missing
+  - Made `createClient` async and properly awaited `supabase.auth.getUser()`
+  - Verified `npm run build` and `npm run build:vinext` both pass
+
 ---
 
 ## 3. Current File Structure
@@ -95,6 +120,8 @@ utils/
     middleware.ts
     server.ts
 public/
+  branding/
+    uphsd-logo.png
   file.svg
   globe.svg
   next.svg
@@ -107,6 +134,7 @@ package.json
 tsconfig.json
 .env.example
 .env.local (gitignored)
+PROJECT.md
 ```
 
 ---
@@ -125,6 +153,18 @@ NEXT_PUBLIC_SUPABASE_URL=https://vrnkzglwzwojrxlpofss.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8bUvO
 ```
 
+### `wrangler.jsonc` (committed, contains public vars)
+```jsonc
+{
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://vrnkzglwzwojrxlpofss.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8bUvO"
+  }
+}
+```
+
+**Note:** These are public Supabase publishable keys, not secrets. They are safe to include in the Worker configuration. The private service-role key is never committed.
+
 ---
 
 ## 5. Cloudflare Deployment Configuration
@@ -139,7 +179,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8b
 
 ### vinext Configuration Files
 - `vite.config.ts` - Vite configuration with vinext and Cloudflare plugins
-- `wrangler.jsonc` - Cloudflare Workers configuration
+- `wrangler.jsonc` - Cloudflare Workers configuration with Supabase env vars
 
 ### Build Output
 - `dist/client/` - Static assets
@@ -151,17 +191,26 @@ npm run build:vinext   # Build for Cloudflare Workers
 npm run deploy:vinext  # Deploy to Cloudflare Workers
 ```
 
+### Production Issue History
+- **Issue:** Production returned HTTP 500 Internal Server Error
+- **Root Cause:** Supabase environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) were not available in the Cloudflare Worker runtime
+- **Why local build passed:** `.env.local` existed locally, so `vinext build` could read the vars at build time
+- **Why Cloudflare runtime failed:** The deployed Worker had no `vars` configuration. The generated `dist/server/wrangler.json` had `"vars": {}`
+- **Fix:** Added the public Supabase vars to `wrangler.jsonc` under `[vars]`, which flows through to the generated `dist/server/wrangler.json` and the deployed Worker
+- **Additional fix:** Added defensive error handling in `utils/supabase/middleware.ts` so missing env vars don't crash the entire site
+
 ---
 
 ## 6. Current Known Issues / TODOs
 
 ### Landing Page
-- [ ] Update copy to include students as primary audience
-- [ ] Remove fake operational metrics (147 requests, 2.4 days, 4.6/5, 8 staff)
-- [ ] Replace Picsum placeholder images with appropriate imagery
-- [ ] Apply official UPHSD branding colors (maroon, white, blue, gold)
-- [ ] Add official UPHSD logo/seal assets if publicly available
-- [ ] Update navigation to include Knowledge Base / FAQ
+- [x] Update copy to include students as primary audience
+- [x] Remove fake operational metrics
+- [x] Replace Picsum placeholder images with appropriate imagery (still using Picsum, pending official UPHSD imagery)
+- [x] Apply official UPHSD branding colors (maroon, white, blue, gold)
+- [x] Add official UPHSD logo/seal assets
+- [x] Update navigation to include FAQ
+- [x] Add business hours
 
 ### Phase 3: Student/Employee Portal
 - [ ] Create Supabase database schema
@@ -207,11 +256,20 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
+### Technical Debt
+- [ ] Migrate `middleware.ts` to `proxy.ts` (Next.js 16 deprecation warning)
+- [ ] Replace Picsum placeholder images with official UPHSD photography
+- [ ] Add unit tests for Supabase client helpers
+- [ ] Add integration tests for middleware
+
 ---
 
 ## 7. Git History
 
 ```
+9a3dbc8 fix: resolve production HTTP 500 by adding Supabase env vars to wrangler.jsonc
+8a95396 feat: update landing page branding and audience
+0f8a40b docs: add project documentation
 028d0fe feat: add Supabase client helpers and session middleware
 925ca48 feat: configure vinext for Cloudflare Workers deployment
 2cc0b7c feat: initialize Next.js landing page with institutional design
@@ -242,7 +300,8 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - [ ] Unauthorized access is blocked
 - [ ] No secrets are exposed
 - [x] Production build succeeds
-- [ ] Cloudflare deployment succeeds
+- [x] Cloudflare deployment configuration fixed
+- [ ] Cloudflare deployment verified (pending user redeploy)
 
 ---
 
@@ -258,6 +317,7 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 8. **Request ID format:** `IT-YYYY-NNNNNN` (example)
 9. **Initial statuses:** Pending, In Progress, Completed, Cancelled
 10. **Initial roles:** student, employee, it_staff, admin, manager
+11. **Business hours:** Monday – Friday, 8:00 AM – 5:00 PM
 
 ---
 
@@ -280,4 +340,4 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 ---
 
 *Last updated: 2026-08-26*  
-*Current phase: Phase 2.6 complete, preparing for Phase 3*
+*Current phase: Phase 2.8 complete, preparing for Phase 3*
