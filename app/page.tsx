@@ -9,44 +9,45 @@ import {
   ClockIcon,
   PaperPlaneIcon,
   EyeNoneIcon,
+  QuestionMarkIcon,
 } from "@radix-ui/react-icons";
 
 const services = [
   {
-    title: "Hardware Support",
-    description: "Diagnose and resolve device issues across campus workstations.",
-    icon: DesktopIcon,
-    image: "https://picsum.photos/seed/hardware-support/600/400",
-  },
-  {
-    title: "Software Installation",
-    description: "Deploy licensed applications and configure system preferences.",
-    icon: GearIcon,
-    image: "https://picsum.photos/seed/software-install/600/400",
-  },
-  {
-    title: "Network Access",
-    description: "Restore connectivity, configure Wi-Fi, and manage credentials.",
-    icon: PaperPlaneIcon,
-    image: "https://picsum.photos/seed/network-access/600/400",
-  },
-  {
-    title: "Account Management",
-    description: "Handle user provisioning, resets, and permission changes.",
+    title: "Account & Password",
+    description: "Reset credentials, recover access, and manage university account issues.",
     icon: LockClosedIcon,
-    image: "https://picsum.photos/seed/account-mgmt/600/400",
+    image: "https://picsum.photos/seed/account-password/600/400",
   },
   {
-    title: "Equipment Request",
-    description: "Request peripherals, cables, adapters, and shared devices.",
+    title: "University Email",
+    description: "Configure mail clients, recover inbox access, and resolve delivery problems.",
+    icon: PaperPlaneIcon,
+    image: "https://picsum.photos/seed/university-email/600/400",
+  },
+  {
+    title: "Network & Wi-Fi",
+    description: "Restore connectivity, configure wireless access, and manage network credentials.",
     icon: BarChartIcon,
-    image: "https://picsum.photos/seed/equipment-req/600/400",
+    image: "https://picsum.photos/seed/network-wifi/600/400",
   },
   {
-    title: "System Maintenance",
-    description: "Schedule updates, patches, and preventive server care.",
-    icon: CheckCircledIcon,
-    image: "https://picsum.photos/seed/sys-maint/600/400",
+    title: "Computer & Hardware",
+    description: "Diagnose workstation issues, replace peripherals, and repair classroom equipment.",
+    icon: DesktopIcon,
+    image: "https://picsum.photos/seed/computer-hardware/600/400",
+  },
+  {
+    title: "Software & Applications",
+    description: "Install licensed applications, update systems, and configure course-related software.",
+    icon: GearIcon,
+    image: "https://picsum.photos/seed/software-apps/600/400",
+  },
+  {
+    title: "General IT Assistance",
+    description: "Get help with technology questions, lab access, and other IT support needs.",
+    icon: QuestionMarkIcon,
+    image: "https://picsum.photos/seed/general-it-help/600/400",
   },
 ];
 
@@ -55,7 +56,7 @@ const processSteps = [
     step: "01",
     title: "Submit request",
     description:
-      "Employees fill a single form with department, location, and service details.",
+      "Students and employees fill a single form with service details, location, and schedule.",
   },
   {
     step: "02",
@@ -73,7 +74,30 @@ const processSteps = [
     step: "04",
     title: "Complete and evaluate",
     description:
-      "Employees confirm resolution and submit a short satisfaction rating.",
+      "Requestors confirm resolution and submit a short satisfaction rating.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "How do I request IT assistance?",
+    answer:
+      "Use the Request IT Service form to submit your request. You will receive a tracking ID to monitor progress.",
+  },
+  {
+    question: "Who can use the IT Help Desk?",
+    answer:
+      "All UPHSD students and employees can submit requests. IT staff and administrators have separate workspaces.",
+  },
+  {
+    question: "How do I track my request?",
+    answer:
+      "Use the Track Request page with your Request ID to see current status, updates, and history.",
+  },
+  {
+    question: "What happens after my request is completed?",
+    answer:
+      "You will receive a notification and can submit a short evaluation to help improve IT services.",
   },
 ];
 
@@ -82,8 +106,18 @@ export default function Home() {
     <div className="flex flex-col flex-1">
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-6 h-16 md:h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
-            <span className="text-accent">UPHSD</span> IT Help Desk
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/branding/uphsd-logo.png"
+              alt="UPHSD Logo"
+              width={120}
+              height={40}
+              className="h-8 w-auto md:h-10"
+              priority
+            />
+            <span className="hidden sm:inline text-sm font-medium text-foreground/70 border-l border-border pl-3">
+              IT Help Desk
+            </span>
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium">
             <Link href="#services" className="text-foreground/70 hover:text-foreground transition-colors">
@@ -95,15 +129,12 @@ export default function Home() {
             <Link href="#tracking" className="text-foreground/70 hover:text-foreground transition-colors">
               Tracking
             </Link>
-            <Link href="#reports" className="text-foreground/70 hover:text-foreground transition-colors">
-              Reports
-            </Link>
-            <Link href="#contact" className="text-foreground/70 hover:text-foreground transition-colors">
-              Contact
+            <Link href="#faq" className="text-foreground/70 hover:text-foreground transition-colors">
+              FAQ
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+              className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
             >
               Login
             </Link>
@@ -120,15 +151,15 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               <div className="max-w-xl">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] text-foreground">
-                  IT support that keeps your institution moving
+                  IT support for students and employees
                 </h1>
                 <p className="mt-6 text-lg md:text-xl text-foreground/70 leading-relaxed max-w-lg">
-                  Submit requests, track progress, and get help without leaving your desk. Built for employees and IT staff.
+                  Submit requests, track progress, and get help without leaving your desk. Built for the UPHSD community.
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row gap-4">
                   <Link
                     href="/request"
-                    className="inline-flex items-center justify-center rounded-full bg-accent px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-accent/90"
+                    className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
                   >
                     Request IT Service
                   </Link>
@@ -143,8 +174,8 @@ export default function Home() {
               <div className="relative">
                 <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <Image
-                    src="https://picsum.photos/seed/uphsd-campus/800/600"
-                    alt="Campus technology infrastructure"
+                    src="https://picsum.photos/seed/uphsd-campus-tech/800/600"
+                    alt="Campus technology support"
                     fill
                     className="object-cover"
                     priority
@@ -165,7 +196,7 @@ export default function Home() {
                 From scattered forms to one clear flow
               </h2>
               <p className="mt-6 text-lg md:text-xl text-foreground/70 leading-relaxed">
-                Replace Google Forms and email threads with a single system. Every request gets a tracking ID, every status change is visible, and every completed service is recorded for future reference.
+                Replace email threads and paper forms with a single system. Every request gets a tracking ID, every status change is visible, and every completed service is recorded for future reference.
               </p>
             </div>
           </div>
@@ -197,7 +228,7 @@ export default function Home() {
                     </div>
                     <div className="p-6">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
                           <service.icon width={20} height={20} />
                         </span>
                         <h3 className="text-lg font-semibold tracking-tight">
@@ -235,7 +266,7 @@ export default function Home() {
                   {processSteps.map((item) => (
                     <div key={item.step} className="relative flex gap-6">
                       <div className="flex-shrink-0">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary text-sm font-semibold text-white">
                           {item.step}
                         </span>
                       </div>
@@ -303,7 +334,7 @@ export default function Home() {
                   Track every request in real time
                 </h2>
                 <p className="mt-4 text-lg text-foreground/70 leading-relaxed max-w-lg">
-                  Employees see submitted, pending, in progress, and completed stages. IT staff update status and add work notes as work continues.
+                  Students and employees see submitted, pending, in progress, and completed stages. IT staff update status and add work notes as work continues.
                 </p>
               </div>
             </div>
@@ -311,38 +342,40 @@ export default function Home() {
         </section>
 
         {/* ======================= */}
-        {/* SECTION 6: REPORTS - CARD GRID */}
+        {/* SECTION 6: FAQ - VERTICAL STACK */}
         {/* ======================= */}
-        <section id="reports" className="border-y border-border bg-surface">
+        <section id="faq" className="border-y border-border bg-surface">
           <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-                  Reports that reflect real operations
-                </h2>
-                <p className="mt-4 text-lg text-foreground/70 leading-relaxed max-w-lg">
-                  Department heads and IT administrators review request volumes, completion rates, and satisfaction scores based on actual records.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: "Requests this month", value: "147" },
-                  { label: "Avg. completion time", value: "2.4 days" },
-                  { label: "Satisfaction score", value: "4.6 / 5" },
-                  { label: "Active IT staff", value: "8" },
-                ].map((stat) => (
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight leading-tight text-center">
+                Common questions
+              </h2>
+              <p className="mt-4 text-lg text-foreground/70 leading-relaxed text-center max-w-2xl mx-auto">
+                Quick answers for students and employees. For detailed procedures, contact the IT department.
+              </p>
+              <div className="mt-12 space-y-6">
+                {faqItems.map((item) => (
                   <div
-                    key={stat.label}
-                    className="rounded-2xl border border-border bg-background p-5"
+                    key={item.question}
+                    className="rounded-2xl border border-border bg-background p-6"
                   >
-                    <p className="text-2xl md:text-3xl font-semibold tracking-tight">
-                      {stat.value}
-                    </p>
-                    <p className="mt-1 text-sm text-foreground/60">
-                      {stat.label}
+                    <h3 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                      <QuestionMarkIcon width={18} height={18} className="text-brand-primary" />
+                      {item.question}
+                    </h3>
+                    <p className="mt-2 text-sm text-foreground/70 leading-relaxed">
+                      {item.answer}
                     </p>
                   </div>
                 ))}
+              </div>
+              <div className="mt-8 text-center">
+                <Link
+                  href="/knowledge-base"
+                  className="text-sm font-medium text-brand-primary hover:text-brand-primary-hover transition-colors"
+                >
+                  View full knowledge base
+                </Link>
               </div>
             </div>
           </div>
@@ -365,17 +398,17 @@ export default function Home() {
                 </div>
               </div>
               <div className="order-1 lg:order-2">
-                <div className="flex items-center gap-2 text-accent mb-4">
+                <div className="flex items-center gap-2 text-brand-primary mb-4">
                   <EyeNoneIcon width={24} height={24} />
                   <span className="text-sm font-semibold uppercase tracking-wider">
                     Security and privacy
                   </span>
                 </div>
                 <h2 className="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-                  Employee data stays within the institution
+                  Student and employee data stays within the institution
                 </h2>
                 <p className="mt-4 text-lg text-foreground/70 leading-relaxed max-w-lg">
-                  Role-based access ensures employees only see their own requests. IT staff and administrators operate under strict authorization checks, and all history is preserved for audit.
+                  Role-based access ensures students and employees only see their own requests. IT staff and administrators operate under strict authorization checks, and all history is preserved for audit.
                 </p>
               </div>
             </div>
@@ -392,12 +425,12 @@ export default function Home() {
                 Ready to streamline your IT support
               </h2>
               <p className="mt-4 text-lg text-foreground/70 leading-relaxed">
-                Start submitting requests with tracking IDs today. IT staff get the tools to prioritize, assign, and complete work faster.
+                Start submitting requests with tracking IDs today. Students and employees get the tools to request help, track progress, and evaluate service.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/request"
-                  className="inline-flex items-center justify-center rounded-full bg-accent px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-accent/90"
+                  className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
                 >
                   Request IT Service
                 </Link>
@@ -418,7 +451,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <p className="font-semibold text-foreground">
-                <span className="text-accent">UPHSD</span> IT Help Desk
+                UPHSD IT Help Desk
               </p>
               <p className="mt-1 text-sm text-foreground/60">
                 University of Perpetual Help System DALTA

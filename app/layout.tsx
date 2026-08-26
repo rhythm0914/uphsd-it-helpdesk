@@ -14,7 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "UPHSD IT Help Desk",
-  description: "Web-based IT service request and help desk management system for the University of Perpetual Help System DALTA.",
+  description: "IT service request and help desk management for students and employees of the University of Perpetual Help System DALTA.",
+  icons: {
+    icon: "/branding/uphsd-logo.png",
+  },
 };
 
 export default function RootLayout({
