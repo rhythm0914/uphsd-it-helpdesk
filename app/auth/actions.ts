@@ -14,7 +14,10 @@ export async function signIn(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  console.log("[signIn] action invoked", { email: email ? "present" : "missing", password: password ? "present" : "missing" });
+
   if (!email || !password) {
+    console.log("[signIn] missing credentials");
     redirect("/auth/sign-in?error=Email+and+password+are+required");
   }
 
@@ -23,10 +26,13 @@ export async function signIn(formData: FormData) {
     password,
   });
 
+  console.log("[signIn] signInWithPassword result", { error: error ? { message: error.message, code: error.code } : null });
+
   if (error) {
     redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
   }
 
+  console.log("[signIn] redirecting to /portal");
   redirect("/portal");
 }
 

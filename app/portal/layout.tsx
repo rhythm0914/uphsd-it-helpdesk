@@ -26,6 +26,8 @@ export default async function PortalLayout({
     .eq("id", user.id)
     .single();
 
+  console.log("[PortalLayout] profile lookup", { userId: user.id, role: profile?.role, error: error ? { message: error.message, code: error.code } : null });
+
   if (error || !profile) {
     redirect("/auth/sign-in");
   }
