@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function TicketDetailPage({
   params,
 }: {
@@ -14,7 +16,7 @@ export default async function TicketDetailPage({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
   const { id } = await params;

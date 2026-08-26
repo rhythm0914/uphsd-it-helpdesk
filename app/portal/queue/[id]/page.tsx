@@ -5,6 +5,8 @@ import Link from "next/link";
 import { TicketManagement } from "../[id]/ticket-management";
 import { getITStaff } from "@/app/portal/queue/lib";
 
+export const dynamic = "force-dynamic";
+
 export default async function ITQueueTicketPage({
   params,
 }: {
@@ -15,22 +17,27 @@ export default async function ITQueueTicketPage({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !["it_staff", "admin", "manager"].includes(profile.role)) {
+  if (error || !profile) {
+    redirect("/auth/sign-in");
+  }
+
+  const role = profile.role;
+  if (role !== "it_staff" && role !== "admin" && role !== "manager") {
     redirect("/portal");
   }
 
   const { id } = await params;
 
-  const { data: ticket, error } = await supabase
+  const { data: ticket, error: ticketError } = await supabase
     .from("tickets")
     .select(`
       *,
@@ -42,7 +49,7 @@ export default async function ITQueueTicketPage({
     .eq("id", id)
     .single();
 
-  if (error || !ticket) {
+  if (ticketError || !ticket) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-8">
         <div className="rounded-2xl border border-border bg-background p-8 text-center">

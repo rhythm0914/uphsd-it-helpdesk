@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function ITQueuePage({
   searchParams,
 }: {
@@ -15,16 +17,21 @@ export default async function ITQueuePage({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !["it_staff", "admin", "manager"].includes(profile.role)) {
+  if (error || !profile) {
+    redirect("/auth/sign-in");
+  }
+
+  const role = profile.role;
+  if (role !== "it_staff" && role !== "admin" && role !== "manager") {
     redirect("/portal");
   }
 
@@ -36,7 +43,7 @@ export default async function ITQueuePage({
     search: params?.search || "",
   };
 
-  const [{ tickets, error }, staffResult, servicesResult] = await Promise.all([
+  const [{ tickets, error: ticketsError }, staffResult, servicesResult] = await Promise.all([
     getITQueue(filters),
     getITStaff(),
     getServices(),
@@ -86,9 +93,9 @@ export default async function ITQueuePage({
         </p>
       </div>
 
-      {error && (
+      {ticketsError && (
         <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700">{ticketsError}</p>
         </div>
       )}
 

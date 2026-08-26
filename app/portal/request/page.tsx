@@ -3,12 +3,24 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { RequestForm } from "./request-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function RequestPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
+    redirect("/auth/sign-in");
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !profile) {
     redirect("/auth/sign-in");
   }
 

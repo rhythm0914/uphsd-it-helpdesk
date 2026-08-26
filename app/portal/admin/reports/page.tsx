@@ -1,5 +1,7 @@
 import { getReports } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReportsPage() {
   const reports = await getReports();
 

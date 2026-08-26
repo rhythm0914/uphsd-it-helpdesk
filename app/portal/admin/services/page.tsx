@@ -1,6 +1,8 @@
 import { getServicesAndCategories } from "./actions";
 import { ServiceManagement } from "./service-management";
 
+export const dynamic = "force-dynamic";
+
 export default async function ServicesPage() {
   const { services, categories, error } = await getServicesAndCategories();
 

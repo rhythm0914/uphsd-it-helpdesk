@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function PortalLayout({
   children,
 }: {
@@ -18,14 +20,18 @@ export default async function PortalLayout({
     redirect("/auth/sign-in");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  const isITStaff = profile?.role && ["it_staff", "admin", "manager"].includes(profile.role);
-  const isAdmin = profile?.role && ["admin", "manager"].includes(profile.role);
+  if (error || !profile) {
+    redirect("/auth/sign-in");
+  }
+
+  const isITStaff = profile.role && ["it_staff", "admin", "manager"].includes(profile.role);
+  const isAdmin = profile.role && ["admin", "manager"].includes(profile.role);
 
   return (
     <div className="flex flex-col flex-1">

@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: {
@@ -18,13 +20,18 @@ export default async function AdminLayout({
     redirect("/auth/sign-in");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !["admin", "manager"].includes(profile.role)) {
+  if (error || !profile) {
+    redirect("/portal");
+  }
+
+  const role = profile.role;
+  if (role !== "admin" && role !== "manager") {
     redirect("/portal");
   }
 

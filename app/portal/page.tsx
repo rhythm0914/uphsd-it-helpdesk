@@ -4,21 +4,26 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function PortalPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/sign-in");
   }
 
-  // Fetch user profile
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
+
+  if (error || !profile) {
+    redirect("/auth/sign-in");
+  }
 
   // Fetch ticket counts
   const { count: openCount } = await supabase
