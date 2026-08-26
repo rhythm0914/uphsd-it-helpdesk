@@ -5,7 +5,6 @@ import {
   GearIcon,
   LockClosedIcon,
   BarChartIcon,
-  CheckCircledIcon,
   ClockIcon,
   PaperPlaneIcon,
   EyeNoneIcon,
@@ -17,37 +16,31 @@ const services = [
     title: "Account & Password",
     description: "Reset credentials, recover access, and manage university account issues.",
     icon: LockClosedIcon,
-    image: "https://picsum.photos/seed/account-password/600/400",
   },
   {
     title: "University Email",
     description: "Configure mail clients, recover inbox access, and resolve delivery problems.",
     icon: PaperPlaneIcon,
-    image: "https://picsum.photos/seed/university-email/600/400",
   },
   {
     title: "Network & Wi-Fi",
     description: "Restore connectivity, configure wireless access, and manage network credentials.",
     icon: BarChartIcon,
-    image: "https://picsum.photos/seed/network-wifi/600/400",
   },
   {
     title: "Computer & Hardware",
     description: "Diagnose workstation issues, replace peripherals, and repair classroom equipment.",
     icon: DesktopIcon,
-    image: "https://picsum.photos/seed/computer-hardware/600/400",
   },
   {
     title: "Software & Applications",
     description: "Install licensed applications, update systems, and configure course-related software.",
     icon: GearIcon,
-    image: "https://picsum.photos/seed/software-apps/600/400",
   },
   {
     title: "General IT Assistance",
     description: "Get help with technology questions, lab access, and other IT support needs.",
     icon: QuestionMarkIcon,
-    image: "https://picsum.photos/seed/general-it-help/600/400",
   },
 ];
 
@@ -109,7 +102,7 @@ const faqItems = [
 export default function Home() {
   return (
     <div className="flex flex-col flex-1">
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="mx-auto max-w-7xl px-6 h-16 md:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image
@@ -125,23 +118,23 @@ export default function Home() {
             </span>
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <Link href="#services" className="text-foreground/70 hover:text-foreground transition-colors">
+            <Link href="#services" className="text-foreground/70 hover:text-brand-primary transition-colors">
               Services
             </Link>
-            <Link href="#process" className="text-foreground/70 hover:text-foreground transition-colors">
+            <Link href="#process" className="text-foreground/70 hover:text-brand-primary transition-colors">
               How It Works
             </Link>
-            <Link href="#tracking" className="text-foreground/70 hover:text-foreground transition-colors">
+            <Link href="#tracking" className="text-foreground/70 hover:text-brand-primary transition-colors">
               Tracking
             </Link>
-            <Link href="#faq" className="text-foreground/70 hover:text-foreground transition-colors">
+            <Link href="#faq" className="text-foreground/70 hover:text-brand-primary transition-colors">
               FAQ
             </Link>
             <Link
               href="/login"
               className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
             >
-              Login
+              Sign In
             </Link>
           </div>
         </div>
@@ -149,35 +142,38 @@ export default function Home() {
 
       <main>
         {/* ======================= */}
-        {/* SECTION 1: HERO - SPLIT HERO */}
+        {/* SECTION 1: HERO */}
         {/* ======================= */}
-        <section className="relative overflow-hidden">
-          <div className="mx-auto max-w-7xl px-6 pt-20 md:pt-24 pb-16 md:pb-24">
+        <section className="bg-background">
+          <div className="mx-auto max-w-7xl px-6 pt-16 md:pt-24 pb-16 md:pb-24">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               <div className="max-w-xl">
+                <p className="text-sm font-semibold uppercase tracking-wider text-brand-primary mb-4">
+                  UPHSD IT Help Desk
+                </p>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] text-foreground">
-                  IT support for students and employees
+                  Technology support for students and employees
                 </h1>
                 <p className="mt-6 text-lg md:text-xl text-foreground/70 leading-relaxed max-w-lg">
-                  Submit requests, track progress, and get help without leaving your desk. Built for the UPHSD community.
+                  The IT Help Desk assists UPHSD students and employees with common technology concerns, from account access to classroom equipment.
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row gap-4">
                   <Link
                     href="/request"
                     className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
                   >
-                    Request IT Service
+                    Submit a Request
                   </Link>
                   <Link
-                    href="/track"
+                    href="#services"
                     className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-surface"
                   >
-                    Track Request
+                    View Services
                   </Link>
                 </div>
               </div>
               <div className="relative">
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border">
                   <Image
                     src="https://picsum.photos/seed/uphsd-campus-tech/800/600"
                     alt="Campus technology support"
@@ -192,7 +188,7 @@ export default function Home() {
         </section>
 
         {/* ======================= */}
-        {/* SECTION 2: PROBLEM/SOLUTION - EDITORIAL BAND */}
+        {/* SECTION 2: PROBLEM/SOLUTION */}
         {/* ======================= */}
         <section className="border-y border-border bg-surface">
           <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
@@ -208,51 +204,41 @@ export default function Home() {
         </section>
 
         {/* ======================= */}
-        {/* SECTION 3: SERVICES - BENTO GRID */}
+        {/* SECTION 3: SERVICES */}
         {/* ======================= */}
         <section id="services" className="py-16 md:py-24">
           <div className="mx-auto max-w-7xl px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Our Services</h2>
+              <p className="mt-4 text-lg text-foreground/70 max-w-2xl mx-auto">
+                Common technology support areas for students and employees.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((service, index) => {
-                const isLarge = index === 0 || index === 3;
-                return (
-                  <div
-                    key={service.title}
-                    className={`group relative overflow-hidden rounded-2xl border border-border bg-background transition-shadow hover:shadow-lg ${
-                      isLarge ? "md:col-span-2 lg:col-span-1" : ""
-                    }`}
-                  >
-                    <div className="aspect-[16/10] w-full overflow-hidden">
-                      <Image
-                        src={service.image}
-                        alt={service.title}
-                        width={600}
-                        height={400}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
-                          <service.icon width={20} height={20} />
-                        </span>
-                        <h3 className="text-lg font-semibold tracking-tight">
-                          {service.title}
-                        </h3>
-                      </div>
-                      <p className="mt-3 text-sm text-foreground/70 leading-relaxed">
-                        {service.description}
-                      </p>
-                    </div>
+              {services.map((service) => (
+                <div
+                  key={service.title}
+                  className="group rounded-2xl border border-border bg-background p-6 transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+                      <service.icon width={20} height={20} />
+                    </span>
+                    <h3 className="text-lg font-semibold tracking-tight">
+                      {service.title}
+                    </h3>
                   </div>
-                );
-              })}
+                  <p className="text-sm text-foreground/70 leading-relaxed">
+                    {service.description}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* ======================= */}
-        {/* SECTION 4: PROCESS - VERTICAL TIMELINE */}
+        {/* SECTION 4: PROCESS */}
         {/* ======================= */}
         <section id="process" className="border-y border-border bg-surface">
           <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
@@ -292,7 +278,7 @@ export default function Home() {
         </section>
 
         {/* ======================= */}
-        {/* SECTION 5: TRACKING - SPLIT SHOWCASE */}
+        {/* SECTION 5: TRACKING */}
         {/* ======================= */}
         <section id="tracking" className="py-16 md:py-24">
           <div className="mx-auto max-w-7xl px-6">
@@ -304,7 +290,7 @@ export default function Home() {
                       <span className="text-xs font-medium text-foreground/50 uppercase tracking-wider">
                         Request Status
                       </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-gold-light px-2.5 py-1 text-xs font-medium text-brand-primary">
                         <ClockIcon width={12} height={12} />
                         In Progress
                       </span>
@@ -347,7 +333,7 @@ export default function Home() {
         </section>
 
         {/* ======================= */}
-        {/* SECTION 6: FAQ - VERTICAL STACK */}
+        {/* SECTION 6: FAQ */}
         {/* ======================= */}
         <section id="faq" className="border-y border-border bg-surface">
           <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
@@ -365,7 +351,9 @@ export default function Home() {
                     className="rounded-2xl border border-border bg-background p-6"
                   >
                     <h3 className="text-base font-semibold tracking-tight flex items-center gap-2">
-                      <QuestionMarkIcon width={18} height={18} className="text-brand-primary" />
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+                        <QuestionMarkIcon width={14} height={14} />
+                      </span>
                       {item.question}
                     </h3>
                     <p className="mt-2 text-sm text-foreground/70 leading-relaxed">
@@ -374,26 +362,18 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <div className="mt-8 text-center">
-                <Link
-                  href="/knowledge-base"
-                  className="text-sm font-medium text-brand-primary hover:text-brand-primary-hover transition-colors"
-                >
-                  View full knowledge base
-                </Link>
-              </div>
             </div>
           </div>
         </section>
 
         {/* ======================= */}
-        {/* SECTION 7: SECURITY - IMAGE SPLIT */}
+        {/* SECTION 7: BUSINESS HOURS + SECURITY */}
         {/* ======================= */}
         <section className="py-16 md:py-24">
           <div className="mx-auto max-w-7xl px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               <div className="relative order-2 lg:order-1">
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border">
                   <Image
                     src="https://picsum.photos/seed/security-privacy/800/600"
                     alt="Secure data handling"
@@ -415,13 +395,22 @@ export default function Home() {
                 <p className="mt-4 text-lg text-foreground/70 leading-relaxed max-w-lg">
                   Role-based access ensures students and employees only see their own requests. IT staff and administrators operate under strict authorization checks, and all history is preserved for audit.
                 </p>
+                <div className="mt-8 rounded-2xl border border-border bg-surface p-6">
+                  <h3 className="text-base font-semibold tracking-tight flex items-center gap-2 mb-2">
+                    <ClockIcon width={18} height={18} className="text-brand-primary" />
+                    IT Help Desk Business Hours
+                  </h3>
+                  <p className="text-sm text-foreground/70">
+                    Monday – Friday, 8:00 AM – 5:00 PM
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* ======================= */}
-        {/* SECTION 8: FINAL CTA - EDITORIAL CTA */}
+        {/* SECTION 8: FINAL CTA */}
         {/* ======================= */}
         <section className="border-t border-border bg-surface">
           <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
@@ -437,13 +426,13 @@ export default function Home() {
                   href="/request"
                   className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
                 >
-                  Request IT Service
+                  Submit a Request
                 </Link>
                 <Link
                   href="/login"
                   className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-surface"
                 >
-                  Staff Login
+                  Sign In
                 </Link>
               </div>
             </div>
@@ -451,34 +440,34 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border bg-background">
+      <footer className="border-t border-border bg-brand-primary text-white">
         <div className="mx-auto max-w-7xl px-6 py-12">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <p className="font-semibold text-foreground">
+              <p className="font-semibold text-white">
                 UPHSD IT Help Desk
               </p>
-              <p className="mt-1 text-sm text-foreground/60">
+              <p className="mt-1 text-sm text-white/70">
                 University of Perpetual Help System DALTA
               </p>
-              <p className="mt-1 text-sm text-foreground/60">
+              <p className="mt-1 text-sm text-white/70">
                 Monday – Friday, 8:00 AM – 5:00 PM
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-6 text-sm text-foreground/60">
-              <Link href="/privacy" className="hover:text-foreground transition-colors">
+            <div className="flex flex-col sm:flex-row gap-6 text-sm text-white/70">
+              <Link href="/privacy" className="hover:text-white transition-colors">
                 Privacy Notice
               </Link>
-              <Link href="/terms" className="hover:text-foreground transition-colors">
+              <Link href="/terms" className="hover:text-white transition-colors">
                 Terms of Use
               </Link>
-              <Link href="/contact" className="hover:text-foreground transition-colors">
+              <Link href="/contact" className="hover:text-white transition-colors">
                 Contact IT
               </Link>
             </div>
           </div>
-          <div className="mt-8 pt-6 border-t border-border">
-            <p className="text-xs text-foreground/50">
+          <div className="mt-8 pt-6 border-t border-white/20">
+            <p className="text-xs text-white/50">
               UPHSD IT Help Desk. Internal use only.
             </p>
           </div>

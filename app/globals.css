@@ -2,20 +2,18 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #1a1a1a;
-  --surface: #f8fafc;
-  --surface-muted: #f1f5f9;
-  --border: #e2e8f0;
+  --foreground: #1A1A1A;
+  --surface: #FAFAFA;
+  --surface-muted: #F7F7F7;
+  --border: #E5E5E5;
 
-  --brand-primary: #800000;
-  --brand-primary-hover: #6b0000;
-  --brand-secondary: #1e3a5f;
-  --brand-blue: #2563eb;
-  --brand-gold: #d4af37;
-  --brand-gold-light: #f3e5ab;
+  --brand-primary: #7C0000;
+  --brand-primary-hover: #5C0000;
+  --brand-gold: #FFB603;
+  --brand-gold-light: #FFF8E1;
 
-  --accent: var(--brand-secondary);
-  --accent-light: #3b82f6;
+  --accent: var(--brand-primary);
+  --accent-light: var(--brand-gold);
 
   --success: #16a34a;
   --warning: #d97706;
@@ -31,8 +29,6 @@
   --color-border: var(--border);
   --color-brand-primary: var(--brand-primary);
   --color-brand-primary-hover: var(--brand-primary-hover);
-  --color-brand-secondary: var(--brand-secondary);
-  --color-brand-blue: var(--brand-blue);
   --color-brand-gold: var(--brand-gold);
   --color-brand-gold-light: var(--brand-gold-light);
   --color-accent: var(--accent);
@@ -47,21 +43,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --surface: #1e293b;
-    --surface-muted: #334155;
-    --border: #334155;
+    --background: #1A0A0A;
+    --foreground: #F5F5F5;
+    --surface: #2A1515;
+    --surface-muted: #3A1F1F;
+    --border: #3A1F1F;
 
-    --brand-primary: #b91c1c;
-    --brand-primary-hover: #dc2626;
-    --brand-secondary: #60a5fa;
-    --brand-blue: #3b82f6;
-    --brand-gold: #f3e5ab;
-    --brand-gold-light: #78350f;
+    --brand-primary: #9E1B1B;
+    --brand-primary-hover: #B91C1C;
+    --brand-gold: #FFB603;
+    --brand-gold-light: #5C4A1F;
 
-    --accent: var(--brand-secondary);
-    --accent-light: #93c5fd;
+    --accent: var(--brand-primary);
+    --accent-light: var(--brand-gold);
 
     --success: #22c55e;
     --warning: #f59e0b;
