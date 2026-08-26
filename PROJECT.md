@@ -341,18 +341,40 @@ All tables have RLS enabled with the following policies:
 - `wrangler.jsonc` - Cloudflare Workers configuration with Supabase env vars
 
 ### Build Output
-- `dist/client/` - Static assets
-- `dist/server/` - Worker/server code
+- `dist/client/` - Static assets (gitignored)
+- `dist/server/` - Worker/server code (gitignored)
 
-### Deployment Commands
+### Production Deployment Workflow
+
+**GitHub is the single source of truth for production deployments.**
+
+Normal production deployment:
+1. Commit changes locally
+2. Push to `main` branch: `git push origin main`
+3. Cloudflare automatically builds and deploys the Worker
+4. Verify the production deployment
+
+**Cloudflare Git Integration:**
+The repository is connected to Cloudflare for automatic deployments. When code is pushed to `main`, Cloudflare:
+1. Clones the repository
+2. Installs dependencies (`npm install`)
+3. Builds the project (`npm run build:vinext`)
+4. Deploys the Worker to production
+
+**Manual/Emergency Deployment:**
+If automatic deployment is unavailable, manual deployment can be performed locally:
+
 ```bash
-npm run build:vinext   # Build for Cloudflare Workers
-npm run deploy:vinext  # Deploy to Cloudflare Workers
+npm run build:vinext
+npm run deploy:vinext
 ```
 
+This requires `CLOUDFLARE_API_TOKEN` to be set in your environment. Manual deployment should only be used for emergency fixes or when the automatic pipeline is unavailable.
+
 ### Deployment Prerequisite
-- Set `CLOUDFLARE_API_TOKEN` environment variable before running `npm run deploy:vinext`
-- Alternatively, deploy through the Cloudflare Dashboard using the GitHub integration
+- Cloudflare Git integration must be configured in the Cloudflare Dashboard for the `uphsd-it-helpdesk` Worker
+- The build command should be set to `npm run build:vinext`
+- `CLOUDFLARE_API_TOKEN` is only required for manual/emergency deployments
 
 ### Production Issue History
 - **Issue:** Production returned HTTP 500 Internal Server Error
@@ -362,6 +384,10 @@ npm run deploy:vinext  # Deploy to Cloudflare Workers
 - **Fix:** Added the public Supabase vars to `wrangler.jsonc` under `[vars]`, which flows through to the generated `dist/server/wrangler.json` and the deployed Worker
 - **Additional fix:** Added defensive error handling in `utils/supabase/middleware.ts` so missing env vars don't crash the entire site
 - **Additional hardening:** Wrapped entire middleware in try/catch to prevent any unhandled exception from causing site-wide 500
+
+### Deployment Version History Note
+
+Cloudflare Version History may show both "Git" and "Manually deployed" entries. This is historical and does not indicate competing deployment mechanisms. The current production traffic is served by the Git-based deployment pipeline. Manual deployments are only performed for emergency fixes.
 
 ---
 
