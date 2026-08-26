@@ -511,10 +511,16 @@ Middleware checks:
 - [ ] Authentication hardening & account recovery enhancements
 
 ### Phase 6.2: Import/Export & Duplicate Detection
-- [ ] CSV export
-- [ ] Report export
-- [ ] Controlled import with validation
-- [ ] Duplicate request detection
+- [x] CSV export (all tickets, with filters)
+- [x] JSON export (all tickets, with filters)
+- [x] Controlled CSV import with validation
+- [x] Duplicate request detection (exact and possible)
+- [x] Import preview with validation status
+- [x] Import confirmation workflow
+- [x] Error reporting and result summary
+- [x] CSV template download
+- [x] Role-based access control
+- [x] CSV formula injection protection
 
 ### Phase 7: Testing
 - [ ] Unit tests
@@ -538,6 +544,7 @@ Middleware checks:
 ## 7. Git History
 
 ```
+(uncommitted) Phase 6.2: Import/Export & Duplicate Detection
 (uncommitted) Phase 6: Authentication & User Onboarding
 (uncommitted) Phase 5: Administrator Dashboard
 (uncommitted) Phase 4: IT Staff Queue & Ticket Management
@@ -571,8 +578,10 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 - [ ] Evaluation works
 - [ ] Notifications work
 - [ ] Reports work
-- [ ] Export works
-- [ ] Archive works
+- [x] Export works
+- [x] Archive works
+- [x] Import works
+- [x] Duplicate detection works
 - [ ] Mobile layout works
 - [ ] Error states work
 - [ ] Unauthorized access is blocked
@@ -618,4 +627,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-27*  
-*Current phase: Phase 6.1 complete, preparing for Phase 6.2*
+*Current phase: Phase 6.2 complete, preparing for Phase 7*

@@ -293,3 +293,37 @@ CREATE TRIGGER update_tickets_updated_at
   BEFORE UPDATE ON public.tickets
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Import audit table
+CREATE TABLE IF NOT EXISTS public.imports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  filename TEXT NOT NULL,
+  imported_by UUID REFERENCES public.profiles(id) NOT NULL,
+  imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  total_rows INTEGER NOT NULL DEFAULT 0,
+  imported_rows INTEGER NOT NULL DEFAULT 0,
+  duplicate_rows INTEGER NOT NULL DEFAULT 0,
+  rejected_rows INTEGER NOT NULL DEFAULT 0,
+  error_report TEXT,
+  duplicate_report TEXT
+);
+
+-- Index for import audit lookups
+CREATE INDEX IF NOT EXISTS idx_imports_imported_by ON public.imports(imported_by);
+CREATE INDEX IF NOT EXISTS idx_imports_imported_at ON public.imports(imported_at);
+
+-- Enable RLS on imports
+ALTER TABLE public.imports ENABLE ROW LEVEL SECURITY;
+
+-- Only admins and managers can view import audit records
+CREATE POLICY "Admins can view import audit records" ON public.imports
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'manager')
+    )
+  );
+
+-- System can insert import audit records
+CREATE POLICY "System can insert import audit records" ON public.imports
+  FOR INSERT WITH CHECK (true);

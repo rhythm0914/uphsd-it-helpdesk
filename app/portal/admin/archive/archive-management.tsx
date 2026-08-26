@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getArchivedTickets, exportTickets } from "./actions";
+import { getArchivedTickets, exportTickets, getExportFilters } from "./actions";
 
 export function ArchiveManagement() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -9,8 +9,21 @@ export function ArchiveManagement() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [filters, setFilters] = useState({
     status: "all",
+    priority: "all",
+    service_id: "all",
+    category_id: "all",
+    assigned_to: "all",
     dateFrom: "",
     dateTo: "",
+  });
+  const [filterOptions, setFilterOptions] = useState<{
+    services: any[];
+    categories: any[];
+    staff: any[];
+  }>({ services: [], categories: [], staff: [] });
+
+  useState(() => {
+    getExportFilters().then((options) => setFilterOptions(options));
   });
 
   async function handleSearch(formData: FormData) {
@@ -18,6 +31,10 @@ export function ArchiveManagement() {
     setMessage(null);
     const result = await getArchivedTickets({
       status: formData.get("status") as string,
+      priority: formData.get("priority") as string,
+      service_id: formData.get("service_id") as string,
+      category_id: formData.get("category_id") as string,
+      assigned_to: formData.get("assigned_to") as string,
       dateFrom: formData.get("dateFrom") as string,
       dateTo: formData.get("dateTo") as string,
     });
@@ -32,32 +49,30 @@ export function ArchiveManagement() {
   async function handleExport(format: "csv" | "json") {
     setLoading(true);
     setMessage(null);
-    const result = await exportTickets(format);
+    const result = await exportTickets(format, {
+      status: filters.status,
+      priority: filters.priority,
+      service_id: filters.service_id,
+      category_id: filters.category_id,
+      assigned_to: filters.assigned_to,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+    });
     if (result.error) {
       setMessage({ type: "error", text: result.error });
       setLoading(false);
       return;
     }
 
-    if (format === "json") {
-      const blob = new Blob([JSON.stringify((result.data as any[]) || [], null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `tickets-export-${new Date().toISOString().split("T")[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      const blob = new Blob([result.data as string || ""], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `tickets-export-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    const blob = new Blob([result.data as any], { type: format === "json" ? "application/json" : "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = result.filename || `tickets-export-${new Date().toISOString().split("T")[0]}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
 
-    setMessage({ type: "success", text: `Exported ${(result.data as any[]).length} tickets as ${format.toUpperCase()}` });
+    setMessage({ type: "success", text: `Exported ${Array.isArray(result.data) ? result.data.length : "records"} as ${format.toUpperCase()}` });
     setLoading(false);
   }
 
@@ -72,9 +87,9 @@ export function ArchiveManagement() {
       )}
 
       <div className="rounded-2xl border border-border bg-background p-6">
-        <h3 className="text-lg font-semibold mb-4">Filter Archived Tickets</h3>
+        <h3 className="text-lg font-semibold mb-4">Filter Tickets</h3>
         <form action={handleSearch} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div>
               <label htmlFor="status" className="block text-sm font-medium mb-2">
                 Status
@@ -86,9 +101,81 @@ export function ArchiveManagement() {
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
               >
-                <option value="all">All</option>
+                <option value="all">All Statuses</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="waiting_for_user">Waiting for User</option>
                 <option value="resolved">Resolved</option>
                 <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="priority" className="block text-sm font-medium mb-2">
+                Priority
+              </label>
+              <select
+                id="priority"
+                name="priority"
+                value={filters.priority}
+                onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              >
+                <option value="all">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="service_id" className="block text-sm font-medium mb-2">
+                Service
+              </label>
+              <select
+                id="service_id"
+                name="service_id"
+                value={filters.service_id}
+                onChange={(e) => setFilters({ ...filters, service_id: e.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              >
+                <option value="all">All Services</option>
+                {filterOptions.services.map((service: any) => (
+                  <option key={service.id} value={service.id}>{service.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="category_id" className="block text-sm font-medium mb-2">
+                Category
+              </label>
+              <select
+                id="category_id"
+                name="category_id"
+                value={filters.category_id}
+                onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              >
+                <option value="all">All Categories</option>
+                {filterOptions.categories.map((category: any) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="assigned_to" className="block text-sm font-medium mb-2">
+                Assigned To
+              </label>
+              <select
+                id="assigned_to"
+                name="assigned_to"
+                value={filters.assigned_to}
+                onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              >
+                <option value="all">All Staff</option>
+                {filterOptions.staff.map((member: any) => (
+                  <option key={member.id} value={member.id}>{member.full_name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -123,7 +210,7 @@ export function ArchiveManagement() {
                 disabled={loading}
                 className="w-full inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
               >
-                {loading ? "Loading..." : "Search"}
+                {loading ? "Loading..." : "Filter"}
               </button>
             </div>
           </div>
@@ -131,7 +218,7 @@ export function ArchiveManagement() {
       </div>
 
       <div className="rounded-2xl border border-border bg-background p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h3 className="text-lg font-semibold">Export Data</h3>
           <div className="flex gap-2">
             <button
@@ -151,7 +238,7 @@ export function ArchiveManagement() {
           </div>
         </div>
         <p className="text-sm text-foreground/60">
-          Export all resolved and closed tickets for reporting and backup purposes.
+          Export filtered ticket data for reporting and backup purposes. Exports respect the current filter selection.
         </p>
       </div>
 
@@ -167,8 +254,10 @@ export function ArchiveManagement() {
                   <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Ticket</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Subject</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Priority</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Requester</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Closed</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Service</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-foreground/60">Updated</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -186,11 +275,17 @@ export function ArchiveManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
+                      <span className="text-sm capitalize">{ticket.priority}</span>
+                    </td>
+                    <td className="px-6 py-4">
                       <p className="text-sm">{ticket.requester?.full_name || "Unknown"}</p>
                     </td>
                     <td className="px-6 py-4">
+                      <p className="text-sm">{ticket.service?.name || "N/A"}</p>
+                    </td>
+                    <td className="px-6 py-4">
                       <p className="text-sm text-foreground/60">
-                        {ticket.closed_at ? new Date(ticket.closed_at).toLocaleDateString() : "—"}
+                        {ticket.updated_at ? new Date(ticket.updated_at).toLocaleDateString() : "—"}
                       </p>
                     </td>
                   </tr>

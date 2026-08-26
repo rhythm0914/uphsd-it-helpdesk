@@ -9,8 +9,23 @@ async function getSupabase() {
   return createClient(cookieStore);
 }
 
+function escapeCsvCell(value: string): string {
+  const str = String(value ?? "");
+  if (str.startsWith("=") || str.startsWith("+") || str.startsWith("-") || str.startsWith("@")) {
+    return `\t"${str.replace(/"/g, '""')}"`;
+  }
+  if (str.includes(",") || str.includes("\"") || str.includes("\n") || str.includes("\r")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 export async function getArchivedTickets(filters?: {
   status?: string;
+  priority?: string;
+  service_id?: string;
+  category_id?: string;
+  assigned_to?: string;
   dateFrom?: string;
   dateTo?: string;
 }) {
@@ -37,21 +52,37 @@ export async function getArchivedTickets(filters?: {
       *,
       service:services(*),
       category:ticket_categories(*),
-      requester:profiles!requester_id(id, full_name, email)
+      requester:profiles!requester_id(id, full_name, email, role),
+      assigned_to_profile:profiles!assigned_to(id, full_name, email)
     `)
-    .in("status", ["resolved", "closed"])
     .order("closed_at", { ascending: false });
 
   if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
   }
 
+  if (filters?.priority && filters.priority !== "all") {
+    query = query.eq("priority", filters.priority);
+  }
+
+  if (filters?.service_id && filters.service_id !== "all") {
+    query = query.eq("service_id", filters.service_id);
+  }
+
+  if (filters?.category_id && filters.category_id !== "all") {
+    query = query.eq("category_id", filters.category_id);
+  }
+
+  if (filters?.assigned_to && filters.assigned_to !== "all") {
+    query = query.eq("assigned_to", filters.assigned_to);
+  }
+
   if (filters?.dateFrom) {
-    query = query.gte("closed_at", filters.dateFrom);
+    query = query.gte("created_at", filters.dateFrom);
   }
 
   if (filters?.dateTo) {
-    query = query.lte("closed_at", filters.dateTo);
+    query = query.lte("created_at", filters.dateTo);
   }
 
   const { data: tickets, error } = await query;
@@ -63,7 +94,15 @@ export async function getArchivedTickets(filters?: {
   return { tickets: tickets || [], error: null as string | null };
 }
 
-export async function exportTickets(format: "csv" | "json") {
+export async function exportTickets(format: "csv" | "json", filters?: {
+  status?: string;
+  priority?: string;
+  service_id?: string;
+  category_id?: string;
+  assigned_to?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
   const supabase = await getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -81,41 +120,175 @@ export async function exportTickets(format: "csv" | "json") {
     redirect("/portal");
   }
 
-  const { data: tickets, error } = await supabase
+  let query = supabase
     .from("tickets")
     .select(`
       *,
       service:services(*),
       category:ticket_categories(*),
-      requester:profiles!requester_id(id, full_name, email)
+      requester:profiles!requester_id(id, full_name, email, role),
+      assigned_to_profile:profiles!assigned_to(id, full_name, email)
     `)
-    .in("status", ["resolved", "closed"])
-    .order("closed_at", { ascending: false });
+    .order("created_at", { ascending: false });
+
+  if (filters?.status && filters.status !== "all") {
+    query = query.eq("status", filters.status);
+  }
+
+  if (filters?.priority && filters.priority !== "all") {
+    query = query.eq("priority", filters.priority);
+  }
+
+  if (filters?.service_id && filters.service_id !== "all") {
+    query = query.eq("service_id", filters.service_id);
+  }
+
+  if (filters?.category_id && filters.category_id !== "all") {
+    query = query.eq("category_id", filters.category_id);
+  }
+
+  if (filters?.assigned_to && filters.assigned_to !== "all") {
+    query = query.eq("assigned_to", filters.assigned_to);
+  }
+
+  if (filters?.dateFrom) {
+    query = query.gte("created_at", filters.dateFrom);
+  }
+
+  if (filters?.dateTo) {
+    query = query.lte("created_at", filters.dateTo);
+  }
+
+  const { data: tickets, error } = await query;
 
   if (error) {
     return { error: error.message };
   }
 
+  const ticketList = tickets || [];
+
   if (format === "json") {
-    return { data: (tickets || []) as any[], format: "json" as const };
+    return {
+      data: ticketList.map((t: any) => ({
+        ticket_number: t.ticket_number,
+        subject: t.subject,
+        description: t.description,
+        priority: t.priority,
+        status: t.status,
+        service: t.service?.name || null,
+        category: t.category?.name || null,
+        requester_name: t.requester?.full_name || null,
+        requester_email: t.requester?.email || null,
+        requester_role: t.requester?.role || null,
+        assigned_to: t.assigned_to_profile?.full_name || null,
+        assigned_to_email: t.assigned_to_profile?.email || null,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+        closed_at: t.closed_at,
+      })),
+      format: "json" as const,
+      filename: `uphsd-it-helpdesk-tickets-${new Date().toISOString().split("T")[0]}.json`,
+    };
   }
 
-  const csvHeaders = ["Ticket Number", "Subject", "Status", "Priority", "Service", "Category", "Requester", "Created", "Closed"];
-  const csvRows = (tickets || []).map((ticket: any) => [
-    ticket.ticket_number,
-    ticket.subject,
-    ticket.status,
-    ticket.priority,
-    ticket.service?.name || "",
-    ticket.category?.name || "",
-    ticket.requester?.full_name || "",
-    new Date(ticket.created_at).toLocaleDateString(),
-    ticket.closed_at ? new Date(ticket.closed_at).toLocaleDateString() : "",
+  const csvHeaders = [
+    "Ticket Number",
+    "Subject",
+    "Description",
+    "Priority",
+    "Status",
+    "Service",
+    "Category",
+    "Requester Name",
+    "Requester Email",
+    "Requester Role",
+    "Assigned To",
+    "Assigned To Email",
+    "Created At",
+    "Updated At",
+    "Closed At",
+  ];
+
+  const csvRows = ticketList.map((t: any) => [
+    t.ticket_number,
+    t.subject,
+    t.description,
+    t.priority,
+    t.status,
+    t.service?.name || "",
+    t.category?.name || "",
+    t.requester?.full_name || "",
+    t.requester?.email || "",
+    t.requester?.role || "",
+    t.assigned_to_profile?.full_name || "",
+    t.assigned_to_profile?.email || "",
+    t.created_at ? new Date(t.created_at).toISOString() : "",
+    t.updated_at ? new Date(t.updated_at).toISOString() : "",
+    t.closed_at ? new Date(t.closed_at).toISOString() : "",
   ]);
 
-  const csvContent = [csvHeaders, ...csvRows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+  const csvContent = [
+    csvHeaders,
+    ...csvRows,
+  ]
+    .map((row) => row.map((cell) => escapeCsvCell(String(cell))).join(","))
     .join("\n");
 
-  return { data: csvContent as string, format: "csv" as const };
+  return {
+    data: csvContent,
+    format: "csv" as const,
+    filename: `uphsd-it-helpdesk-tickets-${new Date().toISOString().split("T")[0]}.csv`,
+  };
+}
+
+export async function getExportFilters() {
+  const supabase = await getSupabase();
+
+  const [servicesResult, categoriesResult, staffResult] = await Promise.all([
+    supabase.from("services").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("ticket_categories").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("profiles").select("id, full_name, email").in("role", ["it_staff", "admin", "manager"]).order("full_name"),
+  ]);
+
+  return {
+    services: servicesResult.data || [],
+    categories: categoriesResult.data || [],
+    staff: staffResult.data || [],
+  };
+}
+
+export async function downloadCsvTemplate() {
+  const headers = [
+    "ticket_number",
+    "requester_email",
+    "service",
+    "category",
+    "subject",
+    "description",
+    "priority",
+    "status",
+    "created_at",
+  ];
+
+  const exampleRow = [
+    "IT-2026-000001",
+    "user@perpetual.edu.ph",
+    "University Email",
+    "Email",
+    "Cannot access email",
+    "User reports inability to log in to university email",
+    "normal",
+    "open",
+    "2026-08-27",
+  ];
+
+  const csvContent = [
+    headers.join(","),
+    exampleRow.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","),
+  ].join("\n");
+
+  return {
+    content: csvContent,
+    filename: `uphsd-it-helpdesk-import-template-${new Date().toISOString().split("T")[0]}.csv`,
+  };
 }
