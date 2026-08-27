@@ -685,11 +685,43 @@ Users cannot submit tickets without valid service and category selections.
   - `app/portal/admin/services/actions.ts`
 
 ### Phase 7: Testing
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] E2E tests (Playwright)
-- [ ] Authorization tests
-- [ ] Security review
+- **Status:** Completed and Deployed
+- **Commit:** `b0239a6` - "test: add Phase 7 auth tests, security review, and remove temporary diagnostics"
+- **Work:**
+  - Added Vitest test framework with unit and authorization tests
+  - Added Playwright E2E test framework for public/auth flows
+  - Extracted shared authorization utility (`utils/authorization.ts`) to centralize role checks
+  - Removed all temporary production diagnostics from auth and portal code
+  - Added unit tests for role authorization, signup role normalization, and privilege boundaries
+  - Added E2E smoke tests for sign-in, sign-up, forgot-password, and protected-route redirects
+  - Verified signup cannot create admin/manager/it_staff through public form
+  - Verified profile creation trigger and INSERT policy are in place
+  - Verified no passwords, tokens, cookies, or secrets are logged
+- **Test Coverage:**
+  - Unit tests: 16 passing
+  - E2E tests: Playwright configured for auth smoke tests
+- **Scripts:**
+  - `npm run test` — run Vitest
+  - `npm run test:watch` — run Vitest in watch mode
+  - `npm run test:e2e` — run Playwright E2E tests
+- **Files Added:**
+  - `vitest.config.ts`
+  - `playwright.config.ts`
+  - `tests/unit/authorization.test.ts`
+  - `tests/unit/authorization-behavior.test.ts`
+  - `tests/e2e/auth.spec.ts`
+  - `utils/authorization.ts`
+- **Security Review:**
+  - No privilege escalation path found through public signup
+  - RLS remains enabled on all tables
+  - Profile trigger validates role before insert; defaults to `student`
+  - No service-role keys exposed to client or Worker vars
+  - Internal message visibility requires manual policy review if requester visibility changes
+- **Verification:**
+  - `npm run lint` — PASS
+  - `npm run build` — PASS
+  - `npm run build:vinext` — PASS
+  - `npm run test` — PASS
 
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
@@ -706,6 +738,11 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+b0239a6 test: add Phase 7 auth tests, security review, and remove temporary diagnostics
+9f14c27 fix: resolve signup profile creation, confirmation flow, and sign-in diagnostics
+93944f5 chore: add temporary sign-in diagnostics for production debugging
+7d3c180 docs: standardize production deployment workflow and update README
+3c9691d docs: update PROJECT.md with admin authorization and service-category fixes
 f6e65fe fix: resolve service-category order syntax and empty results
 f15599b fix: resolve admin authorization and portal caching
 be979ec feat: implement service-category relationship and dynamic filtering (Phase 6.4)
