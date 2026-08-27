@@ -748,6 +748,19 @@ Users cannot submit tickets without valid service and category selections.
   - `npm run build:vinext` — PASS
   - `npx vitest run` — 16/16 PASS
 
+### Phase 7.2: RLS Recursion & Table Grants Fix (Root Cause of Auth Errors)
+- **Status:** Completed (DB migration must be run in Supabase - see `supabase/fix-rls-recursion.sql`)
+- **Root Cause (database):**
+  - The `"Admins can view all profiles"` RLS policy read `public.profiles` from within a `USING` clause *on `public.profiles`*, causing PostgREST **`infinite recursion detected in policy for relation "profiles"`**. Every policy that subqueries `public.profiles` (tickets, service_categories, imports, profiles) inherited this failure. This was the true cause behind the profile-read failures that the earlier redirect-loop symptoms pointed to.
+  - The `anon`/`authenticated` roles were **not GRANTed access** to the public tables, so PostgREST returned `42501 permission denied for table`, which the request page surfaced as "Services and categories are currently unavailable" (a SELECT blocked by RLS yields `[]`, not an error; an error means a grants or recursion failure).
+- **Now fixed in code/schema:**
+  - Replaced the recursive admin policy with a non-recursive one backed by a `SECURITY DEFINER` helper `public.is_admin()` (executes outside the invoker's RLS, so it cannot recurse).
+  - Added `GRANT SELECT/INSERT/UPDATE/DELETE` for the `authenticated` role and `SELECT` for `anon` + sequence usage, so PostgREST policies can be evaluated while RLS still enforces row-level access.
+- **What you must run:** copy `supabase/fix-rls-recursion.sql` into the Supabase SQL Editor and execute. No app redeploy is required for this fix, and no data is dropped.
+- **Files Changed:**
+  - `supabase/schema.sql`
+  - `supabase/fix-rls-recursion.sql`
+
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
@@ -869,4 +882,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-28*  
-*Current phase: Phase 7.1 complete (auth redirect loop fixed), preparing for Phase 7.2*
+*Current phase: Phase 7.1-7.2 (auth loop + RLS recursion fixed). ACTION REQUIRED: run `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*
