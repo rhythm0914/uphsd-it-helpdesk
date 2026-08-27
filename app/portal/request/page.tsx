@@ -14,16 +14,6 @@ export default async function RequestPage() {
     redirect("/auth/sign-in");
   }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (error || !profile) {
-    redirect("/auth/sign-in");
-  }
-
   const servicesResult = await supabase
     .from("services")
     .select("*")

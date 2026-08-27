@@ -20,17 +20,20 @@ export default async function ITQueueTicketPage({
     redirect("/auth/sign-in");
   }
 
-  const { data: profile, error } = await supabase
+  let profile = null;
+  let role: string | null = null;
+
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
+  profile = profileData;
 
-  if (error || !profile) {
-    redirect("/auth/sign-in");
-  }
-
-  const role = profile.role;
+  // A missing/unreadable profile must NOT redirect to /auth/sign-in (that
+  // recreates the auth redirect loop for an authenticated user). Fall back to
+  // the least-privilege behavior: no staff role -> redirected to /portal.
+  role = profile?.role || null;
   if (role !== "it_staff" && role !== "admin" && role !== "manager") {
     redirect("/portal");
   }

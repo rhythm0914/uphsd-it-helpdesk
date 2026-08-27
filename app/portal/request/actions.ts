@@ -23,6 +23,27 @@ export async function submitRequest(formData: FormData) {
     redirect("/portal/request?error=All+required+fields+must+be+filled");
   }
 
+  // tickets.requester_id is a foreign key to profiles(id). If the requester's
+  // profile row is missing (e.g. created before the on_auth_user_created
+  // trigger existed), the ticket insert below would fail. Ensure the profile
+  // exists without overwriting an existing one.
+  const metadata = (user.user_metadata as any) || {};
+  const metadataRole = metadata.role || "student";
+  const safeRole = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
+    ? metadataRole
+    : "student";
+  await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email,
+        full_name: metadata.full_name || user.email || "",
+        role: safeRole,
+      },
+      { onConflict: "id", ignoreDuplicates: true }
+    );
+
   const { data: mapping } = await supabase
     .from("service_categories")
     .select("service_id")

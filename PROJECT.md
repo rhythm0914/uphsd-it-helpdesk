@@ -723,6 +723,31 @@ Users cannot submit tickets without valid service and category selections.
   - `npm run build:vinext` — PASS
   - `npm run test` — PASS
 
+### Phase 7.1: Auth Redirect Loop Fix & Request Submission Repair
+- **Status:** Completed and Deployed
+- **Commit:** `6311c41` - "fix: break auth redirect loop when profile row is missing"
+- **Root Cause:**
+  - For an authenticated user whose `profiles` row is missing or unreadable, `app/portal/page.tsx` and `app/portal/layout.tsx` redirected to `/auth/sign-in`, while the middleware redirects authenticated users on `/auth/*` back to `/portal`. The two guards fought each other, producing an infinite `ERR_TOO_MANY_REDIRECTS` loop (`/portal → /auth/sign-in → /portal → ...`).
+  - The same missing-profile redirect still existed on `/portal/request` and the `/portal/queue` pages, so after the portal fix a user with no profile row still could not reach the submission form (and submitting a ticket requires `requester_id` to reference an existing `profiles` row via a foreign key).
+- **What was fixed:**
+  - Profile lookup failures are no longer treated as "unauthenticated". `app/portal/page.tsx` and `app/portal/layout.tsx` now fall back to a least-privilege default derived from validated auth `user_metadata` instead of redirecting to sign-in.
+  - `app/portal/request/page.tsx` no longer fetches/gates on the profile (the form does not use role); it only requires an authenticated user.
+  - `submitRequest` (`app/portal/request/actions.ts`) now upserts the requester's profile (`ON CONFLICT (id) DO NOTHING`) before inserting the ticket, so a missing profile cannot fail the `requester_id` foreign key.
+  - `/portal/queue` pages now redirect missing-profile users to `/portal` (least privilege, loop-free) instead of `/auth/sign-in`.
+- **Security:** `/portal`, `/portal/request`, and all admin/queue routes remain authenticated; missing-profile users never gain privileges beyond a `student` default. RLS and email confirmation unchanged. No DB changes.
+- **Files Changed:**
+  - `app/portal/layout.tsx`
+  - `app/portal/page.tsx`
+  - `app/portal/request/page.tsx`
+  - `app/portal/request/actions.ts`
+  - `app/portal/queue/page.tsx`
+  - `app/portal/queue/[id]/page.tsx`
+- **Verification:**
+  - `npm run build` — PASS
+  - `npx tsc --noEmit` — PASS
+  - `npm run build:vinext` — PASS
+  - `npx vitest run` — 16/16 PASS
+
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
@@ -738,6 +763,13 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+6311c41 fix: break auth redirect loop when profile row is missing
+4b7b816 fix: resolve auth redirect loop by consolidating Supabase middleware client
+9fdf176 chore: add temporary auth email diagnostics for debugging
+91115e1 fix: support PKCE code exchange in auth callback
+2be53a6 fix: regenerate package-lock.json for Cloudflare build
+ffb1495 fix: replace placeholder images with UPHSD campus images
+19e1db9 docs: update PROJECT.md with Phase 7 testing and security details
 b0239a6 test: add Phase 7 auth tests, security review, and remove temporary diagnostics
 9f14c27 fix: resolve signup profile creation, confirmation flow, and sign-in diagnostics
 93944f5 chore: add temporary sign-in diagnostics for production debugging
@@ -836,5 +868,5 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 
 ---
 
-*Last updated: 2026-08-27*  
-*Current phase: Phase 6.4.2 complete, preparing for Phase 7*
+*Last updated: 2026-08-28*  
+*Current phase: Phase 7.1 complete (auth redirect loop fixed), preparing for Phase 7.2*
