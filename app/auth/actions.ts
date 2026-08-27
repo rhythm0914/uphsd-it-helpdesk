@@ -24,6 +24,15 @@ export async function signIn(formData: FormData) {
   });
 
   if (error) {
+    // If the account exists but its email is not yet confirmed, route the user
+    // to a focused state that pre-fills the resend-confirmation UI instead of a
+    // generic "wrong credentials" message.
+    if (error.code === "email_not_confirmed") {
+      redirect(
+        "/auth/sign-in?error=email_not_confirmed&email=" +
+          encodeURIComponent(email),
+      );
+    }
     redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
   }
 

@@ -783,6 +783,15 @@ Users cannot submit tickets without valid service and category selections.
 - **Deliberately skipped:** `/portal/request` (renders instantly) and `/portal/admin/archive` (client page, action-level loading already covered by Spinner) - a skeleton there would cause unnecessary flashing.
 - **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS, `npm run build:vinext` PASS, `npx vitest run` 16/16 PASS. Auth flow, request submission, ticket queue/detail, and admin routes untouched.
 
+### Phase 7.5: Conditional Confirmation-Resend on Sign-In (UX polish)
+- **Status:** Completed
+- **Root cause of the previous behavior:** the sign-in page displayed the "Did not receive a confirmation email? / Resend Confirmation Email" block statically for every visitor, regardless of whether they had an unconfirmed account.
+- **Fix:**
+  - `app/auth/actions.ts` - `signIn` detects Supabase `error.code === "email_not_confirmed"` and redirects to `/auth/sign-in?error=email_not_confirmed&email=<url-encoded-email>`. Every other error keeps the existing handling.
+  - `app/auth/sign-in/page.tsx` - the friendly message "Please confirm your email address before signing in." and the resend block now render ONLY when `error === "email_not_confirmed"`. New visitors, wrong-password, and confirmed users never see the resend block. The resend form pre-fills the email and submits to the existing `resendConfirmation` action; the existing `confirmation_sent` message handling is unchanged.
+- **Security preserved:** `/portal` stays protected, authentication is enforced server-side, email confirmation is untouched, and there are no RLS, schema, trigger, or ticket changes; no service-role key is exposed to the client.
+- **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS, `npm run build:vinext` PASS, `npx vitest run` 23/23 PASS. Auth redirect-loop fixes, request submission, ticket queue/detail, and admin routes remain intact.
+
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
@@ -798,6 +807,8 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+922d8df test: add supabase client unit tests
+737fd06 feat: add skeleton loaders for portal data routes + docs
 a2122a0 feat: add loading feedback (spinner, submit button, route progress) + docs
 7d15b58 fix: resolve RLS recursion and table grants for public reads (auth root cause)
 436f7af fix: allow request submission when profile row is missing; update PROJECT.md
@@ -907,4 +918,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-28*  
-*Current phase: Phase 7.1-7.4 complete (auth loop fixed, RLS recursion + grants fixed, loading UX: spinners + route progress + skeleton loaders). ACTION REQUIRED if not yet run: execute `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*
+*Current phase: Phase 7.1-7.5 complete (auth loop fixed, RLS recursion + grants fixed, loading UX: spinners + route progress + skeleton loaders, conditional confirmation-resend on sign-in). ACTION REQUIRED if not yet run: execute `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*

@@ -6,11 +6,12 @@ import { SubmitButton } from "@/components/ui/submit-button";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; email?: string }>;
 }) {
   const params = await searchParams;
   const error = params?.error;
   const message = params?.message;
+  const email = params?.email;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
@@ -32,10 +33,18 @@ export default async function SignInPage({
         </div>
 
         <form action={signIn} className="space-y-4">
-          {error && (
+          {error && error !== "email_not_confirmed" && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-4">
               <p className="text-sm text-red-700">
                 {decodeURIComponent(error)}
+              </p>
+            </div>
+          )}
+
+          {error === "email_not_confirmed" && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+              <p className="text-sm text-red-700">
+                Please confirm your email address before signing in.
               </p>
             </div>
           )}
@@ -103,32 +112,35 @@ export default async function SignInPage({
           </p>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-border">
-          <p className="text-sm text-foreground/60 text-center mb-3">
-            Didn&apos;t receive a confirmation email?
-          </p>
-          <form action={resendConfirmation} className="space-y-3">
-            <div>
-              <label htmlFor="resend-email" className="block text-sm font-medium mb-2">
-                UPHSD Email
-              </label>
-              <input
-                type="email"
-                id="resend-email"
-                name="email"
-                required
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                placeholder="you@perpetual.edu.ph"
+        {error === "email_not_confirmed" && (
+          <div className="mt-6 pt-6 border-t border-border">
+            <p className="text-sm text-foreground/60 text-center mb-3">
+              Didn&apos;t receive a confirmation email?
+            </p>
+            <form action={resendConfirmation} className="space-y-3">
+              <div>
+                <label htmlFor="resend-email" className="block text-sm font-medium mb-2">
+                  UPHSD Email
+                </label>
+                <input
+                  type="email"
+                  id="resend-email"
+                  name="email"
+                  required
+                  defaultValue={email}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                  placeholder="you@perpetual.edu.ph"
+                />
+              </div>
+              <SubmitButton
+                idleLabel="Resend Confirmation Email"
+                pendingLabel="Sending…"
+                variant="outline"
+                className="w-full px-6 py-2 text-sm"
               />
-            </div>
-            <SubmitButton
-              idleLabel="Resend Confirmation Email"
-              pendingLabel="Sending…"
-              variant="outline"
-              className="w-full px-6 py-2 text-sm"
-            />
-          </form>
-        </div>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
