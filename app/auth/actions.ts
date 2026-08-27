@@ -38,6 +38,8 @@ export async function signUp(formData: FormData) {
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
+  console.log("[signUp] action invoked", { emailDomain: email ? email.split("@")[1] : "missing" });
+
   if (!fullName || !email || !password || !confirmPassword) {
     redirect("/auth/sign-up?error=All+required+fields+must+be+filled");
   }
@@ -57,6 +59,8 @@ export async function signUp(formData: FormData) {
   const allowedRoles = ["student", "employee"];
   const normalizedRole = allowedRoles.includes(role) ? role : "student";
 
+  const redirectTo = `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback`;
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -65,9 +69,11 @@ export async function signUp(formData: FormData) {
         full_name: fullName,
         role: normalizedRole,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback`,
+      emailRedirectTo: redirectTo,
     },
   });
+
+  console.log("[signUp] result", { error: error ? { message: error.message, code: error.code } : null });
 
   if (error) {
     redirect("/auth/sign-up?error=" + encodeURIComponent(error.message));
@@ -79,6 +85,8 @@ export async function signUp(formData: FormData) {
 export async function resendConfirmation(formData: FormData) {
   const supabase = await getSupabase();
   const email = formData.get("email") as string;
+
+  console.log("[resendConfirmation] action invoked", { emailDomain: email ? email.split("@")[1] : "missing" });
 
   if (!email) {
     redirect("/auth/sign-in?error=Email+is+required");
@@ -92,6 +100,8 @@ export async function resendConfirmation(formData: FormData) {
     type: "signup",
     email: email,
   });
+
+  console.log("[resendConfirmation] result", { error: error ? { message: error.message, code: error.code } : null });
 
   if (error) {
     redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
