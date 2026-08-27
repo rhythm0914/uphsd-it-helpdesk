@@ -789,7 +789,7 @@ Users cannot submit tickets without valid service and category selections.
 ### Technical Debt
 - [ ] Migrate `middleware.ts` to `proxy.ts` (Next.js 16 deprecation warning)
 - [ ] Replace Picsum placeholder images with official UPHSD photography
-- [ ] Add unit tests for Supabase client helpers
+- [x] Add unit tests for Supabase client helpers (`tests/unit/supabase-client.test.ts`: server client, browser client, middleware env-guard + getUser success/throw)
 - [ ] Add integration tests for middleware
 - [ ] Add attachments support (future)
 
