@@ -175,8 +175,8 @@ export default function Home() {
               <div className="relative">
                 <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border">
                   <Image
-                    src="https://picsum.photos/seed/uphsd-campus-tech/800/600"
-                    alt="Campus technology support"
+                    src="/MOLINO-Campus-Facade-2.2.jpg"
+                    alt="University of Perpetual Help System DALTA Molino Campus facade"
                     fill
                     className="object-cover"
                     priority
@@ -375,8 +375,8 @@ export default function Home() {
               <div className="relative order-2 lg:order-1">
                 <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border">
                   <Image
-                    src="https://picsum.photos/seed/security-privacy/800/600"
-                    alt="Secure data handling"
+                    src="/image_6487327-scaled-1.webp"
+                    alt="University of Perpetual Help System DALTA building facade with the university emblem"
                     fill
                     className="object-cover"
                   />
