@@ -807,6 +807,7 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+1368b04 feat: Phase 7.5 conditional confirmation resend on sign-in
 922d8df test: add supabase client unit tests
 737fd06 feat: add skeleton loaders for portal data routes + docs
 a2122a0 feat: add loading feedback (spinner, submit button, route progress) + docs
