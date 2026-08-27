@@ -761,6 +761,18 @@ Users cannot submit tickets without valid service and category selections.
   - `supabase/schema.sql`
   - `supabase/fix-rls-recursion.sql`
 
+### Phase 7.3: Loading & Interaction Feedback (UX)
+- **Status:** Completed
+- **Why:** Buttons/actions gave no visual feedback while Server Actions and navigations were pending, making the app feel slow or unresponsive on click.
+- **What was added (dependency-free, no npm packages):**
+  - `components/ui/spinner.tsx` — reusable dots-ring spinner (pure Tailwind/CSS, `aria-hidden`, honors `prefers-reduced-motion`).
+  - `components/ui/submit-button.tsx` — client component using React's `useFormStatus()`: shows spinner + "Submitting…" label, disables the button, sets `aria-busy`, prevents double-submits; works inside server-component forms.
+  - `components/ui/route-progress.tsx` — thin top progress bar shown while a route navigation is in flight (uses `usePathname` to reset).
+  - `app/globals.css` — added dots-ring / route-progress keyframes with `prefers-reduced-motion` fallbacks.
+- **Wired into:** request form submit, sign-in / sign-up / forgot-password / update-password buttons, admin service management (add service/category/toggle), ticket management actions (assign/status), archive management actions, and `<RouteProgress />` in `app/portal/layout.tsx` + `app/portal/admin/layout.tsx`.
+- **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS, `npm run build:vinext` PASS, `npx vitest run` 16/16 PASS.
+
+### Phase 8: AI Assistant (Optional)
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
@@ -776,6 +788,8 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+7d15b58 fix: resolve RLS recursion and table grants for public reads (auth root cause)
+436f7af fix: allow request submission when profile row is missing; update PROJECT.md
 6311c41 fix: break auth redirect loop when profile row is missing
 4b7b816 fix: resolve auth redirect loop by consolidating Supabase middleware client
 9fdf176 chore: add temporary auth email diagnostics for debugging
@@ -882,4 +896,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-28*  
-*Current phase: Phase 7.1-7.2 (auth loop + RLS recursion fixed). ACTION REQUIRED: run `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*
+*Current phase: Phase 7.1-7.3 complete (auth loop fixed, RLS recursion + grants fixed, loading/UX feedback added). ACTION REQUIRED if not yet run: execute `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*

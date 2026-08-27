@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { Spinner } from "@/components/ui/spinner";
 
 export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId: string; staff: any[]; currentStatus: string }) {
   const [isAssigning, setIsAssigning] = useState(false);
@@ -155,9 +156,16 @@ export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId:
           <button
             type="submit"
             disabled={isAssigning}
-            className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
           >
-            {isAssigning ? "Assigning..." : "Assign Ticket"}
+            {isAssigning ? (
+              <>
+                <Spinner size="sm" />
+                <span>Assigning…</span>
+              </>
+            ) : (
+              "Assign Ticket"
+            )}
           </button>
         </form>
       </div>
@@ -197,9 +205,16 @@ export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId:
           <button
             type="submit"
             disabled={isUpdatingStatus}
-            className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
           >
-            {isUpdatingStatus ? "Updating..." : "Update Status"}
+            {isUpdatingStatus ? (
+              <>
+                <Spinner size="sm" />
+                <span>Updating…</span>
+              </>
+            ) : (
+              "Update Status"
+            )}
           </button>
         </form>
       </div>
@@ -235,9 +250,16 @@ export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId:
           <button
             type="submit"
             disabled={isAddingRemark}
-            className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
           >
-            {isAddingRemark ? "Adding..." : "Add Remark"}
+            {isAddingRemark ? (
+              <>
+                <Spinner size="sm" />
+                <span>Adding…</span>
+              </>
+            ) : (
+              "Add Remark"
+            )}
           </button>
         </form>
       </div>

@@ -1,6 +1,7 @@
 import { updatePassword } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function UpdatePasswordPage({
   searchParams,
@@ -71,12 +72,11 @@ export default async function UpdatePasswordPage({
             />
           </div>
 
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
-          >
-            Update Password
-          </button>
+          <SubmitButton
+            idleLabel="Update Password"
+            pendingLabel="Updating…"
+            className="w-full"
+          />
         </form>
 
         <div className="mt-6 text-center">

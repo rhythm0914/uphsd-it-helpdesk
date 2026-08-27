@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
+import { RouteProgress } from "@/components/ui/route-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function PortalLayout({
 
   return (
     <div className="flex flex-col flex-1">
+      <RouteProgress />
       <nav className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">

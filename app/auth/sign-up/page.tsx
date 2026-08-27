@@ -1,6 +1,7 @@
 import { signUp } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function SignUpPage({
   searchParams,
@@ -117,12 +118,11 @@ export default async function SignUpPage({
             />
           </div>
 
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
-          >
-            Create Account
-          </button>
+          <SubmitButton
+            idleLabel="Create Account"
+            pendingLabel="Creating Account…"
+            className="w-full"
+          />
         </form>
 
         <div className="mt-6 text-center">

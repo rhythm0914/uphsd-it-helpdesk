@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { submitRequest } from "./actions";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function RequestForm({
   services,
@@ -187,12 +188,11 @@ export function RequestForm({
         >
           Cancel
         </a>
-        <button
-          type="submit"
-          className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
-        >
-          Submit Request
-        </button>
+        <SubmitButton
+          idleLabel="Submit Request"
+          pendingLabel="Submitting…"
+          className="w-full"
+        />
       </div>
     </form>
   );

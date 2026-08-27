@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getArchivedTickets, exportTickets, getExportFilters } from "./actions";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ArchiveManagement() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -208,9 +209,16 @@ export function ArchiveManagement() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
               >
-                {loading ? "Loading..." : "Filter"}
+                {loading ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Loading…</span>
+                  </>
+                ) : (
+                  "Filter"
+                )}
               </button>
             </div>
           </div>

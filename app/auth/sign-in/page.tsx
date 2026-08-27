@@ -1,6 +1,7 @@
 import { signIn, resendConfirmation } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function SignInPage({
   searchParams,
@@ -86,12 +87,11 @@ export default async function SignInPage({
             </Link>
           </div>
 
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
-          >
-            Sign In
-          </button>
+          <SubmitButton
+            idleLabel="Sign In"
+            pendingLabel="Signing In…"
+            className="w-full"
+          />
         </form>
 
         <div className="mt-6 text-center">
@@ -121,12 +121,12 @@ export default async function SignInPage({
                 placeholder="you@perpetual.edu.ph"
               />
             </div>
-            <button
-              type="submit"
-              className="w-full inline-flex items-center justify-center rounded-full border border-border bg-background px-6 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface"
-            >
-              Resend Confirmation Email
-            </button>
+            <SubmitButton
+              idleLabel="Resend Confirmation Email"
+              pendingLabel="Sending…"
+              variant="outline"
+              className="w-full px-6 py-2 text-sm"
+            />
           </form>
         </div>
       </div>

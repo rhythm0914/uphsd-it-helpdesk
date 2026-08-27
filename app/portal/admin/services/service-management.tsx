@@ -11,6 +11,7 @@ import {
   getServiceCategories,
   getUnmappedCategories,
 } from "./actions";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function ServiceManagement({ services, categories }: { services: any[]; categories: any[] }) {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -150,12 +151,10 @@ export function ServiceManagement({ services, categories }: { services: any[]; c
               placeholder="Brief description of this service"
             />
           </div>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
-          >
-            Add Service
-          </button>
+          <SubmitButton
+            idleLabel="Add Service"
+            pendingLabel="Adding…"
+          />
         </form>
       </div>
 
@@ -187,12 +186,10 @@ export function ServiceManagement({ services, categories }: { services: any[]; c
               placeholder="Brief description of this category"
             />
           </div>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
-          >
-            Add Category
-          </button>
+          <SubmitButton
+            idleLabel="Add Category"
+            pendingLabel="Adding…"
+          />
         </form>
       </div>
 
