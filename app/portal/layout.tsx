@@ -20,16 +20,55 @@ export default async function PortalLayout({
     redirect("/auth/sign-in");
   }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  let profile = null;
+  let profileError = null;
 
-  console.log("[PortalLayout] profile lookup", { userId: user.id, role: profile?.role, error: error ? { message: error.message, code: error.code } : null });
+  try {
+    const result = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    profile = result.data;
+    profileError = result.error;
+  } catch (err) {
+    profileError = err as any;
+  }
 
-  if (error || !profile) {
-    redirect("/auth/sign-in");
+  console.log("[PortalLayout] profile lookup", { userId: user.id, role: profile?.role, error: profileError ? { message: (profileError as any).message, code: (profileError as any).code } : null });
+
+  if (profileError || !profile) {
+    const { data } = await supabase.auth.getUser();
+    const userMetadata = (data.user as any)?.user_metadata || {};
+    const fullName = userMetadata.full_name || "";
+    const role = userMetadata.role || "student";
+
+    const { error: insertError } = await supabase
+      .from("profiles")
+      .insert({
+        id: user.id,
+        email: user.email,
+        full_name: fullName,
+        role: role,
+      });
+
+    console.log("[PortalLayout] profile repair attempt", { userId: user.id, insertError: insertError ? { message: insertError.message, code: insertError.code } : null });
+
+    if (insertError || !user.email) {
+      redirect("/auth/sign-in");
+    }
+
+    const { data: repairedProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!repairedProfile) {
+      redirect("/auth/sign-in");
+    }
+
+    profile = repairedProfile;
   }
 
   const isITStaff = profile.role && ["it_staff", "admin", "manager"].includes(profile.role);

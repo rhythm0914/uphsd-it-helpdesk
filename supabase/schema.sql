@@ -117,6 +117,9 @@ CREATE POLICY "Admins can view all profiles" ON public.profiles
     )
   );
 
+CREATE POLICY "Users can create their own profile" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
 -- RLS Policies for services (readable by all authenticated users)
 CREATE POLICY "Services are readable by authenticated users" ON public.services
   FOR SELECT USING (auth.role() = 'authenticated');
@@ -369,6 +372,38 @@ CREATE TRIGGER update_tickets_updated_at
   BEFORE UPDATE ON public.tickets
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Trigger function to auto-create profile on auth user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  v_role := COALESCE(
+    NULLIF(NEW.raw_user_meta_data->>'role', ''),
+    'student'
+  );
+
+  IF v_role NOT IN ('student', 'employee', 'it_staff', 'admin', 'manager') THEN
+    v_role := 'student';
+  END IF;
+
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    v_role
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+ALTER FUNCTION public.handle_new_user() SET search_path = public;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Import audit table
 CREATE TABLE IF NOT EXISTS public.imports (

@@ -1,4 +1,4 @@
-import { signIn } from "../actions";
+import { signIn, resendConfirmation } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -44,6 +44,7 @@ export default async function SignInPage({
               <p className="text-sm text-green-700">
                 {message === "check_email" && "Please check your UPHSD email to verify your account before signing in."}
                 {message === "password_updated" && "Password updated successfully. Please sign in."}
+                {message === "confirmation_sent" && "If an account exists for this email, a new confirmation email has been sent."}
               </p>
             </div>
           )}
@@ -100,6 +101,33 @@ export default async function SignInPage({
               Create account
             </Link>
           </p>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-border">
+          <p className="text-sm text-foreground/60 text-center mb-3">
+            Didn&apos;t receive a confirmation email?
+          </p>
+          <form action={resendConfirmation} className="space-y-3">
+            <div>
+              <label htmlFor="resend-email" className="block text-sm font-medium mb-2">
+                UPHSD Email
+              </label>
+              <input
+                type="email"
+                id="resend-email"
+                name="email"
+                required
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                placeholder="you@perpetual.edu.ph"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full inline-flex items-center justify-center rounded-full border border-border bg-background px-6 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface"
+            >
+              Resend Confirmation Email
+            </button>
+          </form>
         </div>
       </div>
     </div>

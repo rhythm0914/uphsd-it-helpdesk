@@ -79,22 +79,31 @@ export async function signUp(formData: FormData) {
     redirect("/auth/sign-up?error=" + encodeURIComponent(error.message));
   }
 
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        role: normalizedRole,
-      });
+  redirect("/auth/sign-in?message=check_email");
+}
 
-    if (profileError) {
-      redirect("/auth/sign-up?error=" + encodeURIComponent("Account created but profile setup failed. Please contact support."));
-    }
+export async function resendConfirmation(formData: FormData) {
+  const supabase = await getSupabase();
+  const email = formData.get("email") as string;
+
+  if (!email) {
+    redirect("/auth/sign-in?error=Email+is+required");
   }
 
-  redirect("/auth/sign-in?message=check_email");
+  if (!email.endsWith("@perpetual.edu.ph")) {
+    redirect("/auth/sign-in?error=Please+use+your+UPHSD+institutional+email+address");
+  }
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: email,
+  });
+
+  if (error) {
+    redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
+  }
+
+  redirect("/auth/sign-in?message=confirmation_sent");
 }
 
 export async function signOut() {

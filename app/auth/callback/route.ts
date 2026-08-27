@@ -16,6 +16,25 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .single();
+
+        if (!existingProfile) {
+          await supabase.from("profiles").insert({
+            id: user.id,
+            email: user.email,
+            full_name: (user.user_metadata as any)?.full_name || "",
+            role: (user.user_metadata as any)?.role || "student",
+          });
+        }
+      }
+
       if (type === "recovery") {
         return NextResponse.redirect(new URL("/auth/update-password", request.url));
       }
