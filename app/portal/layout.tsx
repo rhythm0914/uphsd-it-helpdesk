@@ -35,8 +35,6 @@ export default async function PortalLayout({
     profileError = err as any;
   }
 
-  console.log("[PortalLayout] profile lookup", { userId: user.id, role: profile?.role, error: profileError ? { message: (profileError as any).message, code: (profileError as any).code } : null });
-
   if (profileError || !profile) {
     const { data } = await supabase.auth.getUser();
     const userMetadata = (data.user as any)?.user_metadata || {};
@@ -51,8 +49,6 @@ export default async function PortalLayout({
         full_name: fullName,
         role: role,
       });
-
-    console.log("[PortalLayout] profile repair attempt", { userId: user.id, insertError: insertError ? { message: insertError.message, code: insertError.code } : null });
 
     if (insertError || !user.email) {
       redirect("/auth/sign-in");

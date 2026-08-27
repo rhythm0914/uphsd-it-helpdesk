@@ -36,10 +36,6 @@ export async function middleware(request: NextRequest) {
 
   const isPortalRoute = request.nextUrl.pathname.startsWith("/portal");
 
-  if (isAuthRoute || isPortalRoute) {
-    console.log("[middleware] path:", request.nextUrl.pathname, "user:", user ? user.id : "none");
-  }
-
   if (isPortalRoute && !user) {
     return NextResponse.redirect(new URL("/auth/sign-in", request.url));
   }
