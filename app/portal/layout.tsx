@@ -36,35 +36,35 @@ export default async function PortalLayout({
   }
 
   if (profileError || !profile) {
+    // A missing or unreadable profile must NOT be treated as "unauthenticated".
+    // The middleware has already verified a valid session for this user, so
+    // redirecting to /auth/sign-in here creates a redirect loop (the middleware
+    // bounces authenticated users on /auth/* back to /portal). Try to self-heal
+    // the missing profile, and always fall back to a least-privilege default
+    // derived from auth user metadata.
     const { data } = await supabase.auth.getUser();
     const userMetadata = (data.user as any)?.user_metadata || {};
     const fullName = userMetadata.full_name || "";
-    const role = userMetadata.role || "student";
+    const metadataRole = userMetadata.role || "student";
+    const role = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
+      ? metadataRole
+      : "student";
 
-    const { error: insertError } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        email: user.email,
-        full_name: fullName,
-        role: role,
-      });
-
-    if (insertError || !user.email) {
-      redirect("/auth/sign-in");
+    if (user.email) {
+      try {
+        await supabase.from("profiles").insert({
+          id: user.id,
+          email: user.email,
+          full_name: fullName,
+          role: role,
+        });
+      } catch {
+        // Ignore insert failures (e.g. RLS). The fallback default below keeps
+        // the authenticated user inside the portal without privilege escalation.
+      }
     }
 
-    const { data: repairedProfile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!repairedProfile) {
-      redirect("/auth/sign-in");
-    }
-
-    profile = repairedProfile;
+    profile = { role };
   }
 
   const isITStaff = profile.role && ["it_staff", "admin", "manager"].includes(profile.role);

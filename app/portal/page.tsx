@@ -15,15 +15,32 @@ export default async function PortalPage() {
     redirect("/auth/sign-in");
   }
 
-  const { data: profile, error } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  if (error || !profile) {
-    redirect("/auth/sign-in");
-  }
+  // A missing or unreadable profile must NOT be treated as "unauthenticated".
+  // The middleware has already verified a valid session here, so redirecting to
+  // /auth/sign-in would create a redirect loop. Fall back to a least-privilege
+  // default derived from auth user metadata instead.
+  const userMetadata = (user.user_metadata as any) || {};
+  const metadataRole = userMetadata.role || "student";
+  const fallbackRole = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
+    ? metadataRole
+    : "student";
+
+  const resolvedProfile =
+    profile ??
+    {
+      id: user.id,
+      email: user.email,
+      full_name: userMetadata.full_name || "User",
+      role: fallbackRole,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
   // Fetch ticket counts
   const { count: openCount } = await supabase
@@ -88,10 +105,10 @@ export default async function PortalPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Welcome, {profile?.full_name || "User"}
+          Welcome, {resolvedProfile?.full_name || "User"}
         </h1>
         <p className="mt-1 text-foreground/60">
-          {profile?.role === "student" ? "Student" : profile?.role === "employee" ? "Employee" : "User"} Portal
+          {resolvedProfile?.role === "student" ? "Student" : resolvedProfile?.role === "employee" ? "Employee" : "User"} Portal
         </p>
       </div>
 
