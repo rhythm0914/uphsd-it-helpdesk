@@ -772,7 +772,17 @@ Users cannot submit tickets without valid service and category selections.
 - **Wired into:** request form submit, sign-in / sign-up / forgot-password / update-password buttons, admin service management (add service/category/toggle), ticket management actions (assign/status), archive management actions, and `<RouteProgress />` in `app/portal/layout.tsx` + `app/portal/admin/layout.tsx`.
 - **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS, `npm run build:vinext` PASS, `npx vitest run` 16/16 PASS.
 
-### Phase 8: AI Assistant (Optional)
+### Phase 7.4: Skeleton Loaders for Route Data Fetching (UX)
+- **Status:** Completed
+- **Why:** Data-driven portal pages rendered nothing until their server fetches finished, so navigation felt unresponsive. Design guidance taken from the `redesign-existing-projects` skill (loading states are Fix Priority #6) and `minimalist-ui` (opacity-only motion, theme-aware flat surfaces).
+- **What was added (dependency-free, no npm packages):**
+  - `components/ui/skeleton.tsx` - server-safe base `Skeleton` plus 5 compositions shaped to match each real page layout (dashboard, 7-col queue table, ticket detail, users table, 2-col services lists).
+  - 6 route-level `loading.tsx` files (Next.js Suspense shells, auto-replaced when the page renders): `/portal`, `/portal/queue`, `/portal/queue/[id]`, `/portal/tickets/[id]`, `/portal/admin/users`, `/portal/admin/services`.
+  - `app/globals.css` - `skeleton-pulse` keyframe (opacity only, no layout animation) with `prefers-reduced-motion: reduce` fallback (static, opacity 0.55).
+- **Design constraints honored:** colors use theme variables (`--surface-muted` / `--border`) so light + dark mode both render correctly; skeletons pulse via opacity only; responsive `md:` breakpoints mirror each real page.
+- **Deliberately skipped:** `/portal/request` (renders instantly) and `/portal/admin/archive` (client page, action-level loading already covered by Spinner) - a skeleton there would cause unnecessary flashing.
+- **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS, `npm run build:vinext` PASS, `npx vitest run` 16/16 PASS. Auth flow, request submission, ticket queue/detail, and admin routes untouched.
+
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
@@ -788,6 +798,7 @@ Users cannot submit tickets without valid service and category selections.
 ## 7. Git History
 
 ```
+a2122a0 feat: add loading feedback (spinner, submit button, route progress) + docs
 7d15b58 fix: resolve RLS recursion and table grants for public reads (auth root cause)
 436f7af fix: allow request submission when profile row is missing; update PROJECT.md
 6311c41 fix: break auth redirect loop when profile row is missing
@@ -896,4 +907,4 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 ---
 
 *Last updated: 2026-08-28*  
-*Current phase: Phase 7.1-7.3 complete (auth loop fixed, RLS recursion + grants fixed, loading/UX feedback added). ACTION REQUIRED if not yet run: execute `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*
+*Current phase: Phase 7.1-7.4 complete (auth loop fixed, RLS recursion + grants fixed, loading UX: spinners + route progress + skeleton loaders). ACTION REQUIRED if not yet run: execute `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*
