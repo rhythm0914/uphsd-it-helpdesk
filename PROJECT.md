@@ -845,6 +845,125 @@ fd77772 docs: update PROJECT.md with UPHSD rebrand and current state
 69a9dda Initial commit
 ```
 
+## 7.1 GitHub Development Workflow
+
+The standard workflow for all future development. `main` is the production branch and is protected — **never push directly to `main`**. Always work on a feature/fix branch and merge via a Pull Request.
+
+1. Start from the latest `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+2. Create a feature/fix branch:
+   ```bash
+   git checkout -b feat/my-feature
+   # or
+   git checkout -b fix/my-fix
+   ```
+
+3. Work on the feature using the coding agent.
+   - The agent must work on the current feature branch.
+   - Never push directly to `main`.
+   - Do not force-push.
+   - Do not reset/drop/recreate the database.
+   - Do not expose secrets.
+
+4. Review your changes:
+   ```bash
+   git status
+   git diff
+   ```
+
+5. Run validation (all must pass before opening a PR):
+   ```bash
+   npm run lint          # ESLint
+   npx tsc --noEmit      # strict TypeScript check
+   npm test              # vitest unit tests
+   npm run build:vinext  # Cloudflare/vinext build
+   ```
+
+6. Commit the changes:
+   ```bash
+   git add .
+   git commit -m "feat: describe the change"
+   ```
+
+7. Push the feature branch:
+   ```bash
+   git push -u origin feat/my-feature
+   ```
+
+8. Create a GitHub Pull Request:
+   - Base branch: `main`
+   - Compare branch: your `feat/my-feature` (or `fix/...`) branch
+   - Write a clear PR title and summary
+   - Wait for the CI `validate` check to run
+   - Make sure the required checks pass
+   - Review and approve the PR if branch protection requires approval
+   - Merge the PR into `main`
+
+9. After merging:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+10. Optional branch cleanup (merge-first):
+    ```bash
+    git branch -d feat/my-feature
+    git push origin --delete feat/my-feature
+    ```
+
+### Deployment flow
+
+```
+Feature branch
+  -> Pull Request
+  -> CI validation (validate job)
+  -> Review / approval
+  -> Merge into main
+  -> Cloudflare detects the updated main branch
+  -> Cloudflare builds (npm run build:vinext) and deploys
+  -> Production website is updated
+```
+
+Production URL: `https://uphsd-it-helpdesk.rycanano.workers.dev/`
+
+Cloudflare is configured to auto-build and deploy from the protected `main` branch. For normal changes, **do not manually deploy** — let the merge trigger the build. Only use a manual/emergency deployment (`npm run build:vinext && npm run deploy:vinext`, which requires `CLOUDFLARE_API_TOKEN`) when explicitly required.
+
+## 7.2 Pull Request Checklist
+
+- [ ] Started from the latest `main`
+- [ ] Created a feature/fix branch
+- [ ] Did not modify `main` directly
+- [ ] Reviewed `git diff`
+- [ ] Ran `npm run lint`
+- [ ] Ran TypeScript check (`npx tsc --noEmit`)
+- [ ] Ran tests (`npm test`)
+- [ ] Ran Cloudflare/vinext build (`npm run build:vinext`)
+- [ ] Committed the changes
+- [ ] Pushed the feature branch
+- [ ] Created a Pull Request targeting `main`
+- [ ] CI `validate` check passed
+- [ ] Reviewed the changes
+- [ ] Merged the Pull Request
+- [ ] Pulled the updated `main` branch locally
+- [ ] Verified the production deployment
+
+## 7.3 Coding Agent Git Rules
+
+- Always inspect `PROJECT.md` before starting a task.
+- Work on the current feature branch.
+- Never push directly to `main`.
+- Never force-push.
+- Never reset/drop the database.
+- Never disable authentication or RLS to make a feature work.
+- Never expose Supabase service-role keys or other secrets.
+- Run the project's validation commands before reporting completion.
+- Clearly report files changed, tests run, and remaining issues.
+
+
 ---
 
 ## 8. Production Verification Checklist
