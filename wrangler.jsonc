@@ -21,6 +21,6 @@
     "NEXT_PUBLIC_SUPABASE_URL": "https://vrnkzglwzwojrxlpofss.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8bUvO",
     "NEXT_PUBLIC_BASE_URL": "https://uphsd-it-helpdesk.rycanano.workers.dev",
-    "AI_MODEL": "@cf/meta/llama-3.1-8b-instruct"
+    "AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fast"
   }
 }

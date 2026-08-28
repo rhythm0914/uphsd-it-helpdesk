@@ -5,29 +5,46 @@
 // already serves the Help Desk.
 //
 // MODEL SELECTION (documented for Phase 8):
-//   `@cf/meta/llama-3.1-8b-instruct` — an instruction-tuned chat model that
-//   is Generally Available on Workers AI, included in the Workers Free plan
-//   allocation, has solid instruction following for a grounded support
-//   assistant, and has low latency/token cost. The identifier is overridable
-//   via the non-secret `AI_MODEL` wrangler var without a code change, so a
-//   newer model can be adopted by config alone.
+//   `@cf/meta/llama-3.1-8b-instruct-fast` — the active (non-deprecated) fast
+//   variant of the Llama 3.1 8B instruction-tuned chat model on Workers AI,
+//   included in the Workers Free plan allocation. NOTE: the older
+//   `@cf/meta/llama-3.1-8b-instruct` slug is now flagged Deprecated by the
+//   Cloudflare model catalog and its model page returns 404 — it must not be
+//   used. The identifier is overridable via the non-secret `AI_MODEL` wrangler
+//   var without a code change, so a newer model can be adopted by config alone.
 
 import { AIUnavailableError, type ChatProvider } from "./provider";
 import { getWorkerEnv } from "./env";
 
-export const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
+export const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 
 function resolveModel(): string {
   const configured = getWorkerEnv()?.AI_MODEL;
   return configured && configured.trim() ? configured.trim() : DEFAULT_AI_MODEL;
 }
 
-/** Normalizes the various response shapes Workers AI can return. */
+/**
+ * Normalizes the various response shapes Workers AI can return. Covers:
+ *   - top-level string
+ *   - { response: string }                          (llama-3.1-8b-instruct-fast sync)
+ *   - OpenAI-compatible { choices: [{ message: { content } }] }  (newer bindings)
+ *   - { result: { response: string } } / { result: [{ response }] } (legacy chat)
+ */
 function extractText(result: unknown): string {
   if (typeof result === "string") return result;
   if (result && typeof result === "object") {
     const r = result as Record<string, unknown>;
     if (typeof r.response === "string") return r.response;
+    if (Array.isArray(r.choices)) {
+      // OpenAI-compatible chat completion shape (new bindings / `/v1`).
+      for (const choice of r.choices as unknown[]) {
+        if (choice && typeof choice === "object") {
+          const msg = (choice as Record<string, unknown>).message as Record<string, unknown> | undefined;
+          if (msg && typeof msg.content === "string") return msg.content;
+          if (typeof (choice as Record<string, unknown>).text === "string") return (choice as Record<string, unknown>).text as string;
+        }
+      }
+    }
     if (Array.isArray(r.result)) {
       // chat-completion style: { result: { response } } or message arrays
       for (const item of r.result as unknown[]) {
