@@ -159,7 +159,7 @@ export default function Home() {
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row gap-4">
                   <Link
-                    href="/request"
+                    href="/portal/request"
                     className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
                   >
                     Submit a Request
@@ -423,7 +423,7 @@ export default function Home() {
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  href="/request"
+                  href="/portal/request"
                   className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
                 >
                   Submit a Request

@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/middleware";
+import { getValidatedReturnTo } from "@/utils/authorization";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
@@ -19,7 +20,16 @@ export async function middleware(request: NextRequest) {
   const isPortalRoute = pathname.startsWith("/portal");
 
   if (isPortalRoute && !user) {
-    return withCookies(NextResponse.redirect(new URL("/auth/sign-in", request.url)), response);
+    // Preserve the intended destination so the user lands where they meant to go
+    // after authenticating, instead of always bouncing to /portal. The value is
+    // re-validated server-side inside the sign-in Action (defense in depth).
+    const returnTo = getValidatedReturnTo(pathname);
+    return withCookies(
+      NextResponse.redirect(
+        new URL("/auth/sign-in?next=" + encodeURIComponent(returnTo), request.url),
+      ),
+      response,
+    );
   }
 
   if (isAuthRoute && user) {

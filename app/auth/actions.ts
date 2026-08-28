@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getValidatedReturnTo } from "@/utils/authorization";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -36,7 +37,12 @@ export async function signIn(formData: FormData) {
     redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
   }
 
-  redirect("/portal");
+  // Honor a validated return-to destination when one was passed through the
+  // sign-in page (e.g. /portal/request after an unauthenticated click on the
+  // "Submit a Request" CTA). Falls back to /portal to preserve the original
+  // behavior and to prevent open redirects.
+  const next = getValidatedReturnTo(formData.get("next") as string | null);
+  redirect(next);
 }
 
 export async function signUp(formData: FormData) {

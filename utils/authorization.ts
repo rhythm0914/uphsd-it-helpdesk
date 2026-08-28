@@ -24,3 +24,36 @@ export function normalizeSignupRole(role: string | null | undefined): AllowedSig
 export function isAllowedSignupRole(role: string | null | undefined): role is AllowedSignupRole {
   return ALLOWED_SIGNUP_ROLES.includes(role as AllowedSignupRole);
 }
+
+/**
+ * Resolve a user-supplied return-to destination to a safe, same-origin,
+ * relative path. Returns `defaultPath` (default "/portal") when the value is
+ * missing or unsafe.
+ *
+ * This is the single source of truth for "where to go after sign-in" across the
+ * middleware and the sign-in Server Action, so it is always validated server-side
+ * (defense in depth) — a value can never be trusted just because the middleware
+ * put it in the URL.
+ *
+ * Security: only a single-slash relative path is accepted. This rejects:
+ *   - "//evil.com"        (protocol-relative / open redirect)
+ *   - "/\\evil.com"       (backslash host)
+ *   - "https://evil.com"  (absolute URL / scheme)
+ *   - "mailto:..."        (scheme)
+ *   - any value not starting with "/"  (e.g. "evil.com")
+ */
+export function getValidatedReturnTo(
+  next: string | null | undefined,
+  defaultPath = "/portal",
+): string {
+  if (!next) return defaultPath;
+  if (
+    !next.startsWith("/") ||
+    next.startsWith("//") ||
+    next.startsWith("/\\") ||
+    next.includes(":")
+  ) {
+    return defaultPath;
+  }
+  return next;
+}

@@ -6,12 +6,18 @@ import { SubmitButton } from "@/components/ui/submit-button";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string; email?: string }>;
+    searchParams: Promise<{
+      error?: string;
+      message?: string;
+      email?: string;
+      next?: string;
+    }>;
 }) {
   const params = await searchParams;
   const error = params?.error;
   const message = params?.message;
   const email = params?.email;
+  const next = (params?.next || "").toString();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
@@ -33,6 +39,7 @@ export default async function SignInPage({
         </div>
 
         <form action={signIn} className="space-y-4">
+          <input type="hidden" name="next" value={next} />
           {error && error !== "email_not_confirmed" && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-4">
               <p className="text-sm text-red-700">
