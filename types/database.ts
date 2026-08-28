@@ -161,3 +161,61 @@ export interface TicketExportRow {
   closed_at: string | null;
 }
 
+/**
+ * Office Computer & IT Equipment inventory asset (Phase 9).
+ *
+ * Mirrors the client's Excel "Office Computer Inventory" sheet EXACTLY,
+ * except the two explicitly removed fields: "Installed Sangfor" and "PMS".
+ * Do NOT add, rename, or remove inventory fields.
+ */
+export interface IctAsset {
+  id: string;
+  /** Excel column "Re" */
+  re: string | null;
+  /** Excel column "ICT Asset" */
+  ict_asset: string;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
+  specification: string | null;
+  asset_number: string | null;
+  date_acquired: string | null;
+  /** Excel column "Name or ID of Accountable Personnel" */
+  accountable_personnel: string | null;
+  /** Excel column "Position of Accountable Personnel" */
+  accountable_position: string | null;
+  condition: string | null;
+  /** Excel column "Department / Office (Location)" */
+  department_office: string | null;
+  /** Excel column "BLDG." */
+  bldg: string | null;
+  remarks: string | null;
+  domain_name: string | null;
+  computer_name: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Asset movement/transfer history entry. Historical trail only — the current
+ * state always lives on the ict_assets row itself.
+ */
+export interface AssetMovement {
+  id: string;
+  asset_id: string;
+  previous_accountable_personnel: string | null;
+  new_accountable_personnel: string | null;
+  previous_accountable_position: string | null;
+  new_accountable_position: string | null;
+  previous_department_office: string | null;
+  new_department_office: string | null;
+  previous_bldg: string | null;
+  new_bldg: string | null;
+  remarks: string | null;
+  performed_by: string | null;
+  performed_by_profile?: { full_name: string | null } | null;
+  created_at: string;
+}
+
+
