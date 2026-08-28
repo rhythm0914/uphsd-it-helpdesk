@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { TicketReply } from "./ticket-reply";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,22 @@ export default async function TicketDetailPage({
       </div>
     );
   }
+
+  // Conversation (public messages only — RLS hides internal notes from the
+  // requester automatically) and audit trail for this ticket.
+  const { data: messages } = await supabase
+    .from("ticket_messages")
+    .select(`*, sender:profiles!sender_id(id, full_name, email)`)
+    .eq("ticket_id", id)
+    .order("created_at", { ascending: false });
+
+  const { data: statusHistory } = await supabase
+    .from("ticket_status_history")
+    .select(`*, changed_by_profile:profiles!changed_by(id, full_name, email)`)
+    .eq("ticket_id", id)
+    .order("created_at", { ascending: false });
+
+  const isWaitingForUser = ticket.status === "waiting_for_user";
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -151,6 +168,75 @@ export default async function TicketDetailPage({
             </p>
           </div>
         )}
+
+        {isWaitingForUser && (
+          <div className="mb-8 rounded-lg border border-orange-200 bg-orange-50 p-4">
+            <p className="text-sm font-medium text-orange-800">
+              IT staff is waiting for additional information from you. Please reply below with the
+              requested details.
+            </p>
+          </div>
+        )}
+
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4">Conversation</h2>
+          {messages && messages.length > 0 ? (
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className="rounded-lg border border-border bg-background p-4"
+                >
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <p className="text-sm font-medium">
+                      {msg.sender?.full_name || msg.sender?.email || "User"}
+                    </p>
+                    <p className="text-xs text-foreground/50">
+                      {new Date(msg.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <p className="text-sm text-foreground/70 whitespace-pre-wrap">{msg.message}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-foreground/60">No messages yet.</p>
+          )}
+        </div>
+
+        {ticket.status !== "closed" && (
+          <TicketReply ticketId={ticket.id} isWaitingForUser={isWaitingForUser} />
+        )}
+
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-4">Status History</h2>
+          {statusHistory && statusHistory.length > 0 ? (
+            <ol className="space-y-2">
+              {statusHistory.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="rounded-lg border border-border bg-background px-4 py-3 text-sm"
+                >
+                  <span className="font-medium text-foreground/60">
+                    {entry.old_status?.replace(/_/g, " ") || "—"} →{" "}
+                    {entry.new_status?.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-foreground/50">
+                    {" "}
+                    · {entry.changed_by_profile?.full_name || entry.changed_by_profile?.email || "System"}
+                    {" · "}
+                    {new Date(entry.created_at).toLocaleString()}
+                  </span>
+                  {entry.notes && (
+                    <p className="mt-1 text-foreground/70">{entry.notes}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-sm text-foreground/60">No status changes recorded.</p>
+          )}
+        </div>
       </div>
     </div>
   );

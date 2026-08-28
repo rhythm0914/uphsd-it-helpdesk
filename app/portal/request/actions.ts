@@ -3,6 +3,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { generateTicketNumber } from "@/utils/ticket-number";
+
+const TICKET_NUMBER_RETRIES = 5;
 
 export async function submitRequest(formData: FormData) {
   const cookieStore = await cookies();
@@ -55,22 +58,40 @@ export async function submitRequest(formData: FormData) {
     redirect("/portal/request?error=Invalid+service+and+category+combination");
   }
 
-  const { data, error } = await supabase
-    .from("tickets")
-    .insert({
-      requester_id: user.id,
-      service_id: serviceId,
-      category_id: categoryId,
-      subject,
-      description,
-      priority: priority || "normal",
-      status: "open",
-    })
-    .select()
-    .single();
+  // Retry with an incremented number on a 23505 unique-violation (concurrent
+  // submissions racing for the same ticket number).
+  let data: any = null;
+  let error: any = null;
+  for (let attempt = 0; attempt < TICKET_NUMBER_RETRIES; attempt++) {
+    const ticketNumber = await generateTicketNumber(supabase, attempt);
+    const result = await supabase
+      .from("tickets")
+      .insert({
+        ticket_number: ticketNumber,
+        requester_id: user.id,
+        service_id: serviceId,
+        category_id: categoryId,
+        subject,
+        description,
+        priority: priority || "normal",
+        status: "open",
+      })
+      .select()
+      .single();
+    if (!result.error) {
+      data = result.data;
+      error = null;
+      break;
+    }
+    if (result.error.code !== "23505") {
+      error = result.error;
+      break;
+    }
+    error = result.error;
+  }
 
-  if (error) {
-    redirect("/portal/request?error=" + encodeURIComponent(error.message));
+  if (error || !data) {
+    redirect("/portal/request?error=" + encodeURIComponent(error?.message || "Failed to create ticket"));
   }
 
   redirect(`/portal/tickets/${data.id}`);

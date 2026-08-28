@@ -251,10 +251,26 @@ CREATE POLICY "Users can view status history of accessible tickets" ON public.ti
     )
   );
 
-CREATE POLICY "System can insert ticket status history" ON public.ticket_status_history
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Staff can insert ticket status history" ON public.ticket_status_history
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('it_staff', 'admin', 'manager')
+    )
+  );
 
--- RLS Policies for ticket messages
+-- =====================================================================
+-- Ticket workflow hardening (Phase 7.6b):
+--  * Internal notes (is_internal = true) are visible ONLY to staff/admin/
+--    manager. A requester may never read another role's internal notes, and
+--    may never post a message flagged as internal (INSERT is constrained too).
+--  * ticket_status_history inserts are staff/admin/manager-only so an
+--    arbitrary authenticated user cannot forge an audit trail. The
+--    requester-provides-info transition is the only non-staff status change
+--    and goes through the SECURITY DEFINER requester_provide_info() RPC below.
+-- Mirrored by the versioned migration
+-- supabase/migrations/20260829_phase1_ticket_workflow_reply_and_rls.sql
+-- =====================================================================
 CREATE POLICY "Users can view messages of accessible tickets" ON public.ticket_messages
   FOR SELECT USING (
     EXISTS (
@@ -267,6 +283,13 @@ CREATE POLICY "Users can view messages of accessible tickets" ON public.ticket_m
           SELECT 1 FROM public.profiles
           WHERE id = auth.uid() AND role IN ('it_staff', 'admin', 'manager')
         )
+      )
+    )
+    AND (
+      NOT ticket_messages.is_internal
+      OR EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('it_staff', 'admin', 'manager')
       )
     )
   );
@@ -287,7 +310,63 @@ CREATE POLICY "Users can create messages for accessible tickets" ON public.ticke
         )
       )
     )
+    AND (
+      NOT ticket_messages.is_internal
+      OR EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('it_staff', 'admin', 'manager')
+      )
+    )
   );
+
+-- Sanctioned requester action: a requester who has provided the requested
+-- information on a WAITING_FOR_USER ticket returns it to IN_PROGRESS and the
+-- transition is recorded in history. SECURITY DEFINER + pinned search_path so
+-- the (now staff-only) history insert policy is not bypassed by a normal user
+-- outside this guarded path, and only the ticket's own requester may invoke it
+-- while the ticket is actually waiting on them.
+CREATE OR REPLACE FUNCTION public.requester_provide_info(p_ticket_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_current  public.ticket_status;
+  v_requester UUID;
+BEGIN
+  SELECT status, requester_id
+    INTO v_current, v_requester
+    FROM public.tickets
+   WHERE id = p_ticket_id
+   FOR UPDATE;
+
+  -- Only the ticket's own requester may trigger this path.
+  IF v_requester IS DISTINCT FROM auth.uid() THEN
+    RETURN FALSE;
+  END IF;
+
+  -- Only a WAITING_FOR_USER ticket may be returned to IN_PROGRESS this way.
+  IF v_current IS DISTINCT FROM 'waiting_for_user'::public.ticket_status THEN
+    RETURN FALSE;
+  END IF;
+
+  UPDATE public.tickets
+     SET status = 'in_progress'::public.ticket_status,
+         updated_at = NOW()
+   WHERE id = p_ticket_id;
+
+  INSERT INTO public.ticket_status_history
+    (ticket_id, old_status, new_status, changed_by, notes)
+  VALUES
+    (p_ticket_id, 'waiting_for_user', 'in_progress', auth.uid(),
+     'Requester provided the requested information');
+
+  RETURN TRUE;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.requester_provide_info(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.requester_provide_info(UUID) TO authenticated;
 
 -- Insert default services
 INSERT INTO public.services (name, description) VALUES

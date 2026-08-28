@@ -2,24 +2,24 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import {
+  isAllowedPriority,
+  isAllowedStatus,
+  isITStaffRole,
+  isTransitionAllowed,
+} from "./ticket-rules";
 
 async function getSupabase() {
   const cookieStore = await cookies();
   return createClient(cookieStore);
 }
 
-export async function getITQueue(filters?: {
-  status?: string;
-  priority?: string;
-  service_id?: string;
-  search?: string;
-}) {
+async function requireStaff() {
   const supabase = await getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    return { supabase, user: null, error: "Unauthorized" as const };
   }
 
   const { data: profile } = await supabase
@@ -28,65 +28,31 @@ export async function getITQueue(filters?: {
     .eq("id", user.id)
     .single();
 
-  if (!profile || !["it_staff", "admin", "manager"].includes(profile.role)) {
-    redirect("/portal");
+  if (!profile || !isITStaffRole(profile.role)) {
+    return { supabase, user, error: "Forbidden" as const };
   }
 
-  let query = supabase
-    .from("tickets")
-    .select(`
-      *,
-      service:services(*),
-      category:ticket_categories(*),
-      requester:profiles!requester_id(id, full_name, email, department),
-      assigned_to_profile:profiles!assigned_to(id, full_name, email)
-    `)
-    .order("created_at", { ascending: false });
-
-  if (filters?.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
-  }
-
-  if (filters?.priority && filters.priority !== "all") {
-    query = query.eq("priority", filters.priority);
-  }
-
-  if (filters?.service_id && filters.service_id !== "all") {
-    query = query.eq("service_id", filters.service_id);
-  }
-
-  if (filters?.search) {
-    query = query.or(`ticket_number.ilike.%${filters.search}%,subject.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-  }
-
-  const { data: tickets, error } = await query;
-
-  if (error) {
-    return { error: error.message, tickets: [] };
-  }
-
-  return { tickets: tickets || [], error: null };
+  return { supabase, user, error: null as "Forbidden" | null };
 }
 
 export async function assignTicket(ticketId: string, staffId: string) {
-  const supabase = await getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
+  const { data: ticket } = await ctx.supabase
+    .from("tickets")
+    .select("status")
+    .eq("id", ticketId)
     .single();
 
-  if (!profile || !["it_staff", "admin", "manager"].includes(profile.role)) {
-    redirect("/portal");
+  if (!ticket) return { error: "Ticket not found" };
+
+  // Assigning opens the ticket for work (open -> in_progress is the legal path).
+  if (!isTransitionAllowed(ticket.status, "in_progress")) {
+    return { error: `Cannot assign a ticket in status "${ticket.status}"` };
   }
 
-  const { error } = await supabase
+  const { error } = await ctx.supabase
     .from("tickets")
     .update({
       assigned_to: staffId,
@@ -95,116 +61,176 @@ export async function assignTicket(ticketId: string, staffId: string) {
     })
     .eq("id", ticketId);
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
-  await supabase.from("ticket_status_history").insert({
+  const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
     ticket_id: ticketId,
-    old_status: "open",
+    old_status: ticket.status,
     new_status: "in_progress",
-    changed_by: user.id,
+    changed_by: ctx.user.id,
     notes: "Assigned to staff member",
   });
+
+  if (histError) return { error: histError.message };
 
   return { success: true };
 }
 
 export async function updateTicketStatus(ticketId: string, status: string, notes?: string) {
-  const supabase = await getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  if (!user) {
-    redirect("/login");
+  if (!isAllowedStatus(status)) {
+    return { error: "Invalid status value" };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || !["it_staff", "admin", "manager"].includes(profile.role)) {
-    redirect("/portal");
-  }
-
-  const { data: ticket } = await supabase
+  const { data: ticket } = await ctx.supabase
     .from("tickets")
     .select("status")
     .eq("id", ticketId)
     .single();
 
-  if (!ticket) {
-    return { error: "Ticket not found" };
+  if (!ticket) return { error: "Ticket not found" };
+
+  if (!isTransitionAllowed(ticket.status, status)) {
+    return { error: `Cannot change status from "${ticket.status}" to "${status}"` };
   }
 
-  const { error } = await supabase
+  const { error } = await ctx.supabase
     .from("tickets")
     .update({
       status: status as any,
       updated_at: new Date().toISOString(),
-      ...(status === "closed" || status === "resolved" ? { closed_at: new Date().toISOString() } : {}),
+      ...(status === "closed" ? { closed_at: new Date().toISOString() } : {}),
     })
     .eq("id", ticketId);
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
-  await supabase.from("ticket_status_history").insert({
+  const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
     ticket_id: ticketId,
     old_status: ticket.status,
     new_status: status as any,
-    changed_by: user.id,
+    changed_by: ctx.user.id,
     notes: notes || `Status changed to ${status}`,
   });
+
+  if (histError) return { error: histError.message };
+
+  return { success: true, status };
+}
+
+export async function updateTicketPriority(ticketId: string, priority: string) {
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
+
+  if (!isAllowedPriority(priority)) {
+    return { error: "Invalid priority value" };
+  }
+
+  const { data: ticket } = await ctx.supabase
+    .from("tickets")
+    .select("priority")
+    .eq("id", ticketId)
+    .single();
+
+  if (!ticket) return { error: "Ticket not found" };
+
+  const { error } = await ctx.supabase
+    .from("tickets")
+    .update({
+      priority: priority as any,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", ticketId);
+
+  if (error) return { error: error.message };
 
   return { success: true };
 }
 
 export async function addWorkRemark(ticketId: string, message: string, isInternal: boolean = false) {
-  const supabase = await getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  if (!user) {
-    redirect("/login");
-  }
+  const trimmed = (message || "").trim();
+  if (!trimmed) return { error: "Message cannot be empty" };
+  if (trimmed.length > 5000) return { error: "Message is too long" };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
+  // Verify the ticket exists & is accessible to staff before inserting.
+  const { data: ticket } = await ctx.supabase
+    .from("tickets")
+    .select("id")
+    .eq("id", ticketId)
     .single();
 
-  if (!profile || !["it_staff", "admin", "manager"].includes(profile.role)) {
-    redirect("/portal");
-  }
+  if (!ticket) return { error: "Ticket not found" };
 
-  const { error } = await supabase
-    .from("ticket_messages")
-    .insert({
-      ticket_id: ticketId,
-      sender_id: user.id,
-      message,
-      is_internal: isInternal,
-    });
+  const { error } = await ctx.supabase.from("ticket_messages").insert({
+    ticket_id: ticketId,
+    sender_id: ctx.user.id,
+    message: trimmed,
+    is_internal: isInternal,
+  });
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   return { success: true };
 }
 
-export async function getITStaff() {
-  const supabase = await getSupabase();
+export async function requestMoreInfo(ticketId: string, message: string) {
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  const { data: staff } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role")
-    .in("role", ["it_staff", "admin", "manager"])
-    .eq("is_active", true)
-    .order("full_name");
+  const trimmed = (message || "").trim();
+  if (!trimmed) return { error: "Please describe what information you need" };
+  if (trimmed.length > 5000) return { error: "Message is too long" };
 
-  return { staff: staff || [] };
+  const { data: ticket } = await ctx.supabase
+    .from("tickets")
+    .select("status")
+    .eq("id", ticketId)
+    .single();
+
+  if (!ticket) return { error: "Ticket not found" };
+
+  const alreadyWaiting = ticket.status === "waiting_for_user";
+  if (!alreadyWaiting && !isTransitionAllowed(ticket.status, "waiting_for_user")) {
+    return { error: `Cannot set a ticket in status "${ticket.status}" to Waiting for User` };
+  }
+
+  // 1) The requester-visible information request message.
+  const { error: msgError } = await ctx.supabase.from("ticket_messages").insert({
+    ticket_id: ticketId,
+    sender_id: ctx.user.id,
+    message: trimmed,
+    is_internal: false,
+  });
+  if (msgError) return { error: msgError.message };
+
+  // 2) Move the ticket to WAITING_FOR_USER (unless it already is) + audit it.
+  if (!alreadyWaiting) {
+    const { error } = await ctx.supabase
+      .from("tickets")
+      .update({
+        status: "waiting_for_user" as any,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", ticketId);
+
+    if (error) return { error: error.message };
+
+    const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
+      ticket_id: ticketId,
+      old_status: ticket.status,
+      new_status: "waiting_for_user" as any,
+      changed_by: ctx.user.id,
+      notes: "Additional information requested from requester",
+    });
+
+    if (histError) return { error: histError.message };
+  }
+
+  return { success: true, status: "waiting_for_user" };
 }
+

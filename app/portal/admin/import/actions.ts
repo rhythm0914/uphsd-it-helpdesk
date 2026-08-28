@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { generateTicketNumber } from "@/utils/ticket-number";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -341,8 +342,10 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
       continue;
     }
 
+    const finalTicketNumber = ticketNumber || (await generateTicketNumber(supabase));
+
     const { error } = await supabase.from("tickets").insert({
-      ticket_number: ticketNumber || undefined,
+      ticket_number: finalTicketNumber,
       requester_id: requesterId,
       service_id: serviceId,
       category_id: categoryId,
