@@ -303,6 +303,37 @@ describe("Cloudflare Workers AI provider", () => {
     const provider = createCloudflareWorkersAIProvider();
     const result = await provider.generateChat([{ role: "user", content: "hi" }]);
     // The serialized result is only the reply text - no env or binding objects.
-    expect(result).toEqual({ text: "normal reply" });
+        expect(result).toEqual({ text: "normal reply" });
+  });
+
+  it("parses the OpenAI-compatible chat completion response shape", async () => {
+    setWorkerEnv({
+      AI: {
+        async run() {
+          return {
+            object: "chat.completion",
+            choices: [{ index: 0, message: { role: "assistant", content: "OpenAI-style reply" } }],
+          };
+        },
+      },
+    });
+    const provider = createCloudflareWorkersAIProvider();
+    const result = await provider.generateChat([{ role: "user", content: "hi" }]);
+    expect(result.text).toBe("OpenAI-style reply");
+  });
+
+  it("uses the active non-deprecated model by default", async () => {
+    const used: string[] = [];
+    setWorkerEnv({
+      AI: {
+        async run(model: string) {
+          used.push(model);
+          return { response: "ok" };
+        },
+      },
+    });
+    const provider = createCloudflareWorkersAIProvider();
+    await provider.generateChat([{ role: "user", content: "hi" }]);
+    expect(used[0]).toBe("@cf/meta/llama-3.1-8b-instruct-fast");
   });
 });

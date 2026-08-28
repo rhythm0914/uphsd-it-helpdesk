@@ -846,7 +846,7 @@ Users cannot submit tickets without valid service and category selections.
 ### Phase 8.1: AI Foundation
 - **Status:** Implemented (repository-side). Binding requires cluster setup (see §Cloudflare).
 - **Provider:** Cloudflare Workers AI, integrated into the existing Worker (no second Worker).
-- **Model:** `@cf/meta/llama-3.1-8b-instruct` (GA on Workers AI, Workers Free-plan allocation, instruction-tuned, low latency/cost). Overridable via the non-secret `AI_MODEL` wrangler var — no code change needed to adopt a newer model.
+- **Model:** `@cf/meta/llama-3.1-8b-instruct-fast` (active non-deprecated fast variant on Workers AI; the older `llama-3.1-8b-instruct` slug is Deprecated per the model catalog). Overridable via the non-secret `AI_MODEL` wrangler var — no code change needed to adopt a newer model.
 - **AI binding:** `ai.binding = "AI"` added to `wrangler.jsonc`; requires Cloudflare Dashboard/CLI approval before it is active in production.
 - **Env capture:** vinext doesn't expose the Worker `env` to application code, so a thin custom entry `cloudflare/worker-entry.ts` captures `env` once per isolate (mirrored on globalThis via `utils/ai/env.ts`) and delegates to `vinext/server/fetch-handler` unchanged. No framework behavior is altered.
 - **Abstraction:** `utils/ai/provider.ts` defines a tiny `ChatProvider` interface; `utils/ai/cloudflare-workers-ai.ts` implements it; `utils/ai/index.ts` is the composition root. Another provider can be added without touching routes/UI.
@@ -1121,4 +1121,4 @@ Cloudflare is configured to auto-build and deploy from the protected `main` bran
 ---
 
 *Last updated: 2026-08-28*  
-*Current phase: Phases 7.1-7.9 + Phase 8 complete (repository-side). 7.6: profile role-escalation fix authored. 8: AI Assistant implemented — Cloudflare Workers AI (llama-3.1-8b-instruct), knowledge base (knowledge_articles + RLS), keyword retrieval, /api/assistant + /portal/assistant, admin knowledge-base manager, rate limiting, injection hardening, 24 new tests. ACTION REQUIRED: apply migrations in Supabase SQL Editor (incl. 20260830_phase8_knowledge_base.sql) and authorize the AI binding on the Cloudflare account.*
+*Current phase: Phases 7.1-7.9 + Phase 8 complete (repository-side). 7.6: profile role-escalation fix authored. 8: AI Assistant implemented — Cloudflare Workers AI (llama-3.1-8b-instruct-fast), knowledge base (knowledge_articles + RLS), keyword retrieval, /api/assistant + /portal/assistant, admin knowledge-base manager, rate limiting, injection hardening, 24 new tests. ACTION REQUIRED: apply migrations in Supabase SQL Editor (incl. 20260830_phase8_knowledge_base.sql) and authorize the AI binding on the Cloudflare account.*
