@@ -135,12 +135,74 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated;
 
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
-CREATE POLICY "Admins can view all profiles" ON public.profiles
-  FOR SELECT USING (public.is_admin());
-
 CREATE POLICY "Users can create their own profile" ON public.profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
+-- =====================================================================
+-- SECURITY FIX (C1): profiles UPDATE must be column-scoped so that no
+-- authenticated user can self-escalate `role`. Mirrors the versioned
+-- migration supabase/migrations/20260828_phase1_fix_profiles_role_escalation.sql
+-- =====================================================================
+REVOKE UPDATE ON TABLE public.profiles FROM authenticated;
+GRANT UPDATE (
+  full_name,
+  department,
+  student_number,
+  employee_id,
+  phone,
+  avatar_url
+) ON TABLE public.profiles TO authenticated;
+
+-- RBAC-parity helper (admin OR manager), SECURITY DEFINER to avoid
+-- recursion when read from a profiles policy. search_path is pinned.
+CREATE OR REPLACE FUNCTION public.is_admin_or_manager()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles p
+    WHERE p.id = auth.uid()
+      AND p.role IN ('admin', 'manager')
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_admin_or_manager() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin_or_manager() TO authenticated;
+
+-- Manager keeps the same admin visibility parity as the app grants.
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+CREATE POLICY "Admins can view all profiles" ON public.profiles
+  FOR SELECT USING (public.is_admin_or_manager());
+
+-- Authorized, server-side role-change path (admin/manager only).
+CREATE OR REPLACE FUNCTION public.admin_set_user_role(
+  p_user_id UUID,
+  p_role     public.user_role
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  actor_role public.user_role;
+BEGIN
+  SELECT p.role INTO actor_role
+  FROM public.profiles p
+  WHERE p.id = auth.uid();
+  IF actor_role IS NULL OR actor_role NOT IN ('admin', 'manager') THEN
+    RAISE EXCEPTION 'Only administrators (admin/manager) can change user roles';
+  END IF;
+  UPDATE public.profiles
+  SET role       = p_role,
+      updated_at = NOW()
+  WHERE id = p_user_id;
+  RETURN FOUND;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_set_user_role(UUID, public.user_role) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_set_user_role(UUID, public.user_role) TO authenticated;
 
 -- RLS Policies for services (readable by all authenticated users)
 CREATE POLICY "Services are readable by authenticated users" ON public.services
@@ -374,6 +436,13 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Needed so column-level UPDATE grants on profiles don't break the
+-- BEFORE UPDATE auto-timestamp trigger (SECURITY DEFINER lets the trigger
+-- write updated_at as the owner while authenticated never gets the column).
+ALTER FUNCTION public.update_updated_at_column()
+  SECURITY DEFINER
+  SET search_path = public, pg_temp;
 
 CREATE TRIGGER update_profiles_updated_at
   BEFORE UPDATE ON public.profiles

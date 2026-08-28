@@ -116,15 +116,37 @@ export async function updateUser(formData: FormData) {
   const fullName = formData.get("full_name") as string;
   const role = formData.get("role") as string;
   const department = formData.get("department") as string;
-  const isActive = formData.get("is_active") === "true";
 
+  if (!userId) {
+    return { error: "User ID is required" };
+  }
+
+  const allowedRoles = ["student", "employee", "it_staff", "admin", "manager"];
+  if (!role || !allowedRoles.includes(role)) {
+    return { error: "Invalid role value" };
+  }
+
+  // Role changes are routed exclusively through the SECURITY DEFINER helper
+  // admin_set_user_role (which enforces the admin/manager gate and column-level
+  // grants forbid a client from writing `role` directly). This keeps
+  // role management working for authorized admins/managers while making
+  // self-escalation impossible at the database layer.
+  const { error: roleError } = await supabase.rpc("admin_set_user_role", {
+    p_user_id: userId,
+    p_role: role,
+  });
+
+  if (roleError) {
+    return { error: roleError.message };
+  }
+
+  // Non-privileged profile fields are updated through the normal (RLS- and
+  // column-grant-constrained) path.
   const { error } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
-      role: role as any,
       department: department || null,
-      is_active: isActive,
     })
     .eq("id", userId);
 

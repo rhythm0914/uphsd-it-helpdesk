@@ -792,6 +792,19 @@ Users cannot submit tickets without valid service and category selections.
 - **Security preserved:** `/portal` stays protected, authentication is enforced server-side, email confirmation is untouched, and there are no RLS, schema, trigger, or ticket changes; no service-role key is exposed to the client.
 - **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS, `npm run build:vinext` PASS, `npx vitest run` 23/23 PASS. Auth redirect-loop fixes, request submission, ticket queue/detail, and admin routes remain intact.
 
+### Phase 7.6: Security Fix — C1 Profile Role-Escalation (CRITICAL)
+- **Status:** Code + migration authored, awaiting SQL-Editor execution in production.
+- **Root cause:** `public.profiles` had a table-level `UPDATE` grant for `authenticated` AND a self-service update RLS policy with no `WITH CHECK` restricting new values, so any authenticated user could `UPDATE public.profiles SET role = 'admin' WHERE id = auth.uid()` and self-escalate (OWASP A01 / IDOR), defeating the role-based access control.
+- **Fix:**
+  - Revoke table-level `UPDATE` on `profiles` from `authenticated`.
+  - Grant column-level `UPDATE` only on safe self-service fields (full_name, department, student_number, employee_id, phone, avatar_url). Clients can never write role / id / email / created_at / updated_at.
+  - Added SECURITY DEFINER helpers `is_admin_or_manager()` (admin OR manager parity) and re-pointed the admin SELECT policy so `manager` keeps admin visibility.
+  - Added sanctioned, guarded server function `admin_set_user_role(UUID, user_role)` — only an existing admin/manager may invoke it; non-privileged callers are rejected first.
+  - Promoted the shared `update_updated_at_column` trigger helper to SECURITY DEFINER (pinned search_path) so profile self-service updates keep working without granting `updated_at`.
+  - `app/portal/admin/users/actions.ts` `updateUser` now routes role changes exclusively through `admin_set_user_role` RPC and validates the role allow-list.
+- **Migration to apply (run in Supabase SQL Editor):** `supabase/migrations/20260828_phase1_fix_profiles_role_escalation.sql`.
+- **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS (source; only pre-existing `.next` cache noise), `npx vitest run` **27/27** PASS (incl. 4 new C1 guard tests), eslint clean on all touched files. No RLS disable, no service-role key, no auth-flow change, roles preserved.
+
 ### Phase 8: AI Assistant (Optional)
 - [ ] Only after core system is stable
 
