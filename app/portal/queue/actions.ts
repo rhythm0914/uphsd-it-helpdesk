@@ -2,12 +2,23 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import {
   isAllowedPriority,
   isAllowedStatus,
   isITStaffRole,
   isTransitionAllowed,
 } from "./ticket-rules";
+
+// Refresh every surface that reflects ticket state after a successful
+// mutation: the queue list, the staff detail page, and the requester's
+// own ticket view. Called with the affected ticket id.
+function revalidateTicket(ticketId: string) {
+  revalidatePath("/portal/queue");
+  revalidatePath(`/portal/queue/${ticketId}`);
+  revalidatePath(`/portal/tickets/${ticketId}`);
+}
+
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -73,6 +84,7 @@ export async function assignTicket(ticketId: string, staffId: string) {
 
   if (histError) return { error: histError.message };
 
+  revalidateTicket(ticketId);
   return { success: true };
 }
 
@@ -117,6 +129,7 @@ export async function updateTicketStatus(ticketId: string, status: string, notes
 
   if (histError) return { error: histError.message };
 
+  revalidateTicket(ticketId);
   return { success: true, status };
 }
 
@@ -146,6 +159,7 @@ export async function updateTicketPriority(ticketId: string, priority: string) {
 
   if (error) return { error: error.message };
 
+  revalidateTicket(ticketId);
   return { success: true };
 }
 
@@ -175,6 +189,7 @@ export async function addWorkRemark(ticketId: string, message: string, isInterna
 
   if (error) return { error: error.message };
 
+  revalidateTicket(ticketId);
   return { success: true };
 }
 
@@ -231,6 +246,7 @@ export async function requestMoreInfo(ticketId: string, message: string) {
     if (histError) return { error: histError.message };
   }
 
+  revalidateTicket(ticketId);
   return { success: true, status: "waiting_for_user" };
 }
 

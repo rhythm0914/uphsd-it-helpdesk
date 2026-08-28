@@ -207,12 +207,17 @@ export default async function ITQueueTicketPage({
               </p>
             </div>
 
-            {ticket.assigned_to_profile && (
+            {ticket.assigned_to_profile ? (
               <div className="mb-8">
                 <h2 className="text-lg font-semibold mb-2">Assigned To</h2>
                 <p className="text-sm text-foreground/70">
                   {ticket.assigned_to_profile.full_name || ticket.assigned_to_profile.email}
                 </p>
+              </div>
+            ) : (
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold mb-2">Assigned To</h2>
+                <p className="text-sm text-foreground/50">Unassigned</p>
               </div>
             )}
           </div>
@@ -245,27 +250,59 @@ export default async function ITQueueTicketPage({
           </div>
 
           <div className="rounded-2xl border border-border bg-background p-6 md:p-8">
-            <h2 className="text-lg font-semibold mb-4">Work Remarks</h2>
+            <h2 className="text-lg font-semibold mb-4">Conversation</h2>
             <div className="space-y-4">
-              {messages && messages.length > 0 ? (
-                messages.map((msg: TicketMessage) => (
-                  <div key={msg.id} className="border-b border-border pb-4 last:border-0">
-                    <p className="text-sm text-foreground/70">{msg.message}</p>
-                    <p className="mt-1 text-xs text-foreground/50">
-                      {msg.sender?.full_name || "Unknown"} • {formatDateTime(msg.created_at)}
-                      {msg.is_internal && <span className="ml-2 text-amber-600">(Internal)</span>}
-                    </p>
-                  </div>
-                ))
+              {messages && messages.filter((msg: TicketMessage) => !msg.is_internal).length > 0 ? (
+                messages
+                  .filter((msg: TicketMessage) => !msg.is_internal)
+                  .map((msg: TicketMessage) => (
+                    <div key={msg.id} className="border-b border-border pb-4 last:border-0">
+                      <p className="text-sm text-foreground/70">{msg.message}</p>
+                      <p className="mt-1 text-xs text-foreground/50">
+                        {msg.sender?.full_name || "Unknown"} • {formatDateTime(msg.created_at)}
+                      </p>
+                    </div>
+                  ))
               ) : (
-                <p className="text-sm text-foreground/60">No remarks yet</p>
+                <p className="text-sm text-foreground/60">No public replies yet</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-6 md:p-8">
+            <h2 className="text-lg font-semibold mb-4">
+              Internal Notes{" "}
+              <span className="text-sm font-normal text-amber-700">
+                (visible to IT staff, managers & admins only)
+              </span>
+            </h2>
+            <div className="space-y-4">
+              {messages && messages.filter((msg: TicketMessage) => msg.is_internal).length > 0 ? (
+                messages
+                  .filter((msg: TicketMessage) => msg.is_internal)
+                  .map((msg: TicketMessage) => (
+                    <div key={msg.id} className="border-b border-amber-200 pb-4 last:border-0">
+                      <p className="text-sm text-foreground/70">{msg.message}</p>
+                      <p className="mt-1 text-xs text-amber-600">
+                        {msg.sender?.full_name || "Unknown"} • {formatDateTime(msg.created_at)} •
+                        Internal
+                      </p>
+                    </div>
+                  ))
+              ) : (
+                <p className="text-sm text-foreground/60">No internal notes yet</p>
               )}
             </div>
           </div>
         </div>
 
         <div className="lg:col-span-1">
-          <TicketManagement ticketId={ticket.id} staff={staff} currentStatus={ticket.status} />
+          <TicketManagement
+            ticketId={ticket.id}
+            staff={staff}
+            currentStatus={ticket.status}
+            currentPriority={ticket.priority}
+          />
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { StackIcon } from "@radix-ui/react-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,13 @@ export default async function AdminLayout({
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-surface hover:text-brand-primary transition-colors"
           >
             Overview
+          </Link>
+          <Link
+            href="/portal/queue"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-surface hover:text-brand-primary transition-colors"
+          >
+            <StackIcon className="h-4 w-4" />
+            IT Queue
           </Link>
           <Link
             href="/portal/admin/users"

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { isITStaffRole } from "@/app/portal/queue/ticket-rules";
 
 async function getSupabase() {
@@ -58,6 +59,11 @@ export async function sendTicketReply(ticketId: string, message: string) {
     is_internal: false,
   });
   if (msgError) return { error: msgError.message };
+
+  // Keep the queue/detail surfaces in sync after a reply.
+  revalidatePath(`/portal/tickets/${ticketId}`);
+  revalidatePath(`/portal/queue/${ticketId}`);
+  revalidatePath("/portal/queue");
 
   // A requester providing info returns a WAITING_FOR_USER ticket to IN_PROGRESS
   // and records the transition in history (SECURITY DEFINER RPC).

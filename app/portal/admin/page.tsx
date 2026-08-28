@@ -47,9 +47,9 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     { label: "Total Users", value: usersResult.count || 0, href: "/portal/admin/users" },
-    { label: "Total Tickets", value: ticketsResult.count || 0, href: "/portal/admin/reports" },
-    { label: "Open Tickets", value: openResult.count || 0, href: "/portal/admin/reports" },
-    { label: "Resolved Tickets", value: resolvedResult.count || 0, href: "/portal/admin/reports" },
+    { label: "Total Tickets", value: ticketsResult.count || 0, href: "/portal/queue" },
+    { label: "Open Tickets", value: openResult.count || 0, href: "/portal/queue?status=open" },
+    { label: "Resolved Tickets", value: resolvedResult.count || 0, href: "/portal/queue?status=resolved" },
     { label: "Services", value: servicesResult.count || 0, href: "/portal/admin/services" },
     { label: "Categories", value: categoriesResult.count || 0, href: "/portal/admin/services" },
   ];
@@ -80,6 +80,13 @@ export default async function AdminDashboardPage() {
         <div className="rounded-2xl border border-border bg-background p-6">
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-3">
+            <Link
+              href="/portal/queue"
+              className="flex items-center justify-between rounded-lg border border-brand-primary bg-brand-primary/5 p-4 hover:border-brand-primary-hover transition-colors"
+            >
+              <span className="font-medium">IT Queue — Manage Tickets</span>
+              <span className="text-foreground/60">→</span>
+            </Link>
             <Link
               href="/portal/admin/users"
               className="flex items-center justify-between rounded-lg border border-border p-4 hover:border-brand-primary transition-colors"
