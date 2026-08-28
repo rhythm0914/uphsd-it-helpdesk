@@ -889,6 +889,20 @@ Users cannot submit tickets without valid service and category selections.
 2. The `ai` binding already in `wrangler.jsonc` must be authorized on the Cloudflare account for the `uphsd-it-helpdesk` Worker (Dashboard → Worker → Settings → Bindings → AI, or `wrangler` CLI with account auth). This cannot be completed from the repository-only environment.
 3. After merge, Cloudflare auto-builds `npm run build:vinext` and deploys. The model will only answer with grounding once at least one article is published via the admin Knowledge Base page.
 
+### Phase 9: Office Computer & IT Equipment Asset Management
+- **Goal:** Move the client's Excel-based "Office Computer Inventory" into the Admin Panel as an Asset Management / Inventory feature, reproducing the exact Excel structure.
+- **Route:** `/portal/admin/assets` (list) + `/portal/admin/assets/[id]` (detail, transfer, movement history). Added "Assets" nav item to the Admin sidebar.
+- **Excel fidelity:** 16 inventory columns exactly as in the client's sheet, in order — `Re, ICT Asset, Manufacturer, Model, Serial Number, Specification, Asset Number, Date Acquired, Name or ID of Accountable Personnel, Position of Accountable Personnel, Condition, Department / Office (Location), BLDG., Remarks, Domain Name, Computer Name`. The only removed fields are the two the client explicitly dropped: **PMS** and **Installed Sangfor**. No extra/renamed columns. Enforced by `tests/unit/asset-columns.test.ts`.
+- **Database:** `supabase/migrations/20260831_phase9_asset_management.sql` (additive, idempotent).
+  - `ict_assets` — the 16-column inventory (current state). Duplicate-protection unique indexes on `asset_number` and `serial_number` (case-insensitive, non-null).
+  - `asset_movements` — separate movement/history table (never an inventory column). Preserves previous → new personnel/position/dept/BLDG, performed-by, timestamp; never overwritten.
+  - RLS enabled: staff (`it_staff`/`admin`/`manager`) can SELECT; only `admin`/`manager` can INSERT/UPDATE/DELETE (`is_admin_or_manager()`).
+  - **IMPORTANT — table grants:** explicit `GRANT SELECT`/`GRANT INSERT, UPDATE, DELETE` to `authenticated` are REQUIRED (otherwise "permission denied for table ict_assets"). Uses the same pattern as the Phase 8 knowledge-base migration.
+- **Features:** server actions behind admin/manager authorization — list/search/filter (query + condition + department + BLDG), create/update/delete, transfer (records movement + updates current state), and Excel (SpreadsheetML `.xls`) + CSV exports with exactly the 16 columns and CSV formula-injection escaping.
+- **Authorization:** admin layout role gate + each server action re-verifies admin/manager server-side; RLS as second layer. Students/employees have no access. No client-trusted roles; no secrets.
+- **Tests:** `tests/unit/asset-columns.test.ts` (3 tests) — exact 16-column order, no PMS/Installed Sangfor. Total 71+ tests.
+- **Deployment note:** migration must be applied in Supabase SQL Editor before the page works; `.xls` uses SpreadsheetML 2003 (no external dependency).
+
 ### Technical Debt
 - [ ] Migrate `middleware.ts` to `proxy.ts` (Next.js 16 deprecation warning)
 - [ ] Replace Picsum placeholder images with official UPHSD photography
@@ -1131,5 +1145,5 @@ Cloudflare is configured to auto-build and deploy from the protected `main` bran
 
 ---
 
-*Last updated: 2026-08-28*  
-*Current phase: Phases 7.1-7.9 + Phase 8 complete (repository-side). 7.6: profile role-escalation fix authored. 8: AI Assistant implemented — Cloudflare Workers AI (llama-3.1-8b-instruct-fast), knowledge base (knowledge_articles + RLS), keyword retrieval, /api/assistant + /portal/assistant, admin knowledge-base manager, rate limiting, injection hardening, 24 new tests. ACTION REQUIRED: apply migrations in Supabase SQL Editor (incl. 20260830_phase8_knowledge_base.sql) and authorize the AI binding on the Cloudflare account.*
+*Last updated: 2026-08-31*  
+*Current phase: Phases 7.1-7.9 + Phase 8 (AI Assistant incl. Phase 8.6 transparency) + Phase 9 (Asset Management) complete (repository-side). 9: Admin-office computer inventory reproduced as `ict_assets` + `asset_movements` (RLS + explicit table grants) — `/portal/admin/assets`, transfers/movement history, Excel/CSV export. ACTION REQUIRED: apply migrations in Supabase SQL Editor (incl. 20260830_phase8_knowledge_base.sql and 20260831_phase9_asset_management.sql, which also grants table privileges on ict_assets/asset_movements) and authorize the AI binding on the Cloudflare account.*
