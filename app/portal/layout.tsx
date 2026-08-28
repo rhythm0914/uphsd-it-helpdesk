@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { signOut } from "@/app/auth/actions";
 import { RouteProgress } from "@/components/ui/route-progress";
+import { UserMenu } from "@/components/UserMenu";
 import { isUserRole, type Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -22,13 +22,13 @@ export default async function PortalLayout({
     redirect("/auth/sign-in");
   }
 
-  let profile: Pick<Profile, "role"> | null = null;
+  let profile: Pick<Profile, "role" | "full_name" | "email"> | null = null;
   let profileError: unknown = null;
 
   try {
     const result = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, full_name, email")
       .eq("id", user.id)
       .single();
     profile = result.data;
@@ -64,7 +64,7 @@ export default async function PortalLayout({
       }
     }
 
-    profile = { role };
+    profile = { role, full_name: fullName, email: user.email ?? null };
   }
 
   const isITStaff = profile.role && ["it_staff", "admin", "manager"].includes(profile.role);
@@ -89,36 +89,43 @@ export default async function PortalLayout({
             </span>
           </Link>
           <div className="flex items-center gap-4 text-sm font-medium">
-            <Link href="/portal" className="text-foreground/70 hover:text-brand-primary transition-colors">
+            <Link
+              href="/portal"
+              className="text-foreground/70 hover:text-brand-primary transition-colors"
+            >
               Dashboard
             </Link>
-            <Link href="/portal/request" className="text-foreground/70 hover:text-brand-primary transition-colors">
+            <Link
+              href="/portal/request"
+              className="text-foreground/70 hover:text-brand-primary transition-colors"
+            >
               New Request
             </Link>
             {isITStaff && (
-              <Link href="/portal/queue" className="text-foreground/70 hover:text-brand-primary transition-colors">
+              <Link
+                href="/portal/queue"
+                className="text-foreground/70 hover:text-brand-primary transition-colors"
+              >
                 IT Queue
               </Link>
             )}
             {isAdmin && (
-              <Link href="/portal/admin" className="text-foreground/70 hover:text-brand-primary transition-colors">
+              <Link
+                href="/portal/admin"
+                className="text-foreground/70 hover:text-brand-primary transition-colors"
+              >
                 Admin
               </Link>
             )}
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="text-foreground/70 hover:text-brand-primary transition-colors"
-              >
-                Sign Out
-              </button>
-            </form>
+            <UserMenu
+              name={profile.full_name}
+              email={profile.email}
+              role={profile.role}
+            />
           </div>
         </div>
       </nav>
-      <main className="flex-1 bg-surface">
-        {children}
-      </main>
+      <main className="flex-1 bg-surface">{children}</main>
     </div>
   );
 }

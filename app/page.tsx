@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
+import { UserMenu } from "@/components/UserMenu";
 import {
   DesktopIcon,
   GearIcon,
@@ -99,7 +102,24 @@ const faqItems = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  // Authenticated state for the landing-page nav. Signed-in users see their
+  // profile button; signed-out users keep the Sign In link. This reads the
+  // existing session/profile — no new auth logic or schema.
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let profile: { full_name: string | null; email: string | null; role: string | null } | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name,email,role")
+      .eq("id", user.id)
+      .single();
+    profile = data;
+  }
+
   return (
     <div className="flex flex-col flex-1">
       <nav className="sticky top-0 z-50 border-b border-border bg-background">
@@ -130,12 +150,20 @@ export default function Home() {
             <Link href="#faq" className="text-foreground/70 hover:text-brand-primary transition-colors">
               FAQ
             </Link>
-            <Link
-              href="/auth/sign-in"
-              className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
-            >
-              Sign In
-            </Link>
+            {profile ? (
+              <UserMenu
+                name={profile.full_name}
+                email={profile.email}
+                role={profile.role}
+              />
+            ) : (
+              <Link
+                href="/auth/sign-in"
+                className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       </nav>
