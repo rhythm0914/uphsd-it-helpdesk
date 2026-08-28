@@ -60,7 +60,7 @@ export async function getReports() {
 
   const monthlyData: Record<string, number> = {};
   ticketsByMonthResult.data?.forEach((ticket: any) => {
-    const month = new Date(ticket.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    const month = new Date(ticket.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "Asia/Manila" });
     monthlyData[month] = (monthlyData[month] || 0) + 1;
   });
 

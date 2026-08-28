@@ -1,5 +1,6 @@
 import { getUsers } from "./actions";
 import Link from "next/link";
+import { formatDate } from "@/utils/format-date";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function UsersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm text-foreground/60">
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {formatDate(user.created_at)}
                       </p>
                     </td>
                   </tr>

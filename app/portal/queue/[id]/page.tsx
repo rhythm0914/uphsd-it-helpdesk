@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { TicketManagement } from "../[id]/ticket-management";
 import { getITStaff } from "@/app/portal/queue/lib";
+import { formatDateTime } from "@/utils/format-date";
 
 export const dynamic = "force-dynamic";
 
@@ -171,13 +172,13 @@ export default async function ITQueueTicketPage({
               <div>
                 <p className="text-sm text-foreground/60">Created</p>
                 <p className="mt-1 text-sm font-medium">
-                  {new Date(ticket.created_at).toLocaleString()}
+                  {formatDateTime(ticket.created_at)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-foreground/60">Last Updated</p>
                 <p className="mt-1 text-sm font-medium">
-                  {new Date(ticket.updated_at).toLocaleString()}
+                  {formatDateTime(ticket.updated_at)}
                 </p>
               </div>
             </div>
@@ -215,7 +216,7 @@ export default async function ITQueueTicketPage({
                         {history.notes || `Status changed from ${history.old_status?.replace(/_/g, " ") || "none"} to ${history.new_status.replace(/_/g, " ")}`}
                       </p>
                       <p className="mt-1 text-xs text-foreground/50">
-                        {history.changed_by_profile?.full_name || "System"} • {new Date(history.created_at).toLocaleString()}
+                        {history.changed_by_profile?.full_name || "System"} • {formatDateTime(history.created_at)}
                       </p>
                     </div>
                   </div>
@@ -234,7 +235,7 @@ export default async function ITQueueTicketPage({
                   <div key={msg.id} className="border-b border-border pb-4 last:border-0">
                     <p className="text-sm text-foreground/70">{msg.message}</p>
                     <p className="mt-1 text-xs text-foreground/50">
-                      {msg.sender?.full_name || "Unknown"} • {new Date(msg.created_at).toLocaleString()}
+                      {msg.sender?.full_name || "Unknown"} • {formatDateTime(msg.created_at)}
                       {msg.is_internal && <span className="ml-2 text-amber-600">(Internal)</span>}
                     </p>
                   </div>

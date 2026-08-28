@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getArchivedTickets, exportTickets, getExportFilters } from "./actions";
 import { Spinner } from "@/components/ui/spinner";
+import { formatDate } from "@/utils/format-date";
 
 export function ArchiveManagement() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -293,7 +294,7 @@ export function ArchiveManagement() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm text-foreground/60">
-                        {ticket.updated_at ? new Date(ticket.updated_at).toLocaleDateString() : "—"}
+                        {ticket.updated_at ? formatDate(ticket.updated_at) : "—"}
                       </p>
                     </td>
                   </tr>

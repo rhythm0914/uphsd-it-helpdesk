@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { formatDate } from "@/utils/format-date";
 
 export const dynamic = "force-dynamic";
 
@@ -210,7 +211,7 @@ export default async function ITQueuePage({
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm text-foreground/60">
-                        {new Date(ticket.created_at).toLocaleDateString()}
+                        {formatDate(ticket.created_at)}
                       </p>
                     </td>
                   </tr>

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { formatDate } from "@/utils/format-date";
 
 export const dynamic = "force-dynamic";
 
@@ -159,7 +160,7 @@ export default async function PortalPage() {
                   </div>
                   <p className="mt-1 text-sm font-medium truncate">{ticket.subject}</p>
                   <p className="mt-1 text-xs text-foreground/50">
-                    Created {new Date(ticket.created_at).toLocaleDateString()}
+                    Created {formatDate(ticket.created_at)}
                   </p>
                 </div>
                 <span className={`text-sm ${getPriorityColor(ticket.priority)}`}>

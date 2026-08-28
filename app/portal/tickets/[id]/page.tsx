@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { formatDateTime } from "@/utils/format-date";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
@@ -142,13 +143,13 @@ export default async function TicketDetailPage({
           <div>
             <p className="text-sm text-foreground/60">Created</p>
             <p className="mt-1 text-sm font-medium">
-              {new Date(ticket.created_at).toLocaleString()}
+              {formatDateTime(ticket.created_at)}
             </p>
           </div>
           <div>
             <p className="text-sm text-foreground/60">Last Updated</p>
             <p className="mt-1 text-sm font-medium">
-              {new Date(ticket.updated_at).toLocaleString()}
+              {formatDateTime(ticket.updated_at)}
             </p>
           </div>
         </div>
@@ -192,7 +193,7 @@ export default async function TicketDetailPage({
                       {msg.sender?.full_name || msg.sender?.email || "User"}
                     </p>
                     <p className="text-xs text-foreground/50">
-                      {new Date(msg.created_at).toLocaleString()}
+                      {formatDateTime(msg.created_at)}
                     </p>
                   </div>
                   <p className="text-sm text-foreground/70 whitespace-pre-wrap">{msg.message}</p>
@@ -225,7 +226,7 @@ export default async function TicketDetailPage({
                     {" "}
                     · {entry.changed_by_profile?.full_name || entry.changed_by_profile?.email || "System"}
                     {" · "}
-                    {new Date(entry.created_at).toLocaleString()}
+                    {formatDateTime(entry.created_at)}
                   </span>
                   {entry.notes && (
                     <p className="mt-1 text-foreground/70">{entry.notes}</p>
