@@ -179,7 +179,7 @@ export default async function ITQueuePage({
                 tickets.map((ticket: TicketWithRelations) => (
                   <tr key={ticket.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-4">
-                      <Link href={`/portal/tickets/${ticket.id}`} className="block">
+                      <Link href={`/portal/queue/${ticket.id}`} className="block">
                         <span className="font-mono text-sm text-brand-primary hover:text-brand-primary-hover">
                           {ticket.ticket_number}
                         </span>
