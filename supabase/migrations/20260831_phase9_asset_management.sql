@@ -70,6 +70,15 @@ create index if not exists asset_movements_asset_idx
 alter table public.ict_assets enable row level security;
 alter table public.asset_movements enable row level security;
 
+-- Explicit table-level grants. RLS governs row access; without these the
+-- authenticated role has no privileges on the tables at all and every query
+-- fails with "permission denied for table" (see the Phase 8 knowledge-base
+-- migration for the same pattern).
+GRANT SELECT ON public.ict_assets TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.ict_assets TO authenticated;
+GRANT SELECT ON public.asset_movements TO authenticated;
+GRANT INSERT ON public.asset_movements TO authenticated;
+
 -- Staff (it_staff/admin/manager) may view the inventory and its history.
 drop policy if exists "Staff can view ICT assets" on public.ict_assets;
 create policy "Staff can view ICT assets"
