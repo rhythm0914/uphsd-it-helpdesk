@@ -74,7 +74,7 @@ export default async function PortalLayout({
     <div className="flex flex-col flex-1">
       <RouteProgress />
       <nav className="sticky top-0 z-50 border-b border-border bg-background">
-        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 min-h-16 py-2 sm:py-0 sm:h-16 flex flex-wrap items-center justify-between gap-y-2">
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/branding/uphsd-logo.png"
@@ -88,7 +88,7 @@ export default async function PortalLayout({
               IT Help Desk
             </span>
           </Link>
-          <div className="flex items-center gap-4 text-sm font-medium">
+          <div className="flex items-center gap-x-3 gap-y-2 sm:gap-4 text-sm font-medium flex-wrap">
             <Link
               href="/portal"
               className="text-foreground/70 hover:text-brand-primary transition-colors"

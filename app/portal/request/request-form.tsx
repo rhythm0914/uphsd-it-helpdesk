@@ -186,10 +186,10 @@ export function RequestForm({
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-4">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 sm:gap-4">
         <a
           href="/portal"
-          className="inline-flex items-center justify-center rounded-full border border-border bg-background px-6 py-3 text-base font-medium text-foreground transition-colors hover:bg-surface"
+          className="w-full sm:w-auto inline-flex items-center justify-center rounded-full border border-border bg-background px-6 py-3 text-base font-medium text-foreground transition-colors hover:bg-surface"
         >
           Cancel
         </a>

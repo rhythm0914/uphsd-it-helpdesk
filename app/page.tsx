@@ -150,6 +150,10 @@ export default async function Home() {
             <Link href="#faq" className="text-foreground/70 hover:text-brand-primary transition-colors">
               FAQ
             </Link>
+          </div>
+          {/* Auth area stays visible on mobile: without it, small screens have
+              no way to sign in and signed-in users lose their profile menu. */}
+          <div className="flex items-center gap-3">
             {profile ? (
               <UserMenu
                 name={profile.full_name}
@@ -159,7 +163,7 @@ export default async function Home() {
             ) : (
               <Link
                 href="/auth/sign-in"
-                className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
+                className="inline-flex items-center justify-center rounded-full bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover sm:px-5"
               >
                 Sign In
               </Link>
