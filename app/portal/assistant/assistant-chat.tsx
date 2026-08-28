@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AI_DISCLOSURE_SHORT, AI_PRIVACY_NOTICE_PATH } from "@/utils/ai/transparency";
 
 interface ChatEntry {
   role: "user" | "assistant";
@@ -193,6 +194,17 @@ export function AssistantChat() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Persistent AI transparency bar */}
+      <div className="border-t border-border bg-surface px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-foreground/60 truncate">{AI_DISCLOSURE_SHORT}</p>
+        <Link
+          href={AI_PRIVACY_NOTICE_PATH}
+          className="text-[11px] font-medium text-brand-primary hover:underline shrink-0"
+        >
+          Privacy
+        </Link>
       </div>
 
       {/* Input */}

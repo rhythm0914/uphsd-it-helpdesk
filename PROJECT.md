@@ -873,6 +873,17 @@ Users cannot submit tickets without valid service and category selections.
 - **UI:** `/portal/assistant` (+ `assistant-chat.tsx` client component), linked in the portal header. Uses the existing UPHSD design system: conversation area, busy state, error + Retry + Submit-a-Request fallback, clear button, empty/suggestion state, responsive, accessible labels, Enter-to-send, duplicate-submit guard. Consistently states it gives guidance only and cannot perform actions.
 - **Testing:** `tests/unit/ai-assistant.test.ts` — validation, rate limiting, prompt construction/injection hardening, retrieval ranking, and the Workers AI provider with a MOCKED binding (no network). 24 new tests (55 total). Mocked AI only; no automated test depends on a live provider.
 
+### Phase 8.6: AI Transparency & Privacy Hardening
+- **AI disclosure:** Assistant labeled "AI Assistant" with a visible `role="note"` disclosure on `/portal/assistant` before first interaction ("You are interacting with an AI assistant. Responses are AI-generated and may require verification."), plus a persistent slim disclosure bar ("AI-generated responses — may require verification") + Privacy link inside the full chat and floating widget. Shared wording in `utils/ai/transparency.ts`.
+- **Privacy notice:** `/portal/assistant/privacy` — plain-language notice (interacting with AI; what the assistant receives; why; no conversation storage; knowledge-base context; Cloudflare Workers AI provider; retention; controller; rights; contact; submit-an-IT-request). Organizational details (controller identity, DPO contact, retention schedules, legal bases, Cloudflare retention confirmation) are marked **[TO BE CONFIRMED BY UPHSD]** and are NOT invented.
+- **Data minimization:** only the user's message + current conversation + short excerpts of *published* knowledge articles are sent to the AI. No passwords, tokens, cookies, other users' tickets, internal notes, or profile fields. No expansion of data access.
+- **Conversation retention:** conversations are **not stored** (client-side state only); verified — no localStorage/sessionStorage/cookies/analytics in assistant client code.
+- **Automated decision-making:** the assistant is informational only; it cannot approve/deny, change tickets, assign privileges, or make academic/employment decisions. No automated decision-making introduced.
+- **Human escalation:** `/portal/request` remains the authoritative path (available in the chat UI, widget, error states, and privacy notice).
+- **Accuracy:** system prompt updated to require the exact phrase "I don't have a verified UPHSD procedure for that." when knowledge lacks an official procedure.
+- **Security preserved:** auth, server-side role checks, RLS, validation, rate limiting, prompt-injection hardening, and secret handling unchanged.
+- **Testing:** `tests/unit/ai-transparency.test.ts` (11 tests) — disclosure wording, privacy notice content, no browser storage/tracking, no profile-data sent, accuracy phrase. 71 total tests.
+
 ### Phase 8 — Deployment requirements (DASHBOARD-STEPS REMAINING)
 1. Apply `supabase/migrations/20260830_phase8_knowledge_base.sql` in the Supabase SQL Editor (idempotent, additive).
 2. The `ai` binding already in `wrangler.jsonc` must be authorized on the Cloudflare account for the `uphsd-it-helpdesk` Worker (Dashboard → Worker → Settings → Bindings → AI, or `wrangler` CLI with account auth). This cannot be completed from the repository-only environment.
