@@ -35,6 +35,21 @@ export type TicketStatus =
 
 export type TicketPriority = "low" | "normal" | "high" | "urgent";
 
+/** Row shape of public.knowledge_articles (Phase 8 AI Assistant KB). */
+export interface KnowledgeArticle {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  service_id: string | null;
+  category_id: string | null;
+  keywords: string[];
+  is_published: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /** Row shape of public.profiles. */
 export interface Profile {
   id: string;

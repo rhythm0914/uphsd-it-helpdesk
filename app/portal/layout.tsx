@@ -101,6 +101,12 @@ export default async function PortalLayout({
             >
               New Request
             </Link>
+            <Link
+              href="/portal/assistant"
+              className="text-foreground/70 hover:text-brand-primary transition-colors"
+            >
+              IT Assistant
+            </Link>
             {isITStaff && (
               <Link
                 href="/portal/queue"

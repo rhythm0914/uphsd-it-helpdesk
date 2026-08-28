@@ -805,8 +805,78 @@ Users cannot submit tickets without valid service and category selections.
 - **Migration to apply (run in Supabase SQL Editor):** `supabase/migrations/20260828_phase1_fix_profiles_role_escalation.sql`.
 - **Verification:** `npm run build` PASS, `npx tsc --noEmit` PASS (source; only pre-existing `.next` cache noise), `npx vitest run` **27/27** PASS (incl. 4 new C1 guard tests), eslint clean on all touched files. No RLS disable, no service-role key, no auth-flow change, roles preserved.
 
-### Phase 8: AI Assistant (Optional)
-- [ ] Only after core system is stable
+### Phase 7.7: IT Queue Lifecycle Hardening (Status / Priority / Request-Info / Admin Nav)
+- **Status:** Completed (audit + implementation; no DB changes required).
+- **Audit finding:** The full staff-side ticket lifecycle already existed server-side (`app/portal/queue/actions.ts`, `ticket-rules.ts`) and the schema already supported everything (`ticket_status` enum, `ticket_priority` enum, `assigned_to`, `closed_at`, `ticket_status_history`, `ticket_messages`). Classification: B — backend complete, UI gaps.
+- **Fixes:**
+  - `app/portal/queue/[id]/ticket-management.tsx` rewritten to route ALL mutations through the hardened server actions (`assignTicket`, `updateTicketStatus`, `updateTicketPriority`, `addWorkRemark`, `requestMoreInfo`) instead of direct browser-side Supabase writes. Removed the hardcoded `old_status: "open"` history bug; the server now records the true previous status. `resolved` no longer sets `closed_at` (only `closed` does).
+  - Added the missing **Priority** control (`low/normal/high/urgent` → `updateTicketPriority`) and the missing **Request More Information** control (public message + `waiting_for_user` transition; requester reply auto-returns via `requester_provide_info()` RPC).
+  - Admin discoverability: added **IT Queue** link to `app/portal/admin/layout.tsx` sidebar (`StackIcon`) and re-pointed ticket stat cards / quick actions in `app/portal/admin/page.tsx` to `/portal/queue` instead of Reports.
+  - `app/portal/queue/actions.ts` now calls `revalidatePath` for `/portal/queue`, `/portal/queue/[id]`, and `/portal/tickets/[id]` after every successful mutation; `app/portal/tickets/[id]/actions.ts` revalidates after requester replies.
+  - `app/portal/queue/page.tsx`: fixed the queue list row link — ticket rows now open the staff management page `/portal/queue/[id]` instead of the requester view `/portal/tickets/[id]` (root cause of "staff can only reply").
+  - Detail page (`app/portal/queue/[id]/page.tsx`): Conversation vs Internal Notes clearly separated; explicit "Unassigned" state; passes `currentPriority`.
+  - **No delete functionality added** (intentional — audit trail preservation; no DELETE RLS policy exists and none was added). No new tables, statuses, or roles.
+- **Verification:** `npm test` 31/31 PASS, `npx tsc --noEmit` PASS (source), eslint clean on touched files, `npm run build:vinext` PASS.
+
+### Phase 7.8: Signed-In Profile Button (UserMenu)
+- **Status:** Completed.
+- **Work:**
+  - New `components/UserMenu.tsx` — client dropdown showing the authenticated user's `profiles.full_name` (fallback: email local-part), with Dashboard link and Sign Out (reuses the existing `signOut` server action in `app/auth/actions.ts`; no duplicate auth logic).
+  - `app/page.tsx`: signed-in visitors see UserMenu in the landing nav; signed-out visitors keep the Sign In link.
+  - `app/portal/layout.tsx`: bare Sign Out form replaced by UserMenu; header profile query returns `full_name, email`.
+  - Name hidden on very small screens (`hidden sm:inline`) to keep the nav compact.
+- **Security:** display data comes from the server-side session/profile lookup, never client-supplied; no tokens/passwords exposed; no role, RLS, or auth-flow changes.
+- **Verification:** tests 31/31 PASS, build PASS, eslint clean.
+
+### Phase 7.9: Mobile Responsiveness Fixes
+- **Status:** Completed (responsive-only scope; desktop unchanged).
+- **Skill used:** `.agents/skills/redesign-existing-projects/SKILL.md` (existing stack, targeted changes, preserve functionality).
+- **Fixes (4 files, className/JSX-layout only):**
+  - `app/page.tsx` (CRITICAL): the Sign In / UserMenu auth area was inside the `hidden md:flex` nav container — mobile users had no way to sign in. Auth area is now always visible; anchor links remain desktop-only.
+  - `app/portal/layout.tsx` (CRITICAL): portal header wrapped (`min-h-16 py-2 sm:h-16`, `flex-wrap`, `gap-x-3 sm:gap-4`, `px-4 sm:px-6`) — no horizontal overflow at 320–414px.
+  - `app/portal/admin/layout.tsx` (CRITICAL): fixed `w-64` sidebar crushed admin content on phones; sidebar now becomes a full-width top bar on mobile (`flex-col md:flex-row`, horizontally scrollable link row) — unchanged on desktop.
+  - `app/portal/request/request-form.tsx` (HIGH): footer buttons stack on mobile (`flex-col-reverse sm:flex-row`); Cancel `w-full sm:w-auto`.
+  - Verified already-responsive (unchanged): IT Queue table, admin users/reports/archive/import tables (`overflow-x-auto`), queue detail grid, portal dashboard, sign-in page, UserMenu dropdown.
+- **Verification:** `npx tsc --noEmit` PASS (source; only pre-existing `.next/types/validator.ts` noise), eslint clean on all 4 changed files (project-wide lint errors are pre-existing minified `dist/` bundle output — lint config does not exclude `dist`), `npm test` 31/31 PASS, `npm run build:vinext` PASS. Git diff: 4 files, 19 insertions / 15 deletions, zero logic changes.
+
+### Phase 8: AI Assistant (Status: Implemented — see §8x below)
+- [x] Foundation, knowledge base, retrieval, UI, security, tests implemented
+- [ ] Requires manual Supabase migration + Cloudflare AI binding (see §8 documentation)
+
+### Phase 8.1: AI Foundation
+- **Status:** Implemented (repository-side). Binding requires cluster setup (see §Cloudflare).
+- **Provider:** Cloudflare Workers AI, integrated into the existing Worker (no second Worker).
+- **Model:** `@cf/meta/llama-3.1-8b-instruct` (GA on Workers AI, Workers Free-plan allocation, instruction-tuned, low latency/cost). Overridable via the non-secret `AI_MODEL` wrangler var — no code change needed to adopt a newer model.
+- **AI binding:** `ai.binding = "AI"` added to `wrangler.jsonc`; requires Cloudflare Dashboard/CLI approval before it is active in production.
+- **Env capture:** vinext doesn't expose the Worker `env` to application code, so a thin custom entry `cloudflare/worker-entry.ts` captures `env` once per isolate (mirrored on globalThis via `utils/ai/env.ts`) and delegates to `vinext/server/fetch-handler` unchanged. No framework behavior is altered.
+- **Abstraction:** `utils/ai/provider.ts` defines a tiny `ChatProvider` interface; `utils/ai/cloudflare-workers-ai.ts` implements it; `utils/ai/index.ts` is the composition root. Another provider can be added without touching routes/UI.
+- **Secrets:** none in git/wrangler/source/browser. No `NEXT_PUBLIC_AI_*`. No service-role key, token, or binding ever reaches the client. `env` is server-only.
+
+### Phase 8.2: Knowledge Base
+- **Status:** Implemented (schema + admin UI authored). Requires applying the migration via Supabase SQL Editor.
+- **Migration:** `supabase/migrations/20260830_phase8_knowledge_base.sql` — additive only. Creates `public.knowledge_articles` (`id, title, slug, content, service_id, category_id, keywords TEXT[], is_published, created_by, created_at, updated_at`), index + `updated_at` trigger (reuses existing `update_updated_at_column` helper).
+- **RLS (never disabled):** authenticated can SELECT published only; admin/manager get full management via the existing `is_admin_or_manager()` SECURITY DEFINER helper; student/employee/it_staff have no write policies; anon gets no policies.
+- **Admin management:** `/portal/admin/knowledge-base` (page + `knowledge-admin.tsx` + `actions.ts`). Search, create, edit, publish/unpublish, delete. Every action re-verifies admin/manager server-side (`requireAdminManager`) *and* is gated by RLS. Added to the admin sidebar.
+
+### Phase 8.3: Knowledge Retrieval / RAG
+- **Status:** Implemented.
+- **Strategy:** simple keyword retrieval (`utils/ai/retrieval.ts`) — no vector infra. Only `is_published = true` articles are fetched (bounded candidate set) and ranked by keyword/title/content score in application code; top 3 sent to the model. Pure ranking functions are unit-tested independently of Supabase.
+- **Flow:** user question → validate → retrieve published KB → build server-owned prompt (`utils/ai/prompt.ts`) → Workers AI → answer with optional source titles.
+
+### Phase 8.4: AI Security
+- **Status:** Implemented.
+- **Endpoint:** `POST /api/assistant` — identity only from the Supabase session (401 if unauthenticated); role never trusted from the body; input validated/length-capped (`utils/ai/validation.ts`, incl. rejecting client-supplied `system` roles so the system prompt stays server-owned); per-user rate limiting (`utils/ai/rate-limit.ts`: 20/day rolling + 5s min interval; 429 with friendly message; never counted on failure); only published KB is sent as context; no cross-user data; never returns secrets/raw errors (friendly fallback + escalate to `/portal/request`).
+- **Prompt injection:** system instructions are server-only constants (`utils/ai/prompt.ts`) that forbid fabricated UPHSD procedures, reveal of the prompt, action claims, and admin behavior; user messages are appended after system and treated as untrusted. The app (not the model) enforces every authorization/DB decision — the AI has no tools, no SQL, no ticket actions.
+- **Privacy:** no conversation persistence (client-side state only).
+
+### Phase 8.5: UI + Tests
+- **UI:** `/portal/assistant` (+ `assistant-chat.tsx` client component), linked in the portal header. Uses the existing UPHSD design system: conversation area, busy state, error + Retry + Submit-a-Request fallback, clear button, empty/suggestion state, responsive, accessible labels, Enter-to-send, duplicate-submit guard. Consistently states it gives guidance only and cannot perform actions.
+- **Testing:** `tests/unit/ai-assistant.test.ts` — validation, rate limiting, prompt construction/injection hardening, retrieval ranking, and the Workers AI provider with a MOCKED binding (no network). 24 new tests (55 total). Mocked AI only; no automated test depends on a live provider.
+
+### Phase 8 — Deployment requirements (DASHBOARD-STEPS REMAINING)
+1. Apply `supabase/migrations/20260830_phase8_knowledge_base.sql` in the Supabase SQL Editor (idempotent, additive).
+2. The `ai` binding already in `wrangler.jsonc` must be authorized on the Cloudflare account for the `uphsd-it-helpdesk` Worker (Dashboard → Worker → Settings → Bindings → AI, or `wrangler` CLI with account auth). This cannot be completed from the repository-only environment.
+3. After merge, Cloudflare auto-builds `npm run build:vinext` and deploys. The model will only answer with grounding once at least one article is published via the admin Knowledge Base page.
 
 ### Technical Debt
 - [ ] Migrate `middleware.ts` to `proxy.ts` (Next.js 16 deprecation warning)
@@ -1005,7 +1075,7 @@ Cloudflare is configured to auto-build and deploy from the protected `main` bran
 - [x] Server-side service/category validation implemented
 - [x] Admin authorization hardened with explicit error handling
 - [x] Portal pages forced dynamic to prevent caching
-- [ ] Mobile layout works
+- [x] Mobile layout works (320/375/390/414/768px verified; auth area, portal header, admin sidebar, request form fixed)
 - [ ] Error states work
 - [x] Unauthorized access is blocked
 - [ ] No secrets are exposed
@@ -1051,4 +1121,4 @@ Cloudflare is configured to auto-build and deploy from the protected `main` bran
 ---
 
 *Last updated: 2026-08-28*  
-*Current phase: Phase 7.1-7.5 complete (auth loop fixed, RLS recursion + grants fixed, loading UX: spinners + route progress + skeleton loaders, conditional confirmation-resend on sign-in). ACTION REQUIRED if not yet run: execute `supabase/fix-rls-recursion.sql` in Supabase SQL Editor.*
+*Current phase: Phases 7.1-7.9 + Phase 8 complete (repository-side). 7.6: profile role-escalation fix authored. 8: AI Assistant implemented — Cloudflare Workers AI (llama-3.1-8b-instruct), knowledge base (knowledge_articles + RLS), keyword retrieval, /api/assistant + /portal/assistant, admin knowledge-base manager, rate limiting, injection hardening, 24 new tests. ACTION REQUIRED: apply migrations in Supabase SQL Editor (incl. 20260830_phase8_knowledge_base.sql) and authorize the AI binding on the Cloudflare account.*

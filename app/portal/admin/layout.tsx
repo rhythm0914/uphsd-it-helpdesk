@@ -64,6 +64,12 @@ export default async function AdminLayout({
             Services & Categories
           </Link>
           <Link
+            href="/portal/admin/knowledge-base"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-surface hover:text-brand-primary transition-colors whitespace-nowrap shrink-0"
+          >
+            Knowledge Base
+          </Link>
+          <Link
             href="/portal/admin/reports"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-surface hover:text-brand-primary transition-colors whitespace-nowrap shrink-0"
           >
