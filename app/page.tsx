@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ChatWidget } from "@/components/ui/chat-widget";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { UserMenu } from "@/components/UserMenu";
@@ -505,6 +506,10 @@ export default async function Home() {
           </div>
         </div>
       </footer>
+      {/* Floating AI Assistant launcher. Signed-in users get the full widget
+          (reusing /api/assistant); visitors are taken to the assistant page,
+          which routes through the existing sign-in flow. */}
+      <ChatWidget authenticated={!!user} />
     </div>
   );
 }

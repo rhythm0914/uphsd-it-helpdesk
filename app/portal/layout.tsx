@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { UserMenu } from "@/components/UserMenu";
+import { ChatWidget } from "@/components/ui/chat-widget";
 import { isUserRole, type Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -132,6 +133,8 @@ export default async function PortalLayout({
         </div>
       </nav>
       <main className="flex-1 bg-surface">{children}</main>
+      {/* Global floating AI Assistant (reuses existing /api/assistant). */}
+      <ChatWidget authenticated />
     </div>
   );
 }
