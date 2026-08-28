@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Spinner } from "@/components/ui/spinner";
+import type { Database } from "@/types/database";
 
-export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId: string; staff: any[]; currentStatus: string }) {
+interface StaffMember {
+  id: string;
+  email: string;
+  full_name: string | null;
+}
+
+export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId: string; staff: StaffMember[]; currentStatus: string }) {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isAddingRemark, setIsAddingRemark] = useState(false);
@@ -72,7 +79,7 @@ export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId:
     const { error } = await supabase
       .from("tickets")
       .update({
-        status: status as any,
+        status: status as Database["public"]["Enums"]["ticket_status"],
         updated_at: new Date().toISOString(),
         ...(status === "closed" || status === "resolved" ? { closed_at: new Date().toISOString() } : {}),
       })
@@ -84,7 +91,7 @@ export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId:
       await supabase.from("ticket_status_history").insert({
         ticket_id: ticketId,
         old_status: ticket.status,
-        new_status: status as any,
+        new_status: status as Database["public"]["Enums"]["ticket_status"],
         changed_by: user.id,
         notes: notes || `Status changed to ${status}`,
       });
@@ -146,7 +153,7 @@ export function TicketManagement({ ticketId, staff, currentStatus }: { ticketId:
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
             >
               <option value="">Select staff member</option>
-              {staff.map((member: any) => (
+              {staff.map((member: StaffMember) => (
                 <option key={member.id} value={member.id}>
                   {member.full_name} ({member.email})
                 </option>

@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { formatDate } from "@/utils/format-date";
 
@@ -26,8 +25,8 @@ export default async function PortalPage() {
   // The middleware has already verified a valid session here, so redirecting to
   // /auth/sign-in would create a redirect loop. Fall back to a least-privilege
   // default derived from auth user metadata instead.
-  const userMetadata = (user.user_metadata as any) || {};
-  const metadataRole = userMetadata.role || "student";
+  const userMetadata: Record<string, unknown> = (user.user_metadata as Record<string, unknown>) || {};
+  const metadataRole = String(userMetadata.role || "student");
   const fallbackRole = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
     ? metadataRole
     : "student";
@@ -143,7 +142,7 @@ export default async function PortalPage() {
         </div>
         <div className="divide-y divide-border">
           {recentTickets && recentTickets.length > 0 ? (
-            recentTickets.map((ticket: any) => (
+            recentTickets.map((ticket) => (
               <Link
                 key={ticket.id}
                 href={`/portal/tickets/${ticket.id}`}

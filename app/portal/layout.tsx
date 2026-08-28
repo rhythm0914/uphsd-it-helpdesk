@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { RouteProgress } from "@/components/ui/route-progress";
+import { isUserRole, type Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,8 @@ export default async function PortalLayout({
     redirect("/auth/sign-in");
   }
 
-  let profile = null;
-  let profileError = null;
+  let profile: Pick<Profile, "role"> | null = null;
+  let profileError: unknown = null;
 
   try {
     const result = await supabase
@@ -33,7 +34,7 @@ export default async function PortalLayout({
     profile = result.data;
     profileError = result.error;
   } catch (err) {
-    profileError = err as any;
+    profileError = err;
   }
 
   if (profileError || !profile) {
@@ -44,12 +45,10 @@ export default async function PortalLayout({
     // the missing profile, and always fall back to a least-privilege default
     // derived from auth user metadata.
     const { data } = await supabase.auth.getUser();
-    const userMetadata = (data.user as any)?.user_metadata || {};
-    const fullName = userMetadata.full_name || "";
-    const metadataRole = userMetadata.role || "student";
-    const role = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
-      ? metadataRole
-      : "student";
+    const userMetadata = (data.user?.user_metadata as Record<string, unknown>) || {};
+    const fullName = (userMetadata.full_name as string) || "";
+    const metadataRole = userMetadata.role;
+    const role = isUserRole(metadataRole) ? metadataRole : "student";
 
     if (user.email) {
       try {

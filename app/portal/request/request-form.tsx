@@ -3,49 +3,47 @@
 import { useState, useEffect } from "react";
 import { submitRequest } from "./actions";
 import { SubmitButton } from "@/components/ui/submit-button";
+import type { ServiceCategoryOption } from "@/types/database";
 
 export function RequestForm({
   services,
   hasLoadError,
   isEmpty,
 }: {
-  services: any[];
+  services: { id: string; name: string }[];
   hasLoadError: boolean;
   isEmpty: boolean;
 }) {
   const [selectedService, setSelectedService] = useState("");
-  const [categories, setCategories] = useState<any[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [loadedService, setLoadedService] = useState("");
+  const [categories, setCategories] = useState<ServiceCategoryOption[]>([]);
   const [categoriesError, setCategoriesError] = useState(false);
 
+  // Derived loading state: a service is selected but its categories have not
+  // finished loading yet. This avoids setting state synchronously inside the
+  // effect (react-hooks/set-state-in-effect).
+  const categoriesLoading = !!selectedService && selectedService !== loadedService;
+
   useEffect(() => {
-    if (!selectedService) {
-      setCategories([]);
-      setCategoriesError(false);
-      return;
-    }
+    if (!selectedService) return;
 
     let cancelled = false;
-    setCategoriesLoading(true);
-    setCategoriesError(false);
 
     fetch(`/api/service-categories?service_id=${selectedService}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to load categories");
-        const data = await res.json();
+        const data: { categories?: ServiceCategoryOption[] } = await res.json();
         if (!cancelled) {
           setCategories(data.categories || []);
+          setCategoriesError(false);
+          setLoadedService(selectedService);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setCategoriesError(true);
           setCategories([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setCategoriesLoading(false);
+          setLoadedService(selectedService);
         }
       });
 
@@ -55,7 +53,14 @@ export function RequestForm({
   }, [selectedService]);
 
   function handleServiceChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelectedService(e.target.value);
+    const value = e.target.value;
+    setSelectedService(value);
+    // Reset the dependent category state on the event path, not in the effect.
+    if (!value) {
+      setCategories([]);
+      setCategoriesError(false);
+      setLoadedService("");
+    }
   }
 
   return (
@@ -91,7 +96,7 @@ export function RequestForm({
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
             >
               <option value="">Select a service</option>
-              {services.map((service: any) => (
+              {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}
                 </option>
@@ -119,7 +124,7 @@ export function RequestForm({
                   ? "No categories available"
                   : "Select a category"}
               </option>
-              {categories.map((category: any) => (
+              {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>

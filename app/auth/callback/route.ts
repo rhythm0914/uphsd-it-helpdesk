@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import type { UserMetadata } from "@/types/database";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -44,8 +45,8 @@ export async function GET(request: Request) {
           await supabase.from("profiles").insert({
             id: user.id,
             email: user.email,
-            full_name: (user.user_metadata as any)?.full_name || "",
-            role: (user.user_metadata as any)?.role || "student",
+            full_name: (user.user_metadata as UserMetadata)?.full_name || "",
+            role: (user.user_metadata as UserMetadata)?.role || "student",
           });
         }
       }

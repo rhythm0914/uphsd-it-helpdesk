@@ -6,6 +6,23 @@ import { TicketManagement } from "../[id]/ticket-management";
 import { getITStaff } from "@/app/portal/queue/lib";
 import { formatDateTime } from "@/utils/format-date";
 
+interface TicketStatusHistory {
+  id: string;
+  old_status: string | null;
+  new_status: string;
+  notes: string | null;
+  created_at: string;
+  changed_by_profile?: { full_name: string | null } | null;
+}
+
+interface TicketMessage {
+  id: string;
+  message: string;
+  is_internal: boolean;
+  created_at: string;
+  sender?: { full_name: string | null } | null;
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function ITQueueTicketPage({
@@ -204,7 +221,7 @@ export default async function ITQueueTicketPage({
             <h2 className="text-lg font-semibold mb-4">Status History</h2>
             <div className="space-y-4">
               {statusHistory && statusHistory.length > 0 ? (
-                statusHistory.map((history: any) => (
+                statusHistory.map((history: TicketStatusHistory) => (
                   <div key={history.id} className="flex gap-4">
                     <div className="flex-shrink-0">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(history.new_status)}`}>
@@ -231,7 +248,7 @@ export default async function ITQueueTicketPage({
             <h2 className="text-lg font-semibold mb-4">Work Remarks</h2>
             <div className="space-y-4">
               {messages && messages.length > 0 ? (
-                messages.map((msg: any) => (
+                messages.map((msg: TicketMessage) => (
                   <div key={msg.id} className="border-b border-border pb-4 last:border-0">
                     <p className="text-sm text-foreground/70">{msg.message}</p>
                     <p className="mt-1 text-xs text-foreground/50">

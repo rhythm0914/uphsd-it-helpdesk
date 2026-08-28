@@ -1,10 +1,10 @@
-import { Suspense } from "react";
-import { getITQueue, getITStaff, getServices } from "./lib";
+import { getITQueue, getServices } from "./lib";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/utils/format-date";
+import type { Service, TicketWithRelations } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -47,14 +47,14 @@ export default async function ITQueuePage({
     search: params?.search || "",
   };
 
-  const [{ tickets, error: ticketsError }, staffResult, servicesResult] = await Promise.all([
+  const [ticketsResult, servicesResult] = await Promise.all([
     getITQueue(filters),
-    getITStaff(),
     getServices(),
   ]);
 
-  const staff = staffResult.staff || [];
-  const services = servicesResult.services || [];
+  const tickets: TicketWithRelations[] = (ticketsResult.tickets || []) as TicketWithRelations[];
+  const ticketsError = ticketsResult.error;
+  const services: Service[] = (servicesResult.services || []) as Service[];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -136,7 +136,7 @@ export default async function ITQueuePage({
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
           >
             <option value="all">All Services</option>
-            {services.map((service: any) => (
+            {services.map((service: Service) => (
               <option key={service.id} value={service.id}>
                 {service.name}
               </option>
@@ -176,7 +176,7 @@ export default async function ITQueuePage({
             </thead>
             <tbody className="divide-y divide-border">
               {tickets && tickets.length > 0 ? (
-                tickets.map((ticket: any) => (
+                tickets.map((ticket: TicketWithRelations) => (
                   <tr key={ticket.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-4">
                       <Link href={`/portal/tickets/${ticket.id}`} className="block">

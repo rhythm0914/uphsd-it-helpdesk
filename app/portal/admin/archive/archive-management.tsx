@@ -4,9 +4,21 @@ import { useState } from "react";
 import { getArchivedTickets, exportTickets, getExportFilters } from "./actions";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDate } from "@/utils/format-date";
+import type { ArchivedTicket } from "@/types/database";
+
+interface FilterOption {
+  id: string;
+  name: string;
+}
+
+interface StaffOption {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
 
 export function ArchiveManagement() {
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<ArchivedTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [filters, setFilters] = useState({
@@ -19,9 +31,9 @@ export function ArchiveManagement() {
     dateTo: "",
   });
   const [filterOptions, setFilterOptions] = useState<{
-    services: any[];
-    categories: any[];
-    staff: any[];
+    services: FilterOption[];
+    categories: FilterOption[];
+    staff: StaffOption[];
   }>({ services: [], categories: [], staff: [] });
 
   useState(() => {
@@ -66,7 +78,7 @@ export function ArchiveManagement() {
       return;
     }
 
-    const blob = new Blob([result.data as any], { type: format === "json" ? "application/json" : "text/csv;charset=utf-8;" });
+    const blob = new Blob([String(result.data)], { type: format === "json" ? "application/json" : "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -141,7 +153,7 @@ export function ArchiveManagement() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
               >
                 <option value="all">All Services</option>
-                {filterOptions.services.map((service: any) => (
+                {filterOptions.services.map((service) => (
                   <option key={service.id} value={service.id}>{service.name}</option>
                 ))}
               </select>
@@ -158,7 +170,7 @@ export function ArchiveManagement() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
               >
                 <option value="all">All Categories</option>
-                {filterOptions.categories.map((category: any) => (
+                {filterOptions.categories.map((category) => (
                   <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
               </select>
@@ -175,7 +187,7 @@ export function ArchiveManagement() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
               >
                 <option value="all">All Staff</option>
-                {filterOptions.staff.map((member: any) => (
+                {filterOptions.staff.map((member) => (
                   <option key={member.id} value={member.id}>{member.full_name}</option>
                 ))}
               </select>
@@ -270,7 +282,7 @@ export function ArchiveManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {tickets.map((ticket: any) => (
+                {tickets.map((ticket: ArchivedTicket) => (
                   <tr key={ticket.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-4">
                       <span className="font-mono text-sm text-brand-primary">{ticket.ticket_number}</span>

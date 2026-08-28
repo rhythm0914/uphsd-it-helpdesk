@@ -31,6 +31,10 @@ const { createClient: createServerClientHelper } = await import("@/utils/supabas
 const { createClient: createBrowserClientHelper } = await import("@/utils/supabase/client");
 const { createClient: createMiddlewareClient } = await import("@/utils/supabase/middleware");
 
+// Proper types for the (mock-shaped) arguments instead of `as any` casts.
+type ServerCookieStore = Parameters<typeof createServerClientHelper>[0];
+type MiddlewareRequest = Parameters<typeof createMiddlewareClient>[0];
+
 describe("supabase server client", () => {
   beforeEach(() => createServerClient.mockReset());
 
@@ -39,7 +43,7 @@ describe("supabase server client", () => {
       getAll: vi.fn(() => [{ name: "sb-key", value: "value" }]),
       set: vi.fn(),
     };
-    createServerClientHelper(cookieStore as any);
+    createServerClientHelper(cookieStore as unknown as ServerCookieStore);
 
     expect(createServerClient).toHaveBeenCalledTimes(1);
     const [url, key] = createServerClient.mock.calls[0];
@@ -52,7 +56,7 @@ describe("supabase server client", () => {
       getAll: vi.fn(() => [{ name: "sb-key", value: "value" }]),
       set: vi.fn(),
     };
-    createServerClientHelper(cookieStore as any);
+    createServerClientHelper(cookieStore as unknown as ServerCookieStore);
     const options = createServerClient.mock.calls[0][2];
 
     expect(options.cookies.getAll()).toEqual([{ name: "sb-key", value: "value" }]);
@@ -60,7 +64,7 @@ describe("supabase server client", () => {
 
   it("wires setAll() to the passed cookie store", () => {
     const cookieStore = { getAll: vi.fn(() => []), set: vi.fn() };
-    createServerClientHelper(cookieStore as any);
+    createServerClientHelper(cookieStore as unknown as ServerCookieStore);
     const setAll = createServerClient.mock.calls[0][2].cookies.setAll;
 
     setAll([{ name: "sb-key", value: "value", options: { path: "/" } }]);
@@ -97,7 +101,7 @@ describe("supabase middleware client", () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-    const { response, user } = await createMiddlewareClient({} as any);
+    const { response, user } = await createMiddlewareClient({} as unknown as MiddlewareRequest);
 
     expect(user).toBeNull();
     expect(createServerClient).not.toHaveBeenCalled();
@@ -115,7 +119,7 @@ describe("supabase middleware client", () => {
 
     const { user } = await createMiddlewareClient({
       cookies: { getAll: () => [] },
-    } as any);
+    } as unknown as MiddlewareRequest);
 
     expect(user).toEqual({ id: "u-123" });
   });
@@ -129,7 +133,7 @@ describe("supabase middleware client", () => {
 
     const { user } = await createMiddlewareClient({
       cookies: { getAll: () => [] },
-    } as any);
+    } as unknown as MiddlewareRequest);
 
     expect(user).toBeNull();
   });

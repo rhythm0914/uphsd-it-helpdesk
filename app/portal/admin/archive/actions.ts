@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { ArchivedTicket, TicketExportRow } from "@/types/database";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -88,7 +89,7 @@ export async function getArchivedTickets(filters?: {
   const { data: tickets, error } = await query;
 
   if (error) {
-    return { error: error.message, tickets: [] as any[] };
+    return { error: error.message, tickets: [] as ArchivedTicket[] };
   }
 
   return { tickets: tickets || [], error: null as string | null };
@@ -169,7 +170,7 @@ export async function exportTickets(format: "csv" | "json", filters?: {
 
   if (format === "json") {
     return {
-      data: ticketList.map((t: any) => ({
+      data: ticketList.map((t) => ({
         ticket_number: t.ticket_number,
         subject: t.subject,
         description: t.description,
@@ -185,7 +186,7 @@ export async function exportTickets(format: "csv" | "json", filters?: {
         created_at: t.created_at,
         updated_at: t.updated_at,
         closed_at: t.closed_at,
-      })),
+      })) satisfies TicketExportRow[],
       format: "json" as const,
       filename: `uphsd-it-helpdesk-tickets-${new Date().toISOString().split("T")[0]}.json`,
     };
@@ -209,7 +210,7 @@ export async function exportTickets(format: "csv" | "json", filters?: {
     "Closed At",
   ];
 
-  const csvRows = ticketList.map((t: any) => [
+  const csvRows = ticketList.map((t: ArchivedTicket) => [
     t.ticket_number,
     t.subject,
     t.description,

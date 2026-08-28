@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { validateImportCsv, confirmImport } from "./actions";
 import { MAX_SUBJECT_LENGTH, MAX_DESCRIPTION_LENGTH } from "./lib";
 
 function parseCsv(text: string): Record<string, unknown>[] {
@@ -53,25 +54,16 @@ function parseCsvRow(line: string): string[] {
   return values;
 }
 
-function escapeCsvCell(value: string): string {
-  if (value.startsWith("=") || value.startsWith("+") || value.startsWith("-") || value.startsWith("@")) {
-    return `\t"${value.replace(/"/g, '""')}"`;
-  }
-  if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
 
 export function ImportManagement() {
   const [step, setStep] = useState<"upload" | "preview" | "result">("upload");
   const [fileName, setFileName] = useState("");
-  const [preview, setPreview] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof validateImportCsv>>["preview"]>([]);
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof validateImportCsv>>["summary"] | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [filter, setFilter] = useState<"all" | "valid" | "invalid" | "duplicate">("all");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof confirmImport>> | null>(null);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,12 +99,12 @@ export function ImportManagement() {
       }
 
       const { validateImportCsv } = await import("./actions");
-      const result = await validateImportCsv(rows as any);
+      const result = await validateImportCsv(rows as Record<string, unknown>[]);
 
       setPreview(result.preview);
       setSummary(result.summary);
       setStep("preview");
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Unable to read this CSV file. Please check the format and try again." });
     } finally {
       setLoading(false);
@@ -137,14 +129,14 @@ export function ImportManagement() {
 
       setResult(importResult);
       setStep("result");
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Import failed. Please try again." });
     } finally {
       setLoading(false);
     }
   }, [preview, fileName]);
 
-  const handleDownloadReport = useCallback((data: any[], filename: string) => {
+  const handleDownloadReport = useCallback((data: Record<string, unknown>[], filename: string) => {
     if (!data || data.length === 0) return;
 
     const headers = Object.keys(data[0]);
@@ -295,7 +287,7 @@ export function ImportManagement() {
               <div className="flex gap-2">
                 <select
                   value={filter}
-                  onChange={(e) => setFilter(e.target.value as any)}
+                  onChange={(e) => setFilter(e.target.value as typeof filter)}
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
                 >
                   <option value="all">All</option>

@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { Database } from "@/types/database";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -83,7 +84,7 @@ export async function createUser(formData: FormData) {
       id: authData.user.id,
       email,
       full_name: fullName,
-      role: role as any,
+      role: role as Database["public"]["Enums"]["user_role"],
       department: department || null,
     });
 

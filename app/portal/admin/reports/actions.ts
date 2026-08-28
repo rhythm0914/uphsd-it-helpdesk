@@ -44,29 +44,29 @@ export async function getReports() {
   ]);
 
   const ticketsByStatus: Record<string, number> = {};
-  ticketsByStatusResult.data?.forEach((ticket: any) => {
+  ticketsByStatusResult.data?.forEach((ticket) => {
     ticketsByStatus[ticket.status] = (ticketsByStatus[ticket.status] || 0) + 1;
   });
 
   const ticketsByPriority: Record<string, number> = {};
-  ticketsByPriorityResult.data?.forEach((ticket: any) => {
+  ticketsByPriorityResult.data?.forEach((ticket) => {
     ticketsByPriority[ticket.priority] = (ticketsByPriority[ticket.priority] || 0) + 1;
   });
 
   const ticketsByService: Record<string, number> = {};
-  ticketsByServiceResult.data?.forEach((ticket: any) => {
+  ticketsByServiceResult.data?.forEach((ticket) => {
     ticketsByService[ticket.service_id] = (ticketsByService[ticket.service_id] || 0) + 1;
   });
 
   const monthlyData: Record<string, number> = {};
-  ticketsByMonthResult.data?.forEach((ticket: any) => {
+  ticketsByMonthResult.data?.forEach((ticket) => {
     const month = new Date(ticket.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "Asia/Manila" });
     monthlyData[month] = (monthlyData[month] || 0) + 1;
   });
 
   let avgResolutionTime = 0;
   if (resolutionTimeResult.data && resolutionTimeResult.data.length > 0) {
-    const totalTime = resolutionTimeResult.data.reduce((sum: number, ticket: any) => {
+    const totalTime = resolutionTimeResult.data.reduce((sum: number, ticket) => {
       if (ticket.closed_at) {
         const created = new Date(ticket.created_at).getTime();
         const closed = new Date(ticket.closed_at).getTime();

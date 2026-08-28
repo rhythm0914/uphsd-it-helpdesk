@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import type { TicketCategory } from "@/types/database";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -20,9 +21,11 @@ export async function GET(request: Request) {
     `)
     .eq("service_id", serviceId);
 
-  const categories = (mappings || [])
-    .map((m: any) => m.category)
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+  // ticket_categories!inner(*) yields one related category row per mapping.
+  const categories = (mappings ?? [])
+    .map((m) => (m as { category: unknown }).category as TicketCategory)
+    .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return NextResponse.json({ categories });
 }

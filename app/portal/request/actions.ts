@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { generateTicketNumber } from "@/utils/ticket-number";
+import { isUserRole, type Ticket } from "@/types/database";
 
 const TICKET_NUMBER_RETRIES = 5;
 
@@ -30,11 +31,9 @@ export async function submitRequest(formData: FormData) {
   // profile row is missing (e.g. created before the on_auth_user_created
   // trigger existed), the ticket insert below would fail. Ensure the profile
   // exists without overwriting an existing one.
-  const metadata = (user.user_metadata as any) || {};
-  const metadataRole = metadata.role || "student";
-  const safeRole = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
-    ? metadataRole
-    : "student";
+  const metadata = (user.user_metadata as Record<string, unknown>) || {};
+  const metadataRole = metadata.role;
+  const safeRole = isUserRole(metadataRole) ? metadataRole : "student";
   await supabase
     .from("profiles")
     .upsert(
@@ -60,8 +59,8 @@ export async function submitRequest(formData: FormData) {
 
   // Retry with an incremented number on a 23505 unique-violation (concurrent
   // submissions racing for the same ticket number).
-  let data: any = null;
-  let error: any = null;
+  let data: Ticket | null = null;
+  let error: { message?: string; code?: string } | null = null;
   for (let attempt = 0; attempt < TICKET_NUMBER_RETRIES; attempt++) {
     const ticketNumber = await generateTicketNumber(supabase, attempt);
     const result = await supabase

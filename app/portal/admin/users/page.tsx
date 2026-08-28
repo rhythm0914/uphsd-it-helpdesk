@@ -1,5 +1,4 @@
 import { getUsers } from "./actions";
-import Link from "next/link";
 import { formatDate } from "@/utils/format-date";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +38,7 @@ export default async function UsersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {users && users.length > 0 ? (
-                users.map((user: any) => (
+                users.map((user) => (
                   <tr key={user.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-4">
                       <p className="text-sm font-medium">{user.full_name}</p>

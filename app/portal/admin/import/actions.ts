@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { generateTicketNumber } from "@/utils/ticket-number";
+import type { Database } from "@/types/database";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -19,7 +20,7 @@ function normalizeString(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function validateRow(row: Record<string, unknown>, rowIndex: number) {
+function validateRow(row: Record<string, unknown>) {
   const errors: string[] = [];
   const ticketNumber = normalizeString(row.ticket_number);
   const requesterEmail = normalizeString(row.requester_email).toLowerCase();
@@ -118,24 +119,24 @@ export async function validateImportCsv(csvRows: Record<string, unknown>[]) {
     supabase.from("profiles").select("id, email, full_name, role").ilike("email", "%@%"),
   ]);
 
-  const services = (servicesResult.data || []).reduce(
-    (acc: Record<string, { id: string; is_active: boolean }>, s: any) => {
+  const services = (servicesResult.data || []).reduce<Record<string, { id: string; is_active: boolean }>>(
+    (acc, s) => {
       acc[s.name.toLowerCase()] = { id: s.id, is_active: s.is_active };
       return acc;
     },
     {}
   );
 
-  const categories = (categoriesResult.data || []).reduce(
-    (acc: Record<string, { id: string; is_active: boolean }>, c: any) => {
+  const categories = (categoriesResult.data || []).reduce<Record<string, { id: string; is_active: boolean }>>(
+    (acc, c) => {
       acc[c.name.toLowerCase()] = { id: c.id, is_active: c.is_active };
       return acc;
     },
     {}
   );
 
-  const profilesByEmail = (profilesResult.data || []).reduce(
-    (acc: Record<string, { id: string; full_name: string; role: string; email: string }>, p: any) => {
+  const profilesByEmail = (profilesResult.data || []).reduce<Record<string, { id: string; full_name: string; role: string; email: string }>>(
+    (acc, p) => {
       acc[p.email.toLowerCase()] = { id: p.id, full_name: p.full_name, role: p.role, email: p.email };
       return acc;
     },
@@ -156,7 +157,7 @@ export async function validateImportCsv(csvRows: Record<string, unknown>[]) {
         .select("ticket_number, subject, requester_id, service_id, category_id")
         .in("ticket_number", ticketNumbers);
 
-      (existingTickets || []).forEach((t: any) => {
+      (existingTickets || []).forEach((t) => {
         existingTicketNumbers.add(t.ticket_number.toLowerCase());
       });
     }
@@ -175,7 +176,7 @@ export async function validateImportCsv(csvRows: Record<string, unknown>[]) {
         .order("created_at", { ascending: false })
         .limit(1000);
 
-      (similarTickets || []).forEach((t: any) => {
+      (similarTickets || []).forEach((t) => {
         const service = services[t.service_id] ? Object.keys(services).find((k) => services[k].id === t.service_id)?.toLowerCase() : "";
         const category = categories[t.category_id] ? Object.keys(categories).find((k) => categories[k].id === t.category_id)?.toLowerCase() : "";
         const key = `${t.subject.toLowerCase()}|${service}|${category}`;
@@ -192,7 +193,7 @@ export async function validateImportCsv(csvRows: Record<string, unknown>[]) {
 
   const preview = csvRows.map((row, index) => {
     const rowNum = index + 1;
-    const validation = validateRow(row, rowNum);
+    const validation = validateRow(row);
 
     let duplicateStatus: "none" | "exact" | "possible" = "none";
     let duplicateInfo: string | null = null;
@@ -271,24 +272,24 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
     supabase.from("profiles").select("id, email"),
   ]);
 
-  const services = (servicesResult.data || []).reduce(
-    (acc: Record<string, string>, s: any) => {
+  const services = (servicesResult.data || []).reduce<Record<string, string>>(
+    (acc, s) => {
       acc[s.name.toLowerCase()] = s.id;
       return acc;
     },
     {}
   );
 
-  const categories = (categoriesResult.data || []).reduce(
-    (acc: Record<string, string>, c: any) => {
+  const categories = (categoriesResult.data || []).reduce<Record<string, string>>(
+    (acc, c) => {
       acc[c.name.toLowerCase()] = c.id;
       return acc;
     },
     {}
   );
 
-  const profilesByEmail = (profilesResult.data || []).reduce(
-    (acc: Record<string, string>, p: any) => {
+  const profilesByEmail = (profilesResult.data || []).reduce<Record<string, string>>(
+    (acc, p) => {
       acc[p.email.toLowerCase()] = p.id;
       return acc;
     },
@@ -300,7 +301,7 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
     .from("service_categories")
     .select("service_id, category_id");
 
-  (mappings || []).forEach((m: any) => {
+  (mappings || []).forEach((m) => {
     if (!serviceCategoryMap.has(m.service_id)) {
       serviceCategoryMap.set(m.service_id, new Set());
     }
@@ -351,8 +352,8 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
       category_id: categoryId,
       subject,
       description,
-      priority: priority as any,
-      status: status as any,
+      priority: priority as Database["public"]["Enums"]["ticket_priority"],
+      status: status as Database["public"]["Enums"]["ticket_status"],
       created_at: createdAt ? new Date(createdAt).toISOString() : undefined,
     });
 

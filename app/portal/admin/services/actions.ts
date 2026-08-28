@@ -174,6 +174,17 @@ export async function toggleCategoryStatus(categoryId: string, currentStatus: bo
 export async function getServiceCategories(serviceId: string) {
   const supabase = await getSupabase();
 
+  interface CategoryRow {
+    id: string;
+    name: string;
+    description: string | null;
+    is_active: boolean;
+  }
+  interface MappingRow {
+    category_id: string;
+    category: CategoryRow | CategoryRow[] | null;
+  }
+
   const { data: mappings } = await supabase
     .from("service_categories")
     .select(`
@@ -182,10 +193,17 @@ export async function getServiceCategories(serviceId: string) {
     `)
     .eq("service_id", serviceId);
 
+  const categories: CategoryRow[] = (mappings as MappingRow[] | null || []).map((m) => {
+    // ticket_categories is a to-one embed; the generated client widens it to
+    // (row | row[] | null) because the !inner hint isn't reflected in types.
+    const c = Array.isArray(m.category) ? m.category[0] : m.category;
+    return c as CategoryRow;
+  });
+
   return {
-    categories: (mappings || [])
-      .map((m: any) => m.category)
-      .sort((a: any, b: any) => a.name.localeCompare(b.name)),
+    categories: categories.sort((a, b) =>
+      String(a?.name ?? "").localeCompare(String(b?.name ?? ""))
+    ),
   };
 }
 
@@ -257,7 +275,7 @@ export async function getUnmappedCategories(serviceId: string) {
     .select("category_id")
     .eq("service_id", serviceId);
 
-  const mappedIds = new Set((mappedCategories || []).map((m: any) => m.category_id));
+  const mappedIds = new Set((mappedCategories || []).map((m) => m.category_id));
 
   const { data: allCategories } = await supabase
     .from("ticket_categories")
@@ -265,6 +283,6 @@ export async function getUnmappedCategories(serviceId: string) {
     .order("name");
 
   return {
-    categories: (allCategories || []).filter((c: any) => !mappedIds.has(c.id)),
+    categories: (allCategories || []).filter((c) => !mappedIds.has(c.id)),
   };
 }

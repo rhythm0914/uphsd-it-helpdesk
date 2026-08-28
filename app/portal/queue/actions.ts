@@ -99,7 +99,7 @@ export async function updateTicketStatus(ticketId: string, status: string, notes
   const { error } = await ctx.supabase
     .from("tickets")
     .update({
-      status: status as any,
+      status: status,
       updated_at: new Date().toISOString(),
       ...(status === "closed" ? { closed_at: new Date().toISOString() } : {}),
     })
@@ -110,7 +110,7 @@ export async function updateTicketStatus(ticketId: string, status: string, notes
   const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
     ticket_id: ticketId,
     old_status: ticket.status,
-    new_status: status as any,
+    new_status: status,
     changed_by: ctx.user.id,
     notes: notes || `Status changed to ${status}`,
   });
@@ -139,7 +139,7 @@ export async function updateTicketPriority(ticketId: string, priority: string) {
   const { error } = await ctx.supabase
     .from("tickets")
     .update({
-      priority: priority as any,
+      priority: priority,
       updated_at: new Date().toISOString(),
     })
     .eq("id", ticketId);
@@ -213,7 +213,7 @@ export async function requestMoreInfo(ticketId: string, message: string) {
     const { error } = await ctx.supabase
       .from("tickets")
       .update({
-        status: "waiting_for_user" as any,
+        status: "waiting_for_user",
         updated_at: new Date().toISOString(),
       })
       .eq("id", ticketId);
@@ -223,7 +223,7 @@ export async function requestMoreInfo(ticketId: string, message: string) {
     const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
       ticket_id: ticketId,
       old_status: ticket.status,
-      new_status: "waiting_for_user" as any,
+      new_status: "waiting_for_user",
       changed_by: ctx.user.id,
       notes: "Additional information requested from requester",
     });

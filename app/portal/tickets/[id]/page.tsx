@@ -2,7 +2,6 @@ import { createClient } from "@/utils/supabase/server";
 import { formatDateTime } from "@/utils/format-date";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { TicketReply } from "./ticket-reply";
 

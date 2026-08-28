@@ -4,8 +4,6 @@ import { useState } from "react";
 import {
   createService,
   createCategory,
-  toggleServiceStatus,
-  toggleCategoryStatus,
   addServiceCategory,
   removeServiceCategory,
   getServiceCategories,
@@ -13,11 +11,25 @@ import {
 } from "./actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 
-export function ServiceManagement({ services, categories }: { services: any[]; categories: any[] }) {
+interface ServiceRow {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+}
+
+interface CategoryRow {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+}
+
+export function ServiceManagement({ services }: { services: ServiceRow[]; categories: CategoryRow[] }) {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [mappedCategories, setMappedCategories] = useState<any[]>([]);
-  const [unmappedCategories, setUnmappedCategories] = useState<any[]>([]);
+  const [mappedCategories, setMappedCategories] = useState<CategoryRow[]>([]);
+  const [unmappedCategories, setUnmappedCategories] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function loadServiceCategories(serviceId: string) {
@@ -84,32 +96,6 @@ export function ServiceManagement({ services, categories }: { services: any[]; c
       setMessage({ type: "error", text: result.error });
     } else {
       setMessage({ type: "success", text: "Category created successfully" });
-    }
-  }
-
-  async function handleToggleService(id: string, currentStatus: boolean) {
-    setMessage(null);
-    const result = await toggleServiceStatus(id, currentStatus);
-    if (result.error) {
-      setMessage({ type: "error", text: result.error });
-    } else {
-      setMessage({ type: "success", text: "Service status updated" });
-      if (selectedServiceId === id) {
-        await loadServiceCategories(id);
-      }
-    }
-  }
-
-  async function handleToggleCategory(id: string, currentStatus: boolean) {
-    setMessage(null);
-    const result = await toggleCategoryStatus(id, currentStatus);
-    if (result.error) {
-      setMessage({ type: "error", text: result.error });
-    } else {
-      setMessage({ type: "success", text: "Category status updated" });
-      if (selectedServiceId) {
-        await loadServiceCategories(selectedServiceId);
-      }
     }
   }
 
@@ -207,7 +193,7 @@ export function ServiceManagement({ services, categories }: { services: any[]; c
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
             >
               <option value="">Select a service</option>
-              {services.map((service: any) => (
+              {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}
                 </option>
@@ -223,7 +209,7 @@ export function ServiceManagement({ services, categories }: { services: any[]; c
                   {loading ? (
                     <p className="text-sm text-foreground/60 p-4">Loading...</p>
                   ) : mappedCategories.length > 0 ? (
-                    mappedCategories.map((category: any) => (
+                    mappedCategories.map((category) => (
                       <div key={category.id} className="flex items-center justify-between px-4 py-3">
                         <div>
                           <p className="text-sm font-medium">{category.name}</p>
@@ -249,7 +235,7 @@ export function ServiceManagement({ services, categories }: { services: any[]; c
                   {loading ? (
                     <p className="text-sm text-foreground/60 p-4">Loading...</p>
                   ) : unmappedCategories.length > 0 ? (
-                    unmappedCategories.map((category: any) => (
+                    unmappedCategories.map((category) => (
                       <div key={category.id} className="flex items-center justify-between px-4 py-3">
                         <div>
                           <p className="text-sm font-medium">{category.name}</p>

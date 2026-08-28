@@ -29,7 +29,7 @@ export default async function ServicesPage() {
             </div>
             <div className="divide-y divide-border">
               {services && services.length > 0 ? (
-                services.map((service: any) => (
+                services.map((service) => (
                   <div key={service.id} className="px-6 py-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{service.name}</p>
@@ -60,7 +60,7 @@ export default async function ServicesPage() {
             </div>
             <div className="divide-y divide-border">
               {categories && categories.length > 0 ? (
-                categories.map((category: any) => (
+                categories.map((category) => (
                   <div key={category.id} className="px-6 py-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{category.name}</p>
