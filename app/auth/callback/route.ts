@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { getValidatedReturnTo } from "@/utils/authorization";
 import type { UserMetadata } from "@/types/database";
 
 export async function GET(request: Request) {
@@ -10,6 +11,12 @@ export async function GET(request: Request) {
 
   console.log("[callback] invoked", { hasCode: !!code, hasTokenHash: !!token_hash, type });
 
+  // Destination after a successful exchange. `forgotPassword` passes
+  // `?next=/auth/update-password` for the reset flow; the value is validated to
+  // a safe same-origin path. Everything else (e.g. signup confirmation) falls
+  // back to the portal.
+  const next = getValidatedReturnTo(requestUrl.searchParams.get("next"));
+
   const cookieStore = await import("next/headers").then(m => m.cookies());
   const supabase = createClient(cookieStore);
 
@@ -19,7 +26,9 @@ export async function GET(request: Request) {
     console.log("[callback] exchangeCodeForSession result", { error: error ? { message: error.message, code: error.code } : null });
 
     if (!error) {
-      return NextResponse.redirect(new URL("/portal", request.url));
+      // Recovery (PKCE) carries `next=/auth/update-password`; signup/other
+      // flows default to `/portal`.
+      return NextResponse.redirect(new URL(next, request.url));
     }
   }
 
@@ -51,10 +60,9 @@ export async function GET(request: Request) {
         }
       }
 
-      if (type === "recovery") {
-        return NextResponse.redirect(new URL("/auth/update-password", request.url));
-      }
-      return NextResponse.redirect(new URL("/portal", request.url));
+      const destination =
+        type === "recovery" ? "/auth/update-password" : next;
+      return NextResponse.redirect(new URL(destination, request.url));
     }
   }
 

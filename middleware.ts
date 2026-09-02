@@ -32,7 +32,14 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  if (isAuthRoute && user) {
+  // `/auth/update-password` must remain reachable by an *authenticated* user:
+  // the password-reset recovery flow (PKCE) establishes a session in
+  // `/auth/callback` and then sends the user here to set a new password. If we
+  // redirected authenticated users away from this route (as we do for
+  // sign-in/sign-up/forgot-password), the reset flow would never be able to
+  // complete. Unauthenticated users are still allowed through so the form
+  // renders (the change action itself enforces the session).
+  if (isAuthRoute && user && !pathname.startsWith("/auth/update-password")) {
     return withCookies(NextResponse.redirect(new URL("/portal", request.url)), response);
   }
 

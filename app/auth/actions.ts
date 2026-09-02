@@ -139,8 +139,16 @@ export async function forgotPassword(formData: FormData) {
     redirect("/auth/forgot-password?error=Email+is+required");
   }
 
+  // Route the recovery link through `/auth/callback` (PKCE token exchange),
+  // then on to `/auth/update-password`. Pointing `redirectTo` straight at
+  // `/auth/update-password` previously landed users on that page with a
+  // recovery `code` that was never exchanged, so `updateUser` failed for lack
+  // of a session (the reset never completed).
+  const redirectTo =
+    `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback?next=${encodeURIComponent("/auth/update-password")}`;
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/update-password`,
+    redirectTo,
   });
 
   if (error) {
