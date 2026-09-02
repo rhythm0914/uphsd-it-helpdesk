@@ -95,6 +95,10 @@ export function ChatWidget({ authenticated = false }: ChatWidgetProps) {
 
       if (res.status === 401) {
         setAuthError(true);
+        setErrorText(
+          "Your session has expired. Please sign in to continue using the AI Assistant.",
+        );
+        setStatus("error");
         return;
       }
 

@@ -93,7 +93,6 @@ export function UserMenu({
               <button
                 type="submit"
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-foreground/70 hover:bg-surface hover:text-foreground transition-colors"
-                onClick={() => setOpen(false)}
               >
                 <ExitIcon className="h-4 w-4" />
                 Sign Out

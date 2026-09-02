@@ -216,6 +216,7 @@ export function ServiceManagement({ services }: { services: ServiceRow[]; catego
                           <p className="text-xs text-foreground/50">{category.description}</p>
                         </div>
                         <button
+                          type="button"
                           onClick={() => handleRemoveMapping(category.id)}
                           className="text-xs text-red-600 hover:text-red-700 font-medium"
                         >
@@ -242,6 +243,7 @@ export function ServiceManagement({ services }: { services: ServiceRow[]; catego
                           <p className="text-xs text-foreground/50">{category.description}</p>
                         </div>
                         <button
+                          type="button"
                           onClick={() => handleAddMapping(category.id)}
                           className="text-xs text-brand-primary hover:text-brand-primary-hover font-medium"
                         >

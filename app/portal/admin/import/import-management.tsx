@@ -200,6 +200,7 @@ export function ImportManagement() {
               Use the official template to ensure your CSV has the correct columns and format.
             </p>
             <button
+              type="button"
               onClick={async () => {
                 const { downloadCsvTemplate } = await import("./actions");
                 const template = await downloadCsvTemplate();
@@ -362,6 +363,7 @@ export function ImportManagement() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
+                type="button"
                 onClick={handleConfirmImport}
                 disabled={loading || summary.valid === 0}
                 className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover disabled:opacity-50"
@@ -369,6 +371,7 @@ export function ImportManagement() {
                 {loading ? "Importing..." : `Import ${summary.valid} Valid Records`}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setStep("upload");
                   setPreview([]);
@@ -420,6 +423,7 @@ export function ImportManagement() {
                 ))}
               </div>
               <button
+                type="button"
                 onClick={() =>
                   handleDownloadReport(
                     result.errors.map((err: string, i: number) => ({ row: i + 1, error: err })),
@@ -435,6 +439,7 @@ export function ImportManagement() {
 
           <div className="flex justify-center">
             <button
+              type="button"
               onClick={() => {
                 setStep("upload");
                 setPreview([]);
