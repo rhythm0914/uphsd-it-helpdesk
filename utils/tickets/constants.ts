@@ -91,12 +91,20 @@ export function statusBadgeClass(status: string | null | undefined): string {
 /* Closure and rejection reasons                                              */
 /* -------------------------------------------------------------------------- */
 
-export const CLOSURE_REASONS = ["verified_fixed", "no_response"] as const;
+export const CLOSURE_REASONS = [
+  "verified_fixed",
+  "no_response",
+  // Written only by the one-off legacy retirement (supabase/one-off/). No
+  // transition action produces it: closing without verification is a
+  // historical cleanup, not a step in the workflow.
+  "administrative_closure",
+] as const;
 export type ClosureReason = (typeof CLOSURE_REASONS)[number];
 
 export const CLOSURE_REASON_LABELS: Record<ClosureReason, string> = {
   verified_fixed: "Verified Fixed",
   no_response: "No Response",
+  administrative_closure: "Closed administratively (not verified)",
 };
 
 export const REJECTION_CATEGORIES = [

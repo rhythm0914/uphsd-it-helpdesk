@@ -213,6 +213,14 @@ the transaction that adds it.
   10. `20261111_03_phase4_no_response.sql`
   11. `20261111_04_phase5_sla_escalation.sql`
   12. `20261111_05_fix_handle_new_user.sql`
+  13. `20261111_06_add_administrative_closure.sql` — **alone**
+
+**Optional one-off.** `supabase/one-off/retire_legacy_tickets.sql` closes the
+pre-workflow backlog with the `administrative_closure` reason. It is not part of
+the chain and never runs automatically; preview the count it prints first. Until
+it runs, those tickets stay in requesters' "please verify" list indefinitely,
+because the no-response job deliberately ignores anything dated before the
+cutover.
 
 Verification: `npm run verify:sql` applies `schema.sql` and every migration to a
 real Postgres (PGlite, in-process) and asserts the workflow rules — grants, the
@@ -220,9 +228,7 @@ state machine, the no-response job, SLA maths and escalation. It needs no
 Supabase project and no credentials. `supabase/verify/alignment_checks.sql` is the
 read-only script to run on the real database after migrating: 21 invariants
 covering the backfill, the column grants, cycle counters and recomputed SLA due
-dates. `supabase/verify/phase2_checks.sql` holds
-read-only queries to run against the real database after applying the
-migrations.
+dates. `supabase/verify/phase2_checks.sql` adds Phase 2-specific queries.
 
 ---
 

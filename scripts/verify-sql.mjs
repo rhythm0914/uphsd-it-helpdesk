@@ -315,6 +315,8 @@ async function runChecks() {
 
   console.log('Behaviour checks\n');
 
+  await retirementChecks();
+
   // -------------------------------------------------------------------------
   // 1. Legacy staff-closed tickets cannot become "Verified Fixed" after the
   //    fact: the migration maps them to Resolved and records why.
@@ -751,6 +753,75 @@ async function runChecks() {
     for (const f of failed) console.log(`  - ${f.name}: ${f.err}`);
     process.exitCode = 1;
   }
+}
+
+/**
+ * The one-off retirement script: run it on migrated legacy data, then again.
+ */
+async function retirementChecks() {
+  const script = join(root, 'supabase/one-off/retire_legacy_tickets.sql');
+
+  await check('retirement closes only pre-cutover unverified tickets', async () => {
+    const legacy = await one(`SELECT id, status, resolved_at FROM public.tickets WHERE ticket_number = 'LEGACY-001'`);
+    eq(legacy.status, 'resolved', 'fixture must start resolved');
+
+    await db.exec(readFileSync(script, 'utf8'));
+
+    const remaining = await one(
+      `SELECT count(*)::int AS n FROM public.tickets
+       WHERE status = 'resolved' AND closure_reason IS NULL
+         AND resolved_at < '2026-11-11T00:00:00Z'`,
+    );
+    eq(remaining.n, 0, 'eligible tickets left');
+
+    const t = await one(`SELECT status, closure_reason, closed_at FROM public.tickets WHERE id = $1`, [legacy.id]);
+    eq(t.status, 'closed', 'status');
+    eq(t.closure_reason, 'administrative_closure', 'closure reason');
+    assert(t.closed_at !== null, 'closed_at must be set');
+
+    const audit = await one(
+      `SELECT count(*)::int AS n FROM public.ticket_status_history
+       WHERE ticket_id = $1 AND old_status = 'resolved' AND new_status = 'closed'
+         AND reason = 'Administrative retirement of a pre-workflow ticket'`,
+      [legacy.id],
+    );
+    eq(audit.n, 1, 'audit rows');
+
+    const cycle = await one(
+      `SELECT outcome, ended_at FROM public.ticket_cycles WHERE ticket_id = $1 AND cycle_number = 1`,
+      [legacy.id],
+    );
+    eq(cycle.outcome, 'administrative_closure', 'cycle outcome');
+    assert(cycle.ended_at !== null, 'cycle must be ended');
+  });
+
+  await check('retirement leaves the requester\u2019s rating untouched (none invented)', async () => {
+    const f = await one(
+      `SELECT count(*)::int AS n FROM public.ticket_feedback f
+       JOIN public.tickets t ON t.id = f.ticket_id
+       WHERE t.ticket_number = 'LEGACY-001'`,
+    );
+    eq(f.n, 0, 'feedback rows on a retired ticket');
+  });
+
+  await check('retirement is a no-op when re-run', async () => {
+    const countSql = `SELECT count(*)::int AS n FROM public.ticket_status_history
+       WHERE reason = 'Administrative retirement of a pre-workflow ticket'`;
+    const before = await one(countSql);
+    await db.exec(readFileSync(script, 'utf8'));
+    const after = await one(countSql);
+    eq(after.n, before.n, 'audit rows added by a second run');
+  });
+
+  await check('re-applying the Phase 1 migration does not un-retire tickets', async () => {
+    await applyFile(
+      'migrations/20261110_02 (rerun after retirement)',
+      readFileSync(join(root, 'supabase/migrations/20261110_02_phase1_ticket_state_machine.sql'), 'utf8'),
+    );
+    const t = await one(`SELECT status, closure_reason FROM public.tickets WHERE ticket_number = 'LEGACY-001'`);
+    eq(t.status, 'closed', 'status');
+    eq(t.closure_reason, 'administrative_closure', 'closure reason');
+  });
 }
 
 /**

@@ -242,6 +242,29 @@ is not a check.
 
 ---
 
+## Phase 10 — Retiring the pre-workflow backlog
+
+Phase 1 could only map staff-closed tickets to Resolved, because no requester
+had ever confirmed a fix and "Verified Fixed" would have been false. That left
+them in the requesters' verify list forever: the Phase 4 job deliberately
+ignores anything dated before its cutover, so nothing would ever close them.
+
+Neither existing closure reason was honest either. `verified_fixed` claims a
+confirmation that does not exist; `no_response` names a 5-day automation that
+did not exist when these were closed. So `20261111_06_add_administrative_closure.sql`
+adds `administrative_closure`, and `supabase/one-off/retire_legacy_tickets.sql`
+closes the backlog through a normal status-history insert, which is what lets the
+Phase 2 trigger end the work cycle with the same outcome.
+
+The script is a one-off, not a migration: retiring records is a business
+decision, and it should be a deliberate, previewable act rather than a side
+effect of deploying. It touches only rows that are resolved, unverified and
+older than the cutover; it sends no notifications, records no rating, and
+re-running it does nothing. Reports continue to count only `verified_fixed` as a
+success, so the retirement does not flatter resolution-time metrics.
+
+---
+
 ## Migration order
 
 Run in this order. The enum file must run **on its own**, because Postgres
@@ -259,8 +282,9 @@ cannot use a new enum value in the transaction that adds it.
   10. `20261111_03_phase4_no_response.sql`
   11. `20261111_04_phase5_sla_escalation.sql`
   12. `20261111_05_fix_handle_new_user.sql`
+  13. `20261111_06_add_administrative_closure.sql` — **alone**
 
-Steps 6 and 9 are the "alone" ones. `npm run verify:sql` checks the whole chain;
+Steps 6, 9 and 13 are the "alone" ones. `npm run verify:sql` checks the whole chain;
 `supabase/verify/phase2_checks.sql` holds read-only queries to run against the
 real database after applying it.
 
