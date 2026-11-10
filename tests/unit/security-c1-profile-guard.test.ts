@@ -16,7 +16,7 @@ import { isAdmin } from "@/utils/authorization";
 // =====================================================================
 
 // Mirrors the column-list GRANT in
-// supabase/migrations/20260828_phase1_fix_profiles_role_escalation.sql so a
+// supabase/schema.sql so a
 // future change that broadens self-service fields fails loudly.
 const SELF_SERVICE_PROFILE_COLUMNS = [
   "full_name",

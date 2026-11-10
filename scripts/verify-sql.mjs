@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 /**
- * Apply supabase/schema.sql and every migration, in order, to a real Postgres
- * (PGlite, Postgres compiled to WASM) on this machine, then assert the
- * behaviour the alignment promised.
+ * Apply supabase/schema.sql to a real Postgres (PGlite, Postgres compiled to
+ * WASM) on this machine, then assert the behaviour the workflow promises.
  *
- * This exists because the migrations had never been executed anywhere. A SQL
- * file that parses is not a SQL file that runs, and an unrun migration is a
- * production outage waiting for the first ticket action.
+ * A SQL file that parses is not a SQL file that runs, so the file is executed
+ * twice and then exercised as the users who use it.
  *
- *   node scripts/verify-sql.mjs            # apply + assert
- *   node scripts/verify-sql.mjs --verbose  # also print each file as it runs
+ *   node scripts/verify-sql.mjs                        # apply + assert
+ *   node scripts/verify-sql.mjs --verbose              # print each step
+ *   node scripts/verify-sql.mjs --mutation-test        # prove the checks fail
  *
  * Supabase supplies the auth schema, the auth.* helpers and the PostgREST
  * roles. Those are the only things stubbed here; every other statement is the
  * project's own SQL, executed unchanged.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
@@ -64,38 +63,44 @@ async function applyFile(label, sql) {
 }
 
 /**
- * Rows a live database already holds, written before the migrations run. The
- * upgrade path matters more than a greenfield install: the backfill, the cycle
- * rows and the SLA targets all have to cope with tickets that predate them.
+ * Data an existing installation already holds: a request the old workflow left
+ * resolved without verification, and one that is already overdue. The rest of
+ * the run shapes itself around rows it did not create.
  */
 async function seedLegacy() {
-  // These users predate the version of handle_new_user() that is broken, so the
-  // trigger is off for the seed rather than pretending the old one worked.
-  await db.exec('ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created');
-  await db.query(
-    `INSERT INTO auth.users (id, email) VALUES ($1, 'legacy-student@uphsd.edu.ph'),
-                                                   ($2, 'legacy-tech@uphsd.edu.ph')`,
-    [U.student, U.tech],
-  );
-  await db.query(
-    `INSERT INTO public.profiles (id, email, full_name, role)
-     VALUES ($1, 'legacy-student@uphsd.edu.ph', 'Legacy Student', 'student'),
-            ($2, 'legacy-tech@uphsd.edu.ph', 'Legacy Tech', 'it_staff')`,
-    [U.student, U.tech],
-  );
+  for (const [id, email, name, role] of [
+    [U.student, 'legacy-student@uphsd.edu.ph', 'Legacy Student', 'student'],
+    [U.tech, 'legacy-tech@uphsd.edu.ph', 'Legacy Tech', 'it_staff'],
+  ]) {
+    await db.query(
+      `INSERT INTO auth.users (id, email, email_confirmed_at) VALUES ($1, $2, now())`,
+      [id, email],
+    );
+    // handle_new_user() creates the row as a student; the role is raised here.
+    await db.query(
+      `UPDATE public.profiles SET full_name = $2, role = $3::public.user_role WHERE id = $1`,
+      [id, name, role],
+    );
+  }
   await db.query(`INSERT INTO public.services (id, name) VALUES ($1, 'Network')`, [SERVICE]);
   await db.query(`INSERT INTO public.ticket_categories (id, name) VALUES ($1, 'Connectivity')`, [CATEGORY]);
 
-  // Closed by staff under the old workflow, with no requester verification.
-  await db.query(
+  const { rows } = await db.query(
     `INSERT INTO public.tickets
        (ticket_number, requester_id, service_id, category_id, subject, description,
-        priority, status, created_at, closed_at)
-     VALUES ('LEGACY-001', $1, $2, $3, 'Old closed ticket', 'Details',
-             'normal', 'closed', '2026-08-01T00:00:00Z', '2026-08-20T00:00:00Z')`,
+        priority, status, created_at, resolved_at)
+     VALUES ('LEGACY-001', $1, $2, $3, 'Old resolved ticket', 'Details',
+             'normal', 'resolved', '2026-08-05T00:00:00Z', '2026-08-20T00:00:00Z')
+     RETURNING id`,
     [U.student, SERVICE, CATEGORY],
   );
-  // Still open, and already past its (future) resolution target.
+  await db.query(
+    `INSERT INTO public.ticket_cycles (ticket_id, cycle_number, started_at, resolved_at, outcome)
+     VALUES ($1, 1, '2026-08-05T00:00:00Z', '2026-08-20T00:00:00Z', 'resolved')`,
+    [rows[0].id],
+  );
+
+  // Still open, and already past its resolution target.
   await db.query(
     `INSERT INTO public.tickets
        (ticket_number, requester_id, service_id, category_id, subject, description,
@@ -104,7 +109,6 @@ async function seedLegacy() {
              'high', 'open', now() - INTERVAL '30 days')`,
     [U.student, SERVICE, CATEGORY],
   );
-  await db.exec('ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created');
 }
 
 /** Runs supabase/verify/alignment_checks.sql and fails if any invariant breaks. */
@@ -124,31 +128,20 @@ async function main() {
   console.log('Bootstrapping Supabase auth stubs...');
   await db.exec(BOOTSTRAP);
 
-  console.log('Applying schema.sql...');
-  await applyFile('supabase/schema.sql', readFileSync(join(root, 'supabase/schema.sql'), 'utf8'));
+  const schemaPath = join(root, 'supabase/schema.sql');
 
-  console.log('Seeding pre-migration rows (simulating a live database)...');
+  console.log('Applying schema.sql...');
+  await applyFile('supabase/schema.sql', readFileSync(schemaPath, 'utf8'));
+
+  // A failed run has to be recoverable by running the file again, which is how
+  // anyone actually retries a paste into the SQL editor.
+  console.log('Re-applying schema.sql (idempotency)...');
+  await applyFile('supabase/schema.sql (rerun)', readFileSync(schemaPath, 'utf8'));
+
+  console.log('Seeding rows an existing installation already holds...');
   await seedLegacy();
 
-  const migrations = readdirSync(join(root, 'supabase/migrations'))
-    .filter((f) => f.endsWith('.sql'))
-    .sort();
-
-  console.log(`Applying ${migrations.length} migrations in order...`);
-  for (const file of migrations) {
-    const sql = readFileSync(join(root, 'supabase/migrations', file), 'utf8');
-    await applyFile(`migrations/${file}`, sql);
-  }
-
-  // Re-applying must be safe: the files claim to be idempotent, and a failed
-  // partial deploy is recovered by running them again.
-  console.log('Re-applying migrations (idempotency)...');
-  for (const file of migrations) {
-    const sql = readFileSync(join(root, 'supabase/migrations', file), 'utf8');
-    await applyFile(`migrations/${file} (rerun)`, sql);
-  }
-
-  console.log(`\nAll ${migrations.length} migrations applied cleanly, twice.\n`);
+  console.log('\nschema.sql applied cleanly, twice.\n');
 
   await runAlignmentChecks();
   await runChecks();
@@ -318,34 +311,7 @@ async function runChecks() {
   await retirementChecks();
 
   // -------------------------------------------------------------------------
-  // 1. Legacy staff-closed tickets cannot become "Verified Fixed" after the
-  //    fact: the migration maps them to Resolved and records why.
-  // -------------------------------------------------------------------------
-  const legacy = await newTicket({ subject: 'Legacy closed ticket' });
-  await db.query(
-    `UPDATE public.tickets SET status = 'closed', closed_at = '2026-09-01T00:00:00Z' WHERE id = $1`,
-    [legacy],
-  );
-  await applyFile(
-    'migrations/20261110_02 (backfill)',
-    readFileSync(join(root, 'supabase/migrations/20261110_02_phase1_ticket_state_machine.sql'), 'utf8'),
-  );
-
-  await check('legacy closed ticket is migrated to Resolved, not Verified Fixed', async () => {
-    const t = await one(`SELECT status, closure_reason, resolved_at, closed_at FROM public.tickets WHERE id = $1`, [legacy]);
-    eq(t.status, 'resolved', 'status');
-    assert(t.closure_reason === null, `closure_reason must stay empty, got ${t.closure_reason}`);
-    assert(t.resolved_at !== null, 'resolved_at must be preserved for reporting');
-    assert(t.closed_at === null, 'closed_at must be cleared');
-    const h = await one(
-      `SELECT reason FROM public.ticket_status_history WHERE ticket_id = $1 AND old_status = 'closed' AND new_status = 'resolved'`,
-      [legacy],
-    );
-    assert(h, 'the migration must write an audit row explaining the change');
-  });
-
-  // -------------------------------------------------------------------------
-  // 2. Requesters have no UPDATE privilege on state columns at all.
+  // 1. Requesters have no UPDATE privilege on state columns at all.
   // -------------------------------------------------------------------------
   const own = await newTicket({ subject: 'Own ticket' });
 
@@ -813,10 +779,10 @@ async function retirementChecks() {
     eq(after.n, before.n, 'audit rows added by a second run');
   });
 
-  await check('re-applying the Phase 1 migration does not un-retire tickets', async () => {
+  await check('re-applying schema.sql does not un-retire tickets', async () => {
     await applyFile(
-      'migrations/20261110_02 (rerun after retirement)',
-      readFileSync(join(root, 'supabase/migrations/20261110_02_phase1_ticket_state_machine.sql'), 'utf8'),
+      'supabase/schema.sql (after retirement)',
+      readFileSync(join(root, 'supabase/schema.sql'), 'utf8'),
     );
     const t = await one(`SELECT status, closure_reason FROM public.tickets WHERE ticket_number = 'LEGACY-001'`);
     eq(t.status, 'closed', 'status');

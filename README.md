@@ -113,8 +113,8 @@ is needed. Urgent is the only target measured on a wall clock: a blocked defense
 cannot wait for Monday morning.
 
 **These targets are placeholders from the brief and are not yet confirmed by the
-owner.** Change them in `utils/tickets/sla.ts` (and the matching CASE in
-`20261111_04_phase5_sla_escalation.sql`).
+owner.** Change them in `utils/tickets/sla.ts` and in the matching CASE in
+`supabase/schema.sql` (`set_ticket_sla`, and the escalation pass).
 
 ### Urgent path
 
@@ -197,38 +197,36 @@ role key is **never** committed; it is a Worker secret only.
 
 ### Database
 
-Apply `supabase/schema.sql` first, then the migrations **in this order**. Steps
-marked "alone" must run on their own: Postgres cannot use a new enum value in
-the transaction that adds it.
+`supabase/schema.sql` is the entire database — types, tables, indexes, row-level
+security policies, functions and triggers — in dependency order. Paste it into
+the Supabase SQL Editor (or run `psql -f`) once. It is written to be safe to run
+twice, so a failed attempt is recovered by running it again.
 
-  1. `20260828_phase1_fix_profiles_role_escalation.sql`
-  2. `20260829_phase1_ticket_workflow_reply_and_rls.sql`
-  3. `20260829_phase2_fix_ticket_number_generation.sql`
-  4. `20260830_phase8_knowledge_base.sql`
-  5. `20260831_phase9_asset_management.sql`
-  6. `20261110_01_add_ticket_status_values.sql` — **alone**
-  7. `20261110_02_phase1_ticket_state_machine.sql`
-  8. `20261111_01_phase2_notifications_and_cycles.sql`
-  9. `20261111_02_enum_values.sql` — **alone**
-  10. `20261111_03_phase4_no_response.sql`
-  11. `20261111_04_phase5_sla_escalation.sql`
-  12. `20261111_05_fix_handle_new_user.sql`
-  13. `20261111_06_add_administrative_closure.sql` — **alone**
+**New project:** that one file is all you need.
 
-**Optional one-off.** `supabase/one-off/retire_legacy_tickets.sql` closes the
-pre-workflow backlog with the `administrative_closure` reason. It is not part of
-the chain and never runs automatically; preview the count it prints first. Until
-it runs, those tickets stay in requesters' "please verify" list indefinitely,
-because the no-response job deliberately ignores anything dated before the
-cutover.
+**Existing project:** run `supabase/upgrade/add_enum_values.sql` on its own
+first, then `schema.sql`. The enum values must commit in their own transaction,
+because Postgres will not let one transaction add a value and then use it.
+`schema.sql` stops with a message telling you this if you forget.
 
-Verification: `npm run verify:sql` applies `schema.sql` and every migration to a
-real Postgres (PGlite, in-process) and asserts the workflow rules — grants, the
-state machine, the no-response job, SLA maths and escalation. It needs no
-Supabase project and no credentials. `supabase/verify/alignment_checks.sql` is the
-read-only script to run on the real database after migrating: 21 invariants
-covering the backfill, the column grants, cycle counters and recomputed SLA due
-dates. `supabase/verify/phase2_checks.sql` adds Phase 2-specific queries.
+Two optional files, neither of which ever runs automatically:
+
+- `supabase/verify/alignment_checks.sql` — read-only invariants. Run it after
+  creating or upgrading; every row should read `PASS`.
+- `supabase/one-off/retire_legacy_tickets.sql` — closes the pre-2026 backlog with
+  the `administrative_closure` reason. Preview the count it prints before running
+  it. Until it runs, those tickets stay in requesters' "please verify" list,
+  because the no-response job deliberately ignores anything dated before the
+  cutover.
+
+Verification: `npm run verify:sql` applies `schema.sql` to a real Postgres
+(PGlite, in-process) twice, seeds rows an existing installation already holds,
+and asserts the workflow rules — grants, the state machine, the no-response job,
+retirement, SLA maths and escalation. No Supabase project or credentials needed.
+
+The migration chain this file was consolidated from is no longer in the working
+tree; it stays in git history (`git show 2892ebd:supabase/migrations`) if you
+need to see why a particular rule exists.
 
 ---
 
@@ -242,11 +240,11 @@ dates. `supabase/verify/phase2_checks.sql` adds Phase 2-specific queries.
 | `npm run lint` | ESLint |
 | `npx tsc --noEmit` | Type check |
 | `npm test` | Vitest unit tests |
-| `npm run verify:sql` | Apply schema + migrations to embedded Postgres, check behaviour |
+| `npm run verify:sql` | Apply schema.sql to embedded Postgres and check behaviour |
 | `npm run test:e2e` | Playwright (auth smoke tests) |
 
 CI (`.github/workflows/ci.yml`) runs `npm ci` → lint → `build:vinext` → `tsc` →
-`npm test`.
+`npm test` → `npm run verify:sql`.
 
 ---
 
@@ -256,11 +254,11 @@ Push to `main`; Cloudflare builds and deploys the Worker automatically. For an
 emergency manual deploy, `npm run build:vinext && npm run deploy:vinext` (needs
 `CLOUDFLARE_API_TOKEN`).
 
-Deploy order matters when a release depends on a migration: run the migration
-**before** the code that calls it is live. The Phase 1-5 code calls
-`transition_ticket()`, `run_no_response_job()` and `run_sla_escalation()`; until
-those exist, ticket actions fail with "function does not exist" even though the
-pages render.
+Deploy order still matters where code depends on SQL: apply `schema.sql` (and
+the upgrade file, on an existing project) **before** the code that calls it goes
+live. The application calls `transition_ticket()`, `run_no_response_job()` and
+`run_sla_escalation()`; until those exist, ticket actions fail with "function
+does not exist" even though the pages render.
 
 ---
 
@@ -289,9 +287,10 @@ utils/
   auth/email-domain.ts  institutional domain check
   supabase/             server/client/middleware clients
 supabase/
-  schema.sql            base schema
-  migrations/           versioned changes (see order above)
-  verify/               manual verification queries
+  schema.sql            the whole database (see Database above)
+  upgrade/              one enum step for existing projects
+  one-off/              optional data cleanups
+  verify/               read-only verification queries
 tests/unit/             Vitest
 docs/
   ALIGNMENT_AUDIT.md    pre-work audit

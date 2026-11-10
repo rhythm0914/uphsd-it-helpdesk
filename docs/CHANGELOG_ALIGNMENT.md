@@ -5,8 +5,8 @@ student IT-help-desk process, phase by phase. It is a decision log as much as a
 change log: the reason a thing was built this way matters more than the diff.
 
 Nothing here was deployed from the agent, and no migration was executed against
-production. Migrations must be applied in the order listed at the bottom of this
-file.
+production. The database is now delivered as a single `supabase/schema.sql`; see "Schema
+delivery" at the bottom.
 
 ---
 
@@ -265,28 +265,29 @@ success, so the retirement does not flatter resolution-time metrics.
 
 ---
 
-## Migration order
+## Schema delivery
 
-Run in this order. The enum file must run **on its own**, because Postgres
-cannot use a new enum value in the transaction that adds it.
+The phase-by-phase migrations were consolidated into one file. Thirteen files
+that had to be applied in a fixed order — two of them alone — were a standing
+invitation to a half-applied database. `supabase/schema.sql` now creates the same
+schema in dependency order, in one transaction, and is safe to re-run.
 
-  1. `20260828_phase1_fix_profiles_role_escalation.sql`
-  2. `20260829_phase1_ticket_workflow_reply_and_rls.sql`
-  3. `20260829_phase2_fix_ticket_number_generation.sql`
-  4. `20260830_phase8_knowledge_base.sql`
-  5. `20260831_phase9_asset_management.sql`
-  6. `20261110_01_add_ticket_status_values.sql` — **alone**
-  7. `20261110_02_phase1_ticket_state_machine.sql`
-  8. `20261111_01_phase2_notifications_and_cycles.sql`
-  9. `20261111_02_enum_values.sql` — **alone**
-  10. `20261111_03_phase4_no_response.sql`
-  11. `20261111_04_phase5_sla_escalation.sql`
-  12. `20261111_05_fix_handle_new_user.sql`
-  13. `20261111_06_add_administrative_closure.sql` — **alone**
+What replaced what:
 
-Steps 6, 9 and 13 are the "alone" ones. `npm run verify:sql` checks the whole chain;
-`supabase/verify/phase2_checks.sql` holds read-only queries to run against the
-real database after applying it.
+- `supabase/schema.sql` — the old baseline plus every migration, merged and
+  de-duplicated, with the enum types declared at their final values.
+- `supabase/upgrade/add_enum_values.sql` — covers the one thing a single
+  transaction cannot do: add an enum value and then use it. Existing databases
+  run it first, and `schema.sql` fails with that instruction rather than a
+  cryptic enum error.
+- The original chain stays in git history at `2892ebd`; the phases above refer
+  to it by file name.
+
+`npm run verify:sql` applies the file twice, seeds rows an existing installation
+already holds, and runs 21 invariants plus 25 behaviour checks. The upgrade path
+was exercised by hand: the previous baseline, then `add_enum_values.sql`, then
+`schema.sql`, produced the same 21 invariants and migrated a staff-closed ticket
+to Resolved with its original timestamp.
 
 ---
 
