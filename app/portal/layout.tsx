@@ -111,6 +111,12 @@ export default async function PortalLayout({
               New Request
             </Link>
             <Link
+              href="/portal/track"
+              className="text-foreground/70 hover:text-brand-primary transition-colors"
+            >
+              Track
+            </Link>
+            <Link
               href="/portal/assistant"
               className="text-foreground/70 hover:text-brand-primary transition-colors"
             >

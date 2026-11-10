@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TicketReply } from "./ticket-reply";
 import { TicketVerification } from "./ticket-verification";
 import { CycleHistory } from "@/components/tickets/cycle-history";
+import { daysUntilAutoClose } from "@/utils/jobs/no-response";
 import {
   REJECTION_CATEGORY_LABELS,
   closureReasonLabel,
@@ -84,6 +85,18 @@ export default async function TicketDetailPage({
     .order("cycle_number", { ascending: true });
 
   const isWaitingForUser = ticket.status === "waiting_for_user";
+  const autoCloseDays = daysUntilAutoClose({
+    status: ticket.status,
+    resolvedAt: ticket.resolved_at,
+    awaitingStudentSince: ticket.awaiting_student_since,
+    reminderSentAt: ticket.reminder_sent_at,
+  });
+
+  // The row is untyped, so narrow it before indexing the label map.
+  const rejectionCategory: unknown = ticket.rejection_category;
+  const rejectionLabel = isRejectionCategory(rejectionCategory)
+    ? REJECTION_CATEGORY_LABELS[rejectionCategory]
+    : null;
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -179,9 +192,9 @@ export default async function TicketDetailPage({
         {ticket.status === "rejected" && (
           <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-sm font-medium text-red-800">This request was rejected</p>
-            {isRejectionCategory(ticket.rejection_category) && (
+            {rejectionLabel && (
               <p className="mt-1 text-xs font-medium uppercase tracking-wide text-red-700">
-                {REJECTION_CATEGORY_LABELS[ticket.rejection_category]}
+                {rejectionLabel}
               </p>
             )}
             {ticket.rejection_reason && (
@@ -217,7 +230,22 @@ export default async function TicketDetailPage({
               IT staff is waiting for additional information from you. Please reply below with the
               requested details.
             </p>
+            {autoCloseDays !== null && (
+              <p className="mt-1 text-sm text-orange-700">
+                {autoCloseDays > 0
+                  ? `This request closes automatically in ${autoCloseDays} day${autoCloseDays === 1 ? "" : "s"} if there is no reply.`
+                  : "This request is due to be closed automatically."}
+              </p>
+            )}
           </div>
+        )}
+
+        {ticket.status === "resolved" && autoCloseDays !== null && (
+          <p className="mb-8 text-sm text-foreground/60">
+            {autoCloseDays > 0
+              ? `If you do not confirm the fix, this request closes automatically as No Response in ${autoCloseDays} day${autoCloseDays === 1 ? "" : "s"}. That is not recorded as a fix.`
+              : "This request is due to close automatically as No Response."}
+          </p>
         )}
 
         <div className="mb-8">

@@ -17,6 +17,13 @@
   "cache": {
     "enabled": true
   },
+  // Hourly maintenance pass: 3-day reminders, 5-day No Response closes and SLA
+  // escalation. Runs at :00 UTC (08:00 Asia/Manila). The handler is the
+  // `scheduled()` export in cloudflare/worker-entry.ts; the work itself runs in
+  // Postgres so a replayed run cannot double-close a ticket.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://vrnkzglwzwojrxlpofss.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8bUvO",

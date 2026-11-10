@@ -5,6 +5,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { generateTicketNumber } from "@/utils/ticket-number";
 import { isUserRole, type Ticket } from "@/types/database";
+import { isTicketPriority } from "@/utils/tickets/constants";
+
+/** Minimum length of the "why is this urgent" explanation. */
+const URGENT_REASON_MIN_LENGTH = 15;
 
 const TICKET_NUMBER_RETRIES = 5;
 
@@ -17,14 +21,50 @@ export async function submitRequest(formData: FormData) {
     redirect("/auth/sign-in");
   }
 
+  // A request needs a confirmed address: it is where the Request ID lives and
+  // where every notification points. A session alone is not proof of ownership
+  // of the mailbox (Phase 6).
+  if (!user.email_confirmed_at) {
+    redirect(
+      "/portal/request?error=" +
+        encodeURIComponent(
+          "Please confirm your email address before submitting a request. Check your inbox for the confirmation link.",
+        ),
+    );
+  }
+
   const serviceId = formData.get("service_id") as string;
   const categoryId = formData.get("category_id") as string;
   const subject = formData.get("subject") as string;
   const description = formData.get("description") as string;
-  const priority = formData.get("priority") as string;
+  const priorityInput = (formData.get("priority") as string) || "normal";
+  const priority = isTicketPriority(priorityInput) ? priorityInput : "normal";
+  const urgentReason = ((formData.get("urgent_reason") as string) || "").trim();
+  const urgentAcknowledged = formData.get("urgent_ack") === "on";
 
   if (!serviceId || !categoryId || !subject || !description) {
     redirect("/portal/request?error=All+required+fields+must+be+filled");
+  }
+
+  // The urgent path is gated server-side: a crafted request cannot claim
+  // urgency without an acknowledgement and a specific explanation.
+  if (priority === "urgent") {
+    if (!urgentAcknowledged) {
+      redirect(
+        "/portal/request?error=" +
+          encodeURIComponent("Please confirm that this issue is blocking you right now."),
+      );
+    }
+    if (urgentReason.length < URGENT_REASON_MIN_LENGTH) {
+      redirect(
+        "/portal/request?error=" +
+          encodeURIComponent(
+            "Please explain why this request is urgent (at least " +
+              URGENT_REASON_MIN_LENGTH +
+              " characters).",
+          ),
+      );
+    }
   }
 
   // tickets.requester_id is a foreign key to profiles(id). If the requester's
@@ -45,6 +85,14 @@ export async function submitRequest(formData: FormData) {
       },
       { onConflict: "id", ignoreDuplicates: true }
     );
+
+  // Student vs employee, so the two populations can be reported separately.
+  const { data: requesterProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const requesterPool = requesterProfile?.role === "employee" ? "employee" : "student";
 
   const { data: mapping } = await supabase
     .from("service_categories")
@@ -72,8 +120,10 @@ export async function submitRequest(formData: FormData) {
         category_id: categoryId,
         subject,
         description,
-        priority: priority || "normal",
+        priority,
         status: "open",
+        priority_justification: priority === "urgent" ? urgentReason : null,
+        requester_pool: requesterPool,
       })
       .select()
       .single();

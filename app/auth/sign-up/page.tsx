@@ -2,6 +2,7 @@ import { signUp } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { UPHSD_EMAIL_DOMAIN } from "@/utils/auth/email-domain";
 
 export default async function SignUpPage({
   searchParams,
@@ -66,23 +67,20 @@ export default async function SignUpPage({
               placeholder="you@perpetual.edu.ph"
             />
             <p className="mt-1 text-xs text-foreground/50">
-              Must be a valid @perpetual.edu.ph email address
+              Must be a valid @{UPHSD_EMAIL_DOMAIN} email address
             </p>
           </div>
 
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium mb-2">
-              Account Type <span className="text-brand-primary">*</span>
-            </label>
-            <select
-              id="role"
-              name="role"
-              defaultValue="student"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-            >
-              <option value="student">Student</option>
-              <option value="employee">Employee</option>
-            </select>
+          {/* Self-registration creates student accounts only. Employee and
+              staff accounts are granted by an administrator, so there is no
+              account-type selector to misuse. */}
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-sm font-medium">Student account</p>
+            <p className="mt-1 text-xs text-foreground/60">
+              This form creates a student account. UPHSD employees are given an
+              account by the IT administrator; if you are an employee and need
+              access, contact the IT Help Desk.
+            </p>
           </div>
 
           <div>

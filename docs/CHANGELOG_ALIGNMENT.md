@@ -1,0 +1,234 @@
+# BPMN Alignment — Changelog
+
+This records the work that aligned the UPHSD IT Help Desk with the BPMN
+student IT-help-desk process, phase by phase. It is a decision log as much as a
+change log: the reason a thing was built this way matters more than the diff.
+
+Nothing here was deployed from the agent, and no migration was executed against
+production. Migrations must be applied in the order listed at the bottom of this
+file.
+
+---
+
+## Phase 0 — Audit (read-only)
+
+`docs/ALIGNMENT_AUDIT.md`.
+
+Score at the start: **0 of 9 requirements done, 5 partial, 4 missing**. The two
+structural gaps were that staff could close a ticket directly and that the
+system had no scheduler and no notification channel at all.
+
+---
+
+## Phase 1 — Status model, state machine, audit trail
+
+**Problem.** `tickets.status` was writable by any staff client through
+PostgREST, and the staff UI exposed a free-form status dropdown that included
+Closed. Five separate copies of the status list existed (the type union, an
+allow-list file, five colour maps, reports, import/export).
+
+**What changed.**
+
+- `utils/tickets/constants.ts` is now the only place a status, label, action,
+  closure reason, rejection category or priority is named. Badge classes, filter
+  options and import validation all read from it. `app/portal/queue/ticket-rules.ts`
+  was deleted.
+- `supabase/migrations/20261110_01_add_ticket_status_values.sql` adds the
+  `reopened` and `rejected` enum values.
+- `supabase/migrations/20261110_02_phase1_ticket_state_machine.sql` adds the
+  workflow columns, structured audit columns (`actor_role`, `reason`), the
+  `ticket_feedback` table, and `public.transition_ticket()`.
+- `app/portal/tickets/transition.ts` is the single server action; every staff and
+  requester action delegates to it.
+- Direct client writes on `tickets.status` were revoked, and the UPDATE policy
+  gained a `WITH CHECK`. A hand-crafted PostgREST request cannot move a ticket.
+
+**Decision: the enforcement point is a `SECURITY DEFINER` RPC, not the server
+action.** Requesters have no UPDATE policy on `tickets`, so a server action
+running as the requester would fail on RLS. The RPC validates the actor from
+`profiles.role` and `auth.uid()` inside the database, and the server action is a
+fast, friendly pre-check.
+
+**Decision: legacy `closed` rows became `resolved`.** No requester confirmation
+artefact exists for tickets staff closed under the old workflow, so labelling
+them "Closed (Verified Fixed)" would have manufactured a rating nobody gave.
+Each migration wrote an audit row explaining it.
+
+**Consequence to manage.** Those migrated tickets are now Resolved, so the
+no-response job would have touched them. Phase 4 adds a cutover guard for
+exactly this.
+
+---
+
+## Phase 2 — Verification, rating, notifications, work cycles
+
+**What changed.**
+
+- Requester "Fix works" (rating 1-5 required, atomic close as Verified Fixed)
+  and "Still broken" (reason required, reopens the same ticket).
+- `supabase/migrations/20261111_01_phase2_notifications_and_cycles.sql` adds
+  `notifications`, `ticket_cycles`, `current_cycle`, `sla_started_at`, and a
+  trigger on `ticket_status_history` that writes both.
+- `app/portal/notifications` is the in-app inbox; the portal header shows an
+  unread count.
+- Reopening starts a new cycle and restarts the SLA clock.
+
+**Decision: notifications are in-app only.** The project has no email provider
+configured, and adding one is a new external service plus a key. Every phase
+that says "notify" is satisfied by the in-app inbox; email remains a documented
+follow-up. The trigger fires inside the same transaction as the transition,
+which is what makes "the requester was notified" true rather than best-effort.
+
+---
+
+## Phase 3 — Needs-info and rejection
+
+- `request_info` records `awaiting_student_since`; a requester reply returns the
+  ticket to Open when nobody was assigned, otherwise to Assigned / In Progress.
+- `reject` requires a reason and stores a preset category plus free text.
+  Rejected is terminal: no action leaves it, and the requester sees the category,
+  the explanation, and a link to submit a new request.
+
+---
+
+## Phase 4 — No-response automation
+
+**What changed.**
+
+- `wrangler.jsonc` gains `triggers.crons = ["0 * * * *"]` (hourly, on the hour).
+- `cloudflare/worker-entry.ts` gains a `scheduled()` handler that calls
+  `runScheduledJobs()`. The handler is additive; `fetch` is unchanged.
+- `supabase/migrations/20261111_03_phase4_no_response.sql` adds
+  `reminder_sent_at` and `public.run_no_response_job()`.
+- `utils/jobs/no-response.ts` holds the rules as pure functions so the timeline is
+  unit-tested without a database.
+- `app/portal/admin/reports/actions.ts` now averages resolution time over
+  `closure_reason = 'verified_fixed'` only. A No Response close is not a fix and
+  must not improve a service metric.
+
+**Decision: the pass runs in Postgres, not JavaScript.** The close has to go
+through `transition_ticket()`, which is the only writer of ticket state. Doing it
+in one database function keeps the reminder, the notification and the close in
+one transaction, and makes a replayed cron a no-op.
+
+**Decision: a 2026-11-11 cutover.** `run_no_response_job` ignores any ticket whose
+waiting period began before that instant, so deploying this does not re-close
+the historical backlog migrated in Phase 1.
+
+**Requires:** `SUPABASE_SERVICE_ROLE_KEY` as a Worker secret. Without it the job
+reports `ran: false` and the site keeps working — the automation simply does not
+run.
+
+---
+
+## Phase 5 — Urgent path, business hours, SLA, escalation
+
+- `utils/business-hours.ts`: Monday-Friday 08:00-17:00 Asia/Manila, no
+  dependency. The Philippines has no DST, so a fixed +08:00 offset is exact.
+- `utils/tickets/sla.ts`: the targets live in one object.
+- Urgent gating: choosing Urgent opens a required acknowledgement and a required
+  explanation. `submitRequest` rejects an urgent ticket without both, so it
+  cannot be bypassed with a crafted form. The justification is shown to staff.
+- `supabase/migrations/20261111_04_phase5_sla_escalation.sql` adds the SLA
+  columns, the due-date trigger, the escalation pass, and supervisor duty.
+
+| Priority | First response | Resolution |
+|---|---|---|
+| Urgent | 4 hours, 24/7 | 1 business day |
+| High | 1 business day | 3 business days |
+| Normal | 2 business days | 5 business days |
+| Low | 3 business days | 7 business days |
+
+These are the brief's placeholders. They are **unconfirmed by the owner** and
+are one edit in `utils/tickets/sla.ts` plus one migration if they change.
+
+**Decision: "supervisor" is a duty title, not a new `user_role` value.** A
+supervisor must be able to act on an escalated ticket, and `transition_ticket()`
+only accepts staff roles; adding an enum value the state machine rejects would
+have produced an escalation console nobody could use. Supervisors are staff
+accounts with `profiles.staff_title = 'supervisor'` and `is_on_call`, which keeps
+full acting rights and is what escalation targets. Admins/managers are the
+fallback when nobody is marked as a supervisor.
+
+Escalation levels: 1 = reopened more than once, 2 = first-response target
+passed, 3 = resolution target passed. Each level notifies once; the job will not
+re-notify for a level already reached.
+
+---
+
+## Phase 6 — Access, roles, Track Request
+
+- `app/portal/track` exists. It accepts a Request ID and lists your own recent
+  requests. Ownership is enforced twice: RLS, and an explicit
+  `requester_id = auth.uid()` filter. A search for someone else's ID returns the
+  same "not found" as a random string.
+- `utils/auth/email-domain.ts` holds the domain, and the check is now
+  case-insensitive and an exact-domain match (`x@perpetual.edu.ph.evil.com` and
+  subdomains are still rejected).
+- Public sign-up creates **students only**. Employee and staff accounts are
+  granted by an administrator. `ALLOWED_SIGNUP_ROLES` is `["student"]`, and the
+  submitted role is ignored server-side.
+- `submitRequest` requires a confirmed email address.
+- Temporary `console.log` diagnostics were removed from the auth actions.
+
+**Unverified:** whether the hosted Supabase project has "Confirm email" enabled.
+If it is disabled, users are auto-confirmed and the new check is a no-op rather
+than a behaviour change. This is a dashboard setting, not code.
+
+---
+
+## Phase 7 — Public copy
+
+The landing page claimed a `submitted / pending / in progress / completed`
+lifecycle that does not exist, pointed at a Track Request page that did not
+exist, described an evaluation flow that had not been built, and said "Internal
+use only" in the footer of a student-facing service.
+
+Step 04 is now "Resolve and verify", the tracking card shows Resolved with Fix
+works / Still broken, the tracking paragraph names the real statuses, and the
+FAQ answers the five questions the audit found missing (problem comes back,
+needs more information, why rejected, no response, what counts as urgent).
+
+---
+
+## Phase 8 — README, changelog, QA
+
+`README.md` was replaced with a document that matches the real system: roles,
+the full transition table, SLA targets, automation, routes, the exact migration
+order, and an explicit list of what is unverified.
+
+---
+
+## Migration order
+
+Run in this order. The enum file must run **on its own**, because Postgres
+cannot use a new enum value in the transaction that adds it.
+
+1. `20260828_phase1_fix_profiles_role_escalation.sql` (historical)
+2. `20260829_phase1_ticket_workflow_reply_and_rls.sql` (historical)
+3. `20260830_phase8_knowledge_base.sql` (historical)
+4. `20260831_phase9_asset_management.sql` (historical)
+5. `20261110_01_add_ticket_status_values.sql` — **alone**
+6. `20261110_02_phase1_ticket_state_machine.sql`
+7. `20261111_01_phase2_notifications_and_cycles.sql`
+8. `20261111_02_enum_values.sql` — **alone**
+9. `20261111_03_phase4_no_response.sql`
+10. `20261111_04_phase5_sla_escalation.sql`
+
+Steps 5 and 8 are the "alone" ones. Verification queries for the workflow live
+in `supabase/verify/phase2_checks.sql`.
+
+---
+
+## Known gaps
+
+- **No email.** Every notification is in-app. The 3-day reminder and the
+  escalations are only visible when the user signs in.
+- **SLA targets are placeholders** (see the table above).
+- **The cron needs a secret.** `SUPABASE_SERVICE_ROLE_KEY` must be set on the
+  Worker before the automation runs; until then `scheduled()` is a no-op.
+- **The SQL has not been executed** against a live Postgres by the agent. It is
+  reviewed, not proven. Run the migrations and the verification queries.
+- **No automated end-to-end test** of the workflow: the unit tests cover the
+  state machine, business hours and job rules, not a real browser session.
+- **On-call scheduling** is a boolean duty flag, not a roster with shifts.

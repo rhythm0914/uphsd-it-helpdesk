@@ -16,6 +16,8 @@ export function RequestForm({
 }) {
   const [selectedService, setSelectedService] = useState("");
   const [loadedService, setLoadedService] = useState("");
+  const [priority, setPriority] = useState("normal");
+  const [urgentAcknowledged, setUrgentAcknowledged] = useState(false);
   const [categories, setCategories] = useState<ServiceCategoryOption[]>([]);
   const [categoriesError, setCategoriesError] = useState(false);
 
@@ -174,7 +176,8 @@ export function RequestForm({
             <select
               id="priority"
               name="priority"
-              defaultValue="normal"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
             >
               <option value="low">Low</option>
@@ -182,7 +185,56 @@ export function RequestForm({
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>
+            <p className="mt-1 text-xs text-foreground/60">
+              Urgent requests get a first response within 4 hours around the clock.
+              Other priorities are answered within 1 to 3 business days. Routine
+              requests are handled Monday to Friday, 8:00 AM to 5:00 PM.
+            </p>
           </div>
+
+          {/* Urgent path (Phase 5): choosing Urgent opens a gated question. The
+              server rejects an urgent ticket without an explanation, so this
+              cannot be bypassed by a crafted request. */}
+          {priority === "urgent" && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+              <p className="text-sm font-medium text-red-800">
+                Urgent requests are reviewed by a supervisor and can interrupt
+                scheduled work.
+              </p>
+              <label className="flex items-start gap-2 text-sm text-red-800">
+                <input
+                  type="checkbox"
+                  name="urgent_ack"
+                  required
+                  checked={urgentAcknowledged}
+                  onChange={(e) => setUrgentAcknowledged(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  This issue is blocking my work, class, or an institutional
+                  deadline right now.
+                </span>
+              </label>
+              <div>
+                <label htmlFor="urgent_reason" className="block text-sm font-medium text-red-800 mb-1">
+                  What is blocked, and what deadline is affected? <span aria-hidden>*</span>
+                </label>
+                <textarea
+                  id="urgent_reason"
+                  name="urgent_reason"
+                  required
+                  minLength={15}
+                  rows={3}
+                  className="w-full rounded-lg border border-red-200 bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                  placeholder="For example: my thesis defense is at 3:00 PM today and the projector laptop will not boot."
+                />
+                <p className="mt-1 text-xs text-red-700">
+                  Misusing the urgent priority slows the queue for everyone. IT
+                  staff record who declared urgency and why.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

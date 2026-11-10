@@ -43,9 +43,10 @@ describe("authorization utilities", () => {
   });
 
   describe("normalizeSignupRole", () => {
-    it("returns student as default for unknown roles", () => {
+    it("always returns student, because public signup creates students only", () => {
       expect(normalizeSignupRole("student")).toBe("student");
-      expect(normalizeSignupRole("employee")).toBe("employee");
+      // Employee is admin-granted: a self-declared employee is downgraded.
+      expect(normalizeSignupRole("employee")).toBe("student");
       expect(normalizeSignupRole("admin")).toBe("student");
       expect(normalizeSignupRole("manager")).toBe("student");
       expect(normalizeSignupRole("it_staff")).toBe("student");
@@ -56,9 +57,9 @@ describe("authorization utilities", () => {
   });
 
   describe("isAllowedSignupRole", () => {
-    it("returns true only for student and employee", () => {
+    it("returns true only for student", () => {
       expect(isAllowedSignupRole("student")).toBe(true);
-      expect(isAllowedSignupRole("employee")).toBe(true);
+      expect(isAllowedSignupRole("employee")).toBe(false);
       expect(isAllowedSignupRole("admin")).toBe(false);
       expect(isAllowedSignupRole("manager")).toBe(false);
       expect(isAllowedSignupRole("it_staff")).toBe(false);
@@ -70,6 +71,9 @@ describe("authorization utilities", () => {
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("admin");
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("manager");
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("it_staff");
+      // Employee is granted by an administrator, never self-selected.
+      expect(ALLOWED_SIGNUP_ROLES).not.toContain("employee");
+      expect(ALLOWED_SIGNUP_ROLES).toEqual(["student"]);
     });
 
     it("admin roles are a subset of it_staff roles", () => {

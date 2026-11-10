@@ -6,6 +6,7 @@ import { TicketManagement } from "../[id]/ticket-management";
 import { getITStaff } from "@/app/portal/queue/lib";
 import { formatDateTime } from "@/utils/format-date";
 import { statusBadgeClass, statusLabel } from "@/utils/tickets/constants";
+import { deriveSlaState, slaStateBadgeClass, slaStateLabel } from "@/utils/tickets/sla";
 import { CycleHistory } from "@/components/tickets/cycle-history";
 
 interface TicketStatusHistory {
@@ -133,6 +134,15 @@ export default async function ITQueueTicketPage({
     }
   };
 
+  // SLA health is derived from the stored due date, so this page never
+  // recomputes targets and can never disagree with the escalation job.
+  const slaState = ticket.resolve_due_at
+    ? deriveSlaState(
+        new Date(ticket.sla_started_at || ticket.created_at),
+        new Date(ticket.resolve_due_at),
+      )
+    : null;
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6">
@@ -159,9 +169,25 @@ export default async function ITQueueTicketPage({
                 </div>
                 <h1 className="text-2xl font-semibold">{ticket.subject}</h1>
               </div>
-              <span className={`text-sm ${getPriorityColor(ticket.priority)}`}>
-                {ticket.priority.toUpperCase()} PRIORITY
-              </span>
+              <div className="flex flex-col items-start gap-2 md:items-end">
+                <span className={`text-sm ${getPriorityColor(ticket.priority)}`}>
+                  {ticket.priority.toUpperCase()} PRIORITY
+                </span>
+                {slaState && (
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${slaStateBadgeClass(slaState)}`}
+                  >
+                    {slaStateLabel(slaState)}
+                    {ticket.resolve_due_at &&
+                      ` · resolve by ${formatDateTime(ticket.resolve_due_at)}`}
+                  </span>
+                )}
+                {ticket.escalation_level > 0 && (
+                  <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                    Escalated to supervisor
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -198,6 +224,17 @@ export default async function ITQueueTicketPage({
                 {ticket.description}
               </p>
             </div>
+
+            {ticket.priority === "urgent" && ticket.priority_justification && (
+              <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-medium text-red-800">
+                  Declared urgent by the requester
+                </p>
+                <p className="mt-1 text-sm text-red-700 whitespace-pre-wrap">
+                  {ticket.priority_justification}
+                </p>
+              </div>
+            )}
 
             {ticket.assigned_to_profile ? (
               <div className="mb-8">

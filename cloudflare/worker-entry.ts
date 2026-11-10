@@ -11,6 +11,7 @@
 
 import handler from "vinext/server/fetch-handler";
 import { setWorkerEnv } from "@/utils/ai/env";
+import { runScheduledJobs, type ScheduledEnv } from "@/utils/jobs/run-scheduled";
 
 /** Minimal structural types for the Workers runtime (no global types needed). */
 interface WorkerExecutionContext {
@@ -24,10 +25,28 @@ const helper: {
     env: Record<string, unknown>,
     ctx: WorkerExecutionContext,
   ): Promise<Response>;
+  scheduled(
+    controller: unknown,
+    env: Record<string, unknown>,
+    ctx: WorkerExecutionContext,
+  ): Promise<void>;
 } = {
   async fetch(request, env, ctx) {
     setWorkerEnv(env);
     return handler.fetch(request, env, ctx);
+  },
+
+  // Cron entry point (see triggers.crons in wrangler.jsonc). The reminder /
+  // auto-close / escalation passes run inside Postgres; this only triggers
+  // them with the service-role key, which is a Worker secret and never
+  // reaches the browser.
+  async scheduled(_controller, env, ctx) {
+    setWorkerEnv(env);
+    ctx.waitUntil(
+      runScheduledJobs(env as ScheduledEnv).catch((error) => {
+        console.error("[scheduled] maintenance pass failed", error);
+      }),
+    );
   },
 };
 

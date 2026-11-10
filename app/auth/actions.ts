@@ -3,7 +3,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getValidatedReturnTo } from "@/utils/authorization";
+import { getValidatedReturnTo, normalizeSignupRole } from "@/utils/authorization";
+import { UPHSD_EMAIL_ERROR, isUphsdEmail, normalizeEmail } from "@/utils/auth/email-domain";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -48,12 +49,9 @@ export async function signIn(formData: FormData) {
 export async function signUp(formData: FormData) {
   const supabase = await getSupabase();
   const fullName = formData.get("fullName") as string;
-  const email = formData.get("email") as string;
-  const role = formData.get("role") as string;
+  const email = normalizeEmail((formData.get("email") as string) || "");
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
-
-  console.log("[signUp] action invoked", { emailDomain: email ? email.split("@")[1] : "missing" });
 
   if (!fullName || !email || !password || !confirmPassword) {
     redirect("/auth/sign-up?error=All+required+fields+must+be+filled");
@@ -67,12 +65,14 @@ export async function signUp(formData: FormData) {
     redirect("/auth/sign-up?error=Password+must+be+at+least+8+characters");
   }
 
-  if (!email.endsWith("@perpetual.edu.ph")) {
-    redirect("/auth/sign-up?error=Please+use+your+UPHSD+institutional+email+address");
+  // Case-insensitive exact-domain check, defined once in utils/auth/email-domain.
+  if (!isUphsdEmail(email)) {
+    redirect("/auth/sign-up?error=" + encodeURIComponent(UPHSD_EMAIL_ERROR));
   }
 
-  const allowedRoles = ["student", "employee"];
-  const normalizedRole = allowedRoles.includes(role) ? role : "student";
+  // Public sign-up creates students only; Employee and staff accounts are
+  // granted by an administrator (Phase 6). The submitted role is ignored.
+  const normalizedRole = normalizeSignupRole("student");
 
   const redirectTo = `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback`;
 
@@ -88,8 +88,6 @@ export async function signUp(formData: FormData) {
     },
   });
 
-  console.log("[signUp] result", { error: error ? { message: error.message, code: error.code } : null });
-
   if (error) {
     redirect("/auth/sign-up?error=" + encodeURIComponent(error.message));
   }
@@ -99,24 +97,20 @@ export async function signUp(formData: FormData) {
 
 export async function resendConfirmation(formData: FormData) {
   const supabase = await getSupabase();
-  const email = formData.get("email") as string;
-
-  console.log("[resendConfirmation] action invoked", { emailDomain: email ? email.split("@")[1] : "missing" });
+  const email = normalizeEmail((formData.get("email") as string) || "");
 
   if (!email) {
     redirect("/auth/sign-in?error=Email+is+required");
   }
 
-  if (!email.endsWith("@perpetual.edu.ph")) {
-    redirect("/auth/sign-in?error=Please+use+your+UPHSD+institutional+email+address");
+  if (!isUphsdEmail(email)) {
+    redirect("/auth/sign-in?error=" + encodeURIComponent(UPHSD_EMAIL_ERROR));
   }
 
   const { error } = await supabase.auth.resend({
     type: "signup",
     email: email,
   });
-
-  console.log("[resendConfirmation] result", { error: error ? { message: error.message, code: error.code } : null });
 
   if (error) {
     redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));

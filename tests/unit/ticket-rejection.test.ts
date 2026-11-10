@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   REJECTION_CATEGORIES,
   REJECTION_CATEGORY_LABELS,
-  TICKET_STATUSES,
   allowedActionsFor,
   decideTransition,
   validateTransitionPayload,
@@ -80,16 +79,14 @@ describe("reject action", () => {
   });
 
   it("never lets a requester move a rejected ticket", () => {
-    for (const status of TICKET_STATUSES) {
-      for (const action of ["verify_fixed", "report_still_broken", "student_reply"] as const) {
-        const result = decideTransition({
-          action,
-          status,
-          actor: requester,
-          payload: { rating: 5, reason: "x", message: "x" },
-        });
-        expect(result.ok).toBe(false);
-      }
+    for (const action of ["verify_fixed", "report_still_broken", "student_reply"] as const) {
+      const result = decideTransition({
+        action,
+        status: "rejected",
+        actor: requester,
+        payload: { rating: 5, reason: "x", message: "x" },
+      });
+      expect(result.ok, `requester must not ${action} a rejected ticket`).toBe(false);
     }
   });
 });

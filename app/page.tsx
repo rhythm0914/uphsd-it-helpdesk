@@ -69,9 +69,9 @@ const processSteps = [
   },
   {
     step: "04",
-    title: "Complete and evaluate",
+    title: "Resolve and verify",
     description:
-      "Requestors confirm resolution and submit a short satisfaction rating.",
+      "IT marks the request resolved with a short note. You confirm the fix, or send it back as still broken and the same request continues.",
   },
 ];
 
@@ -79,27 +79,47 @@ const faqItems = [
   {
     question: "How do I request IT assistance?",
     answer:
-      "Use the Request IT Service form to submit your request. You will receive a tracking ID to monitor progress.",
+      "Sign in with your UPHSD account and use the New Request form. You receive a Request ID such as IT-2026-000123 as soon as it is submitted.",
   },
   {
     question: "Who can use the IT Help Desk?",
     answer:
-      "All UPHSD students and employees can submit requests. IT staff and administrators have separate workspaces.",
+      "All UPHSD students and employees can submit requests. Students create their own account with a @perpetual.edu.ph address; employee and staff accounts are granted by the IT administrator.",
   },
   {
     question: "What are the IT Help Desk business hours?",
     answer:
-      "Monday through Friday, 8:00 AM to 5:00 PM. Requests submitted outside these hours will be processed on the next business day.",
+      "Monday through Friday, 8:00 AM to 5:00 PM. Routine requests submitted outside these hours start their clock on the next business day. Urgent requests are handled around the clock.",
   },
   {
     question: "How do I track my request?",
     answer:
-      "Use the Track Request page with your Request ID to see current status, updates, and history.",
+      "Open Track in the portal and enter your Request ID, or pick the request from the list of your recent submissions. You will see its current status, the conversation, and every status change.",
   },
   {
-    question: "What happens after my request is completed?",
+    question: "What happens when IT marks my request resolved?",
     answer:
-      "You will receive a notification and can submit a short evaluation to help improve IT services.",
+      "You are asked to confirm the outcome: choose \"Fix works\" to close it as Verified Fixed and leave a 1-5 rating, or \"Still broken\" to explain what is wrong. IT staff cannot close a request themselves.",
+  },
+  {
+    question: "What if the problem comes back?",
+    answer:
+      "Until you confirm the fix, choose \"Still broken\" on the same request. It reopens with the same Request ID, keeps its full history, and returns to the technician with a fresh service clock.",
+  },
+  {
+    question: "What if IT needs more information from me?",
+    answer:
+      "The request moves to Awaiting Student and your reply is requested in the conversation. When you answer, it returns to the technician automatically. After 3 days you get one reminder; after 5 days without a reply it is closed as No Response, which is not counted as a fix.",
+  },
+  {
+    question: "Why was my request rejected?",
+    answer:
+      "A request is rejected when it is a duplicate, outside IT's scope, not an IT issue, or missing information. The rejection always includes a category and an explanation. Rejected requests cannot be reopened, but you can submit a new one.",
+  },
+  {
+    question: "What counts as urgent?",
+    answer:
+      "Urgent means work, class, or an institutional deadline is blocked right now. Choosing Urgent asks you to state what is blocked, and the request is reviewed by a supervisor. Misusing it slows the queue for everyone.",
   },
 ];
 
@@ -323,9 +343,9 @@ export default async function Home() {
                       <span className="text-xs font-medium text-foreground/50 uppercase tracking-wider">
                         Request Status
                       </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-gold-light px-2.5 py-1 text-xs font-medium text-brand-primary">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                         <ClockIcon width={12} height={12} />
-                        In Progress
+                        Resolved
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -346,8 +366,16 @@ export default async function Home() {
                       <div>
                         <p className="text-xs text-foreground/50">Latest Update</p>
                         <p className="text-sm text-foreground/70">
-                          Cable replacement scheduled for tomorrow at 10:00 AM.
+                          Cable replaced. IT marked this request resolved and is waiting for your confirmation.
                         </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <span className="inline-flex items-center rounded-full bg-brand-primary px-3 py-1 text-xs font-medium text-white">
+                          Fix works
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground/70">
+                          Still broken
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -358,7 +386,7 @@ export default async function Home() {
                   Track every request in real time
                 </h2>
                 <p className="mt-4 text-lg text-foreground/70 leading-relaxed max-w-lg">
-                  Students and employees see submitted, pending, in progress, and completed stages. IT staff update status and add work notes as work continues.
+                  Every request shows its real status: Open, Assigned / In Progress, Awaiting Student, Resolved, Reopened, Closed, or Rejected. IT staff update the status and add work notes as work continues.
                 </p>
               </div>
             </div>
@@ -452,7 +480,7 @@ export default async function Home() {
                 Ready to streamline your IT support
               </h2>
               <p className="mt-4 text-lg text-foreground/70 leading-relaxed">
-                Start submitting requests with tracking IDs today. Students and employees get the tools to request help, track progress, and evaluate service.
+                Start submitting requests with tracking IDs today. Students and employees get the tools to request help, track progress, and confirm when a problem is actually fixed.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
@@ -501,7 +529,7 @@ export default async function Home() {
           </div>
           <div className="mt-8 pt-6 border-t border-white/20">
             <p className="text-xs text-white/50">
-              UPHSD IT Help Desk. Internal use only.
+              UPHSD IT Help Desk. For UPHSD students and employees. Requests are visible only to you and the IT team handling them.
             </p>
           </div>
         </div>

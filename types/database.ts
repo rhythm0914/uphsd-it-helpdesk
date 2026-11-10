@@ -111,6 +111,20 @@ export interface Ticket {
   reopened_count: number;
   /** Set while the ticket is Awaiting Student. */
   awaiting_student_since: string | null;
+  /** When the last 3-day reminder went out (per waiting period). */
+  reminder_sent_at?: string | null;
+  /** Anchor for the SLA clocks; restarts when a ticket is reopened. */
+  sla_started_at?: string | null;
+  response_due_at?: string | null;
+  resolve_due_at?: string | null;
+  sla_status?: "on_track" | "at_risk" | "breached";
+  escalated_at?: string | null;
+  escalation_level?: number;
+  /** Why the requester declared the request urgent. */
+  priority_justification?: string | null;
+  /** student vs employee, for population reporting. */
+  requester_pool?: "student" | "employee" | null;
+  current_cycle?: number;
 }
 
 /** Row shape of public.ticket_feedback (requester satisfaction rating). */

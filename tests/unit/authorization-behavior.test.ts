@@ -13,12 +13,14 @@ describe("signup role validation", () => {
 
   it("preserves allowed signup roles", () => {
     expect(normalizeSignupRole("student")).toBe("student");
-    expect(normalizeSignupRole("employee")).toBe("employee");
+    // Employee is admin-granted since Phase 6; a self-declared employee is
+    // downgraded to student.
+    expect(normalizeSignupRole("employee")).toBe("student");
   });
 
   it("identifies allowed signup roles", () => {
     expect(isAllowedSignupRole("student")).toBe(true);
-    expect(isAllowedSignupRole("employee")).toBe(true);
+    expect(isAllowedSignupRole("employee")).toBe(false);
     expect(isAllowedSignupRole("admin")).toBe(false);
     expect(isAllowedSignupRole("manager")).toBe(false);
     expect(isAllowedSignupRole("it_staff")).toBe(false);
