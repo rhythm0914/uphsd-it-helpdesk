@@ -6,6 +6,7 @@ import { TicketManagement } from "../[id]/ticket-management";
 import { getITStaff } from "@/app/portal/queue/lib";
 import { formatDateTime } from "@/utils/format-date";
 import { statusBadgeClass, statusLabel } from "@/utils/tickets/constants";
+import { CycleHistory } from "@/components/tickets/cycle-history";
 
 interface TicketStatusHistory {
   id: string;
@@ -108,6 +109,13 @@ export default async function ITQueueTicketPage({
     .eq("ticket_id", id)
     .order("created_at", { ascending: false });
 
+  // Per-cycle work history: a reopened ticket keeps every previous attempt.
+  const { data: cycles } = await supabase
+    .from("ticket_cycles")
+    .select("id, cycle_number, started_at, resolved_at, ended_at, outcome")
+    .eq("ticket_id", id)
+    .order("cycle_number", { ascending: true });
+
   const { staff } = await getITStaff();
 
   const getPriorityColor = (priority: string) => {
@@ -207,6 +215,7 @@ export default async function ITQueueTicketPage({
           </div>
 
           <div className="rounded-2xl border border-border bg-background p-6 md:p-8">
+            {cycles && cycles.length > 0 && <CycleHistory cycles={cycles} />}
             <h2 className="text-lg font-semibold mb-4">Status History</h2>
             <div className="space-y-4">
               {statusHistory && statusHistory.length > 0 ? (

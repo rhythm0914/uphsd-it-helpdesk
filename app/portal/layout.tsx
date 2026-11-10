@@ -71,6 +71,14 @@ export default async function PortalLayout({
   const isITStaff = profile.role && ["it_staff", "admin", "manager"].includes(profile.role);
   const isAdmin = profile.role && ["admin", "manager"].includes(profile.role);
 
+  // Unread in-app notifications (Phase 2). If the notifications table is not
+  // there yet, the query returns null and the badge simply does not render.
+  const { count: unreadNotifications } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .is("read_at", null);
+
   return (
     <div className="flex flex-col flex-1">
       <RouteProgress />
@@ -124,6 +132,13 @@ export default async function PortalLayout({
                 Admin
               </Link>
             )}
+            <Link
+              href="/portal/notifications"
+              className="text-foreground/70 hover:text-brand-primary transition-colors"
+            >
+              Notifications
+              {unreadNotifications ? ` (${unreadNotifications})` : ""}
+            </Link>
             <UserMenu
               name={profile.full_name}
               email={profile.email}

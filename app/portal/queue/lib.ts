@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { sortQueueTickets } from "@/utils/tickets/queue-order";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -63,7 +64,8 @@ export async function getITQueue(filters?: {
     return { error: error.message, tickets: [] };
   }
 
-  return { tickets: tickets || [], error: null };
+  // Reopened first, then urgent → low, then newest. See utils/tickets/queue-order.
+  return { tickets: sortQueueTickets(tickets || []), error: null };
 }
 
 export async function getITStaff() {

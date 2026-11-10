@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { TicketReply } from "./ticket-reply";
 import { TicketVerification } from "./ticket-verification";
+import { CycleHistory } from "@/components/tickets/cycle-history";
 import {
   closureReasonLabel,
   statusBadgeClass,
@@ -72,6 +73,13 @@ export default async function TicketDetailPage({
     .select(`*, changed_by_profile:profiles!changed_by(id, full_name, email)`)
     .eq("ticket_id", id)
     .order("created_at", { ascending: false });
+
+  // Per-cycle work history: a reopened ticket keeps every previous attempt.
+  const { data: cycles } = await supabase
+    .from("ticket_cycles")
+    .select("id, cycle_number, started_at, resolved_at, ended_at, outcome")
+    .eq("ticket_id", id)
+    .order("cycle_number", { ascending: true });
 
   const isWaitingForUser = ticket.status === "waiting_for_user";
 
@@ -228,6 +236,7 @@ export default async function TicketDetailPage({
         )}
 
         <div className="mt-8">
+          {cycles && cycles.length > 0 && <CycleHistory cycles={cycles} />}
           <h2 className="text-lg font-semibold mb-4">Status History</h2>
           {statusHistory && statusHistory.length > 0 ? (
             <ol className="space-y-2">
