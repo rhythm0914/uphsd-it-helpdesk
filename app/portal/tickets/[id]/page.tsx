@@ -7,7 +7,9 @@ import { TicketReply } from "./ticket-reply";
 import { TicketVerification } from "./ticket-verification";
 import { CycleHistory } from "@/components/tickets/cycle-history";
 import {
+  REJECTION_CATEGORY_LABELS,
   closureReasonLabel,
+  isRejectionCategory,
   statusBadgeClass,
   statusLabel,
 } from "@/utils/tickets/constants";
@@ -174,14 +176,29 @@ export default async function TicketDetailPage({
           </div>
         )}
 
-        {ticket.status === "rejected" && ticket.rejection_reason && (
+        {ticket.status === "rejected" && (
           <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">
-              This request was rejected
+            <p className="text-sm font-medium text-red-800">This request was rejected</p>
+            {isRejectionCategory(ticket.rejection_category) && (
+              <p className="mt-1 text-xs font-medium uppercase tracking-wide text-red-700">
+                {REJECTION_CATEGORY_LABELS[ticket.rejection_category]}
+              </p>
+            )}
+            {ticket.rejection_reason && (
+              <p className="mt-2 text-sm text-red-700 whitespace-pre-wrap">
+                {ticket.rejection_reason}
+              </p>
+            )}
+            <p className="mt-3 text-sm text-red-700">
+              This request is closed and cannot be reopened. If you still need help, submit a new
+              request.
             </p>
-            <p className="mt-1 text-sm text-red-700 whitespace-pre-wrap">
-              {ticket.rejection_reason}
-            </p>
+            <Link
+              href="/portal/request"
+              className="mt-3 inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
+            >
+              Submit a new request
+            </Link>
           </div>
         )}
 
