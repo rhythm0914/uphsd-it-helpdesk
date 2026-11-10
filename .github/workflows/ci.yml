@@ -32,3 +32,11 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      # Applies schema.sql and every migration to an in-process Postgres
+      # (PGlite), then asserts the workflow rules. No Supabase project, no
+      # secrets, no service container. The second run corrupts three invariants
+      # on purpose and fails if the verifier does not notice, so these checks
+      # cannot quietly stop checking anything.
+      - name: Verify migrations and SQL behaviour
+        run: npm run verify:sql && npm run verify:sql -- --mutation-test
