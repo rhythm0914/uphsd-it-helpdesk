@@ -8,6 +8,10 @@
 -- 'ticket_reminder' and 'ticket_escalated' throughout, so the values must be
 -- committed before it runs.
 --
+-- This file only adds enum values. A separate backfill script
+-- (supabase/upgrade/backfill_normal_to_medium.sql) runs afterward to convert
+-- existing 'normal' tickets to 'medium'.
+--
 -- Each ALTER is guarded because an older database may not have every type yet;
 -- schema.sql creates the missing ones. Safe to re-run.
 
@@ -21,5 +25,16 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_type') THEN
     ALTER TYPE public.notification_type ADD VALUE IF NOT EXISTS 'ticket_reminder';
     ALTER TYPE public.notification_type ADD VALUE IF NOT EXISTS 'ticket_escalated';
+    ALTER TYPE public.notification_type ADD VALUE IF NOT EXISTS 'ticket_urgent_verified';
+    ALTER TYPE public.notification_type ADD VALUE IF NOT EXISTS 'ticket_urgent_downgraded';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_priority') THEN
+    ALTER TYPE public.ticket_priority ADD VALUE IF NOT EXISTS 'medium';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_closure_reason') THEN
+    ALTER TYPE public.ticket_closure_reason ADD VALUE IF NOT EXISTS 'rejected';
+    ALTER TYPE public.ticket_closure_reason ADD VALUE IF NOT EXISTS 'cancelled_by_requester';
   END IF;
 END $$;

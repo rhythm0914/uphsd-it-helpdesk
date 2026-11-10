@@ -29,5 +29,8 @@
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_P2SvmRz1D8X5ffGEoxN12Q_IuO8bUvO",
     "NEXT_PUBLIC_BASE_URL": "https://uphsd-it-helpdesk.rycanano.workers.dev",
     "AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fast"
-  }
+  },
+  // RESEND_API_KEY is optional for email notifications. Set it as a Worker
+  // secret (never a var): wrangler secret put RESEND_API_KEY.
+  // Without it, email delivery is skipped with a warning and in-app only is used.
 }

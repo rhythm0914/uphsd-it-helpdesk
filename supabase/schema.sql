@@ -59,9 +59,19 @@ DO $$ BEGIN
 END $$;
 
 -- Ticket priority enum
+-- Paper requires: Urgent, High, Medium, Low. "medium" replaces "normal".
+-- "normal" is kept in the enum for backward compatibility with existing data;
+-- all new code writes "medium".
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_priority') THEN
-    CREATE TYPE public.ticket_priority AS ENUM ('low', 'normal', 'high', 'urgent');
+    CREATE TYPE public.ticket_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+  END IF;
+  -- Add "medium" to existing databases that already have the type without it.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'ticket_priority' AND e.enumlabel = 'medium'
+  ) THEN
+    ALTER TYPE public.ticket_priority ADD VALUE 'medium';
   END IF;
 END $$;
 
@@ -110,7 +120,7 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   category_id UUID REFERENCES public.ticket_categories(id) NOT NULL,
   subject TEXT NOT NULL,
   description TEXT NOT NULL,
-  priority public.ticket_priority NOT NULL DEFAULT 'normal',
+  priority public.ticket_priority NOT NULL DEFAULT 'medium',
   status public.ticket_status NOT NULL DEFAULT 'open',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -460,6 +470,56 @@ INSERT INTO public.ticket_categories (name, description) VALUES
   ('Access Request', 'Permission and access requests'),
   ('General IT Question', 'Other technology questions and support')
 ON CONFLICT (name) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- Published knowledge articles aligned with the current workflow.
+-- These are the only source of official information the AI assistant may cite.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO public.knowledge_articles (title, slug, content, keywords, is_published) VALUES
+  (
+    'How to submit an IT Help Desk request',
+    'how-to-submit-request',
+    'To submit a new IT request, go to the Help Desk portal, choose a service and category, describe the issue, and submit. You will receive a tracking ID (IT-YYYY-NNNNNN). If the issue is urgent (work or class is blocked right now), choose Urgent priority and explain what is blocked. Urgent requests are reviewed by a supervisor and alert on-call staff 24/7.',
+    ARRAY['submit', 'request', 'tracking ID', 'urgent', 'service', 'category'],
+    TRUE
+  ),
+  (
+    'How to track your request',
+    'how-to-track-request',
+    'Sign in to the Help Desk portal and open Track, or pick the request from your recent submissions. Enter your Request ID to see its current status, the conversation history, and every status change. Tracking requires login so only you and the IT team can see your request.',
+    ARRAY['track', 'tracking', 'status', 'request ID', 'sign in'],
+    TRUE
+  ),
+  (
+    'What happens when IT marks your request resolved',
+    'resolved-verification',
+    'When IT marks your request Resolved, you are asked to confirm the outcome. Choose "Fix works" to close it as Verified Fixed and leave a 1–5 satisfaction rating. Choose "Still broken" to reopen the request with the same ID. Only you (the requester) can close a request — IT staff cannot close it themselves. If you do not respond, you get one reminder after 3 days, and the request closes as No Response after 5 days. A No Response close is not counted as a fix.',
+    ARRAY['resolved', 'verification', 'fix works', 'still broken', 'rating', 'no response', '3 days', '5 days'],
+    TRUE
+  ),
+  (
+    'Urgent requests (24/7 on-call)',
+    'urgent-requests',
+    'Choose Urgent priority when work, class, or an institutional deadline is blocked right now. You must state what is blocked. A supervisor reviews the request and can verify or downgrade the urgency. Verified urgent requests alert the Supervisor and on-call staff immediately, 24/7, and skip the business-hours wait. If the supervisor determines it is not genuine, it returns to the normal queue.',
+    ARRAY['urgent', '24/7', 'on-call', 'supervisor', 'blocked', 'business hours'],
+    TRUE
+  ),
+  (
+    'Account recovery and password reset',
+    'account-recovery',
+    'If you cannot sign in, use the "Forgot your password?" link on the sign-in page. A recovery link is sent to your @perpetual.edu.ph email. The link is single-use and short-lived. If you have lost access to your UPHSD mailbox, contact IT staff in person for admin-assisted recovery — an admin will trigger a recovery for your verified account without ever seeing your password.',
+    ARRAY['password', 'recovery', 'reset', 'sign in', 'email', 'admin-assisted'],
+    TRUE
+  ),
+  (
+    'How the Help Desk workflow works',
+    'help-desk-workflow',
+    'Every request follows the same workflow: Open → Assigned / In Progress → (optionally Awaiting Student) → Resolved → Closed. Only the requester can verify a fix and close a request. IT staff cannot close requests directly. If a ticket cannot be resolved, it is escalated to the IT Supervisor. Reopened tickets return to the same technician, who records the cause (wrong credentials, account lockout, account sync, or other) before resolving again.',
+    ARRAY['workflow', 'statuses', 'open', 'assigned', 'resolved', 'closed', 'escalation', 'reopen'],
+    TRUE
+  )
+ON CONFLICT (slug) DO NOTHING;
 
 -- Service categories junction table
 CREATE TABLE IF NOT EXISTS public.service_categories (
@@ -1473,7 +1533,20 @@ $$;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_closure_reason') THEN
-    CREATE TYPE public.ticket_closure_reason AS ENUM ('verified_fixed', 'no_response');
+    CREATE TYPE public.ticket_closure_reason AS ENUM ('verified_fixed', 'no_response', 'rejected', 'cancelled_by_requester');
+  END IF;
+  -- Add 'rejected' and 'cancelled_by_requester' to existing databases.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'ticket_closure_reason' AND e.enumlabel = 'rejected'
+  ) THEN
+    ALTER TYPE public.ticket_closure_reason ADD VALUE 'rejected';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'ticket_closure_reason' AND e.enumlabel = 'cancelled_by_requester'
+  ) THEN
+    ALTER TYPE public.ticket_closure_reason ADD VALUE 'cancelled_by_requester';
   END IF;
 END $$;
 
@@ -1481,12 +1554,54 @@ ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS closure_reason public.ticket
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS rejection_category TEXT;
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS reopened_count INTEGER NOT NULL DEFAULT 0;
+-- Cause the technician recorded when reworking a reopened ticket (wrong
+-- credentials, account lockout, account sync, other + note).
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS reopen_cause TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS reopen_cause_note TEXT;
+-- When the first staff reply was sent (for first-response-time KPI).
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS first_response_at TIMESTAMPTZ;
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS awaiting_student_since TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_tickets_status_created_at ON public.tickets(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tickets_closure_reason ON public.tickets(closure_reason);
 CREATE INDEX IF NOT EXISTS idx_tickets_resolved_at ON public.tickets(resolved_at);
+
+-- ---------------------------------------------------------------------------
+-- 1b. Derived closure_type: satisfies the paper's data model (Verified fixed /
+--     No response / Rejected) without changing Rejected from its own status.
+--     Maps status + closure_reason to a single closure_type for reports and
+--     exports. Non-terminal statuses return NULL.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.ticket_closure_type(
+  p_status public.ticket_status,
+  p_closure_reason public.ticket_closure_reason
+) RETURNS public.ticket_closure_reason
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN p_status = 'closed' THEN p_closure_reason
+    WHEN p_status = 'rejected' THEN 'rejected'::public.ticket_closure_reason
+    ELSE NULL::public.ticket_closure_reason
+  END;
+$$;
+
+-- Read-only view: one row per ticket with its derived closure_type.
+CREATE OR REPLACE VIEW public.ticket_closure_types AS
+  SELECT
+    id,
+    ticket_number,
+    status,
+    closure_reason,
+    public.ticket_closure_type(status, closure_reason) AS closure_type
+  FROM public.tickets;
+
+ALTER VIEW public.ticket_closure_types OWNER TO postgres;
+
+GRANT SELECT ON public.ticket_closure_types TO authenticated;
+GRANT SELECT ON public.ticket_closure_types TO anon;
 
 -- ---------------------------------------------------------------------------
 -- 2. Audit trail: actor role + structured reason
@@ -1576,12 +1691,15 @@ DECLARE
   v_is_system    BOOLEAN := (auth.role() = 'service_role');
   v_ticket       public.tickets;
   v_old_status   public.ticket_status;
+  v_old_priority public.ticket_priority;
   v_target       public.ticket_status;
   v_closure      public.ticket_closure_reason;
   v_assignee     UUID;
   v_priority     public.ticket_priority;
   v_message      TEXT;
   v_reason       TEXT;
+  v_reopen_cause TEXT;
+  v_reopen_cause_note TEXT;
   v_note         TEXT;
   v_rating       SMALLINT;
   v_comment      TEXT;
@@ -1610,8 +1728,11 @@ BEGIN
   END IF;
 
   v_old_status := v_ticket.status;
+  v_old_priority := v_ticket.priority;
   v_message := NULLIF(btrim(COALESCE(p_payload->>'message', '')), '');
   v_reason  := NULLIF(btrim(COALESCE(p_payload->>'reason', '')), '');
+  v_reopen_cause := NULLIF(btrim(COALESCE(p_payload->>'reopen_cause', '')), '');
+  v_reopen_cause_note := NULLIF(btrim(COALESCE(p_payload->>'reopen_cause_note', '')), '');
   v_note    := NULLIF(btrim(COALESCE(p_payload->>'resolution_note', '')), '');
   v_comment := NULLIF(btrim(COALESCE(p_payload->>'comment', '')), '');
 
@@ -1664,8 +1785,11 @@ BEGIN
       IF v_old_status <> 'reopened' THEN
         RAISE EXCEPTION 'Only a reopened ticket can be acknowledged' USING ERRCODE = '22023';
       END IF;
+      IF v_reopen_cause IS NULL THEN
+        RAISE EXCEPTION 'Please record the cause of the reopen before acknowledging.' USING ERRCODE = '22023';
+      END IF;
       v_target := 'in_progress'::public.ticket_status;
-      v_audit_note := 'Reopened ticket acknowledged';
+      v_audit_note := 'Reopened ticket acknowledged (cause: ' || v_reopen_cause || ')';
 
     WHEN 'request_info' THEN
       IF NOT v_is_staff THEN
@@ -1765,6 +1889,57 @@ BEGIN
       v_closure := 'no_response'::public.ticket_closure_reason;
       v_audit_note := 'Closed automatically: no response from the requester';
 
+    WHEN 'verify_urgent' THEN
+      IF NOT v_is_staff THEN
+        RAISE EXCEPTION 'Only IT staff can verify urgency' USING ERRCODE = '42501';
+      END IF;
+      IF v_old_priority <> 'urgent'::public.ticket_priority THEN
+        RAISE EXCEPTION 'Only an urgent ticket can be verified' USING ERRCODE = '22023';
+      END IF;
+      IF v_old_status NOT IN ('open', 'in_progress', 'waiting_for_user', 'reopened') THEN
+        RAISE EXCEPTION 'Cannot verify urgency on a ticket in status "%"', v_old_status USING ERRCODE = '22023';
+      END IF;
+      v_target := v_old_status;
+      v_audit_note := 'Urgency verified by supervisor';
+
+    WHEN 'downgrade_urgent' THEN
+      IF NOT v_is_staff THEN
+        RAISE EXCEPTION 'Only IT staff can downgrade urgency' USING ERRCODE = '42501';
+      END IF;
+      IF v_old_priority <> 'urgent'::public.ticket_priority THEN
+        RAISE EXCEPTION 'Only an urgent ticket can be downgraded' USING ERRCODE = '22023';
+      END IF;
+      IF v_old_status NOT IN ('open', 'in_progress', 'waiting_for_user', 'reopened') THEN
+        RAISE EXCEPTION 'Cannot downgrade urgency on a ticket in status "%"', v_old_status USING ERRCODE = '22023';
+      END IF;
+      v_priority := 'medium'::public.ticket_priority;
+      v_target := v_old_status;
+      v_audit_note := 'Urgency downgraded: returned to the normal queue';
+
+    WHEN 'escalate' THEN
+      IF NOT v_is_staff THEN
+        RAISE EXCEPTION 'Only IT staff can escalate a ticket' USING ERRCODE = '42501';
+      END IF;
+      IF v_old_status NOT IN ('open', 'in_progress', 'waiting_for_user', 'reopened') THEN
+        RAISE EXCEPTION 'Cannot escalate a ticket in status "%"', v_old_status USING ERRCODE = '22023';
+      END IF;
+      IF v_reason IS NULL THEN
+        RAISE EXCEPTION 'An escalation reason is required.' USING ERRCODE = '22023';
+      END IF;
+      v_target := v_old_status;
+      v_audit_note := 'Escalated to supervisor: ' || v_reason;
+
+    WHEN 'cancel' THEN
+      IF NOT v_is_requester THEN
+        RAISE EXCEPTION 'Only the requester can cancel a request' USING ERRCODE = '42501';
+      END IF;
+      IF v_old_status NOT IN ('open', 'waiting_for_user') THEN
+        RAISE EXCEPTION 'Only Open or Awaiting Student requests can be cancelled' USING ERRCODE = '22023';
+      END IF;
+      v_target := 'closed'::public.ticket_status;
+      v_closure := 'cancelled_by_requester'::public.ticket_closure_reason;
+      v_audit_note := 'Cancelled by requester';
+
     ELSE
       RAISE EXCEPTION 'Unknown ticket action "%"', p_action USING ERRCODE = '22023';
   END CASE;
@@ -1785,7 +1960,19 @@ BEGIN
   UPDATE public.tickets t
   SET status = v_target,
       assigned_to = CASE WHEN p_action = 'assign' THEN v_assignee ELSE t.assigned_to END,
-      priority = CASE WHEN p_action = 'assign' AND v_priority IS NOT NULL THEN v_priority ELSE t.priority END,
+      priority = CASE
+        WHEN p_action = 'downgrade_urgent' THEN 'medium'::public.ticket_priority
+        WHEN p_action = 'assign' AND v_priority IS NOT NULL THEN v_priority
+        ELSE t.priority
+      END,
+      urgent_verified_at = CASE
+        WHEN p_action = 'verify_urgent' THEN now()
+        ELSE t.urgent_verified_at
+      END,
+      urgent_verified_by = CASE
+        WHEN p_action = 'verify_urgent' THEN v_actor
+        ELSE t.urgent_verified_by
+      END,
       resolved_at = CASE WHEN v_target = 'resolved' THEN now() ELSE t.resolved_at END,
       closed_at = CASE WHEN v_target = 'closed' THEN now() ELSE NULL END,
       closure_reason = v_closure,
@@ -1798,6 +1985,22 @@ BEGIN
       reopened_count = CASE
         WHEN p_action = 'report_still_broken' THEN t.reopened_count + 1
         ELSE t.reopened_count
+      END,
+      escalation_level = CASE
+        WHEN p_action = 'escalate' THEN t.escalation_level + 1
+        ELSE t.escalation_level
+      END,
+      escalated_at = CASE
+        WHEN p_action = 'escalate' THEN now()
+        ELSE t.escalated_at
+      END,
+      reopen_cause = CASE
+        WHEN p_action = 'acknowledge_reopen' THEN v_reopen_cause
+        ELSE t.reopen_cause
+      END,
+      reopen_cause_note = CASE
+        WHEN p_action = 'acknowledge_reopen' THEN v_reopen_cause_note
+        ELSE t.reopen_cause_note
       END,
       awaiting_student_since = CASE
         WHEN v_target = 'waiting_for_user' THEN now()
@@ -1921,8 +2124,23 @@ BEGIN
       'ticket_rejected',
       'ticket_assigned',
       'ticket_reminder',
-      'ticket_escalated'
+      'ticket_escalated',
+      'ticket_urgent_verified',
+      'ticket_urgent_downgraded'
     );
+  END IF;
+  -- Add urgent notification types to existing databases.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'notification_type' AND e.enumlabel = 'ticket_urgent_verified'
+  ) THEN
+    ALTER TYPE public.notification_type ADD VALUE 'ticket_urgent_verified';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'notification_type' AND e.enumlabel = 'ticket_urgent_downgraded'
+  ) THEN
+    ALTER TYPE public.notification_type ADD VALUE 'ticket_urgent_downgraded';
   END IF;
 END $$;
 
@@ -1956,12 +2174,57 @@ CREATE POLICY "Users can mark their own notifications read" ON public.notificati
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
--- Clients may read their inbox and set read_at. Nothing else. Rows are only
--- created by the transition trigger (SECURITY DEFINER), so a user cannot forge
--- a notification.
+-- Staff may create in-app notifications (e.g. urgent verification/downgrade,
+-- escalation alerts). The trigger still creates most notifications; this policy
+-- covers staff-initiated ones that the trigger does not handle.
+CREATE POLICY "Staff can create notifications" ON public.notifications
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('it_staff', 'admin', 'manager')
+    )
+  );
+
+-- Clients may read their inbox and set read_at. Nothing else.
 REVOKE ALL ON TABLE public.notifications FROM authenticated;
 GRANT SELECT ON TABLE public.notifications TO authenticated;
 GRANT UPDATE (read_at) ON TABLE public.notifications TO authenticated;
+GRANT INSERT (user_id, ticket_id, type, title, body) ON TABLE public.notifications TO authenticated;
+
+-- Notification delivery log: one row per channel attempt per notification.
+-- Email delivery is attempted outside the transaction that writes the ticket,
+-- so a failed email never blocks a status change. in_app rows are written by
+-- the transition trigger inside the same transaction.
+CREATE TABLE IF NOT EXISTS public.notification_delivery (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  notification_id UUID NOT NULL REFERENCES public.notifications(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL CHECK (channel IN ('in_app', 'email')),
+  status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'pending')),
+  error TEXT,
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_delivery_notification
+  ON public.notification_delivery(notification_id, channel);
+
+ALTER TABLE public.notification_delivery ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT ON TABLE public.notification_delivery TO authenticated;
+
+-- Delivery records are visible to the notification's recipient only.
+DROP POLICY IF EXISTS "Users can view delivery records for their notifications" ON public.notification_delivery;
+CREATE POLICY "Users can view delivery records for their notifications" ON public.notification_delivery
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.notifications n
+      WHERE n.id = notification_delivery.notification_id
+        AND n.user_id = auth.uid()
+    )
+  );
 
 -- ---------------------------------------------------------------------------
 -- 2. SLA clock + cycle counter
@@ -2338,6 +2601,20 @@ CREATE INDEX IF NOT EXISTS idx_profiles_supervisors
   WHERE staff_title = 'supervisor';
 
 -- ---------------------------------------------------------------------------
+-- 3. Privacy: consent at sign-up and soft deactivation
+-- ---------------------------------------------------------------------------
+-- When the requester accepted the Privacy Notice (privacy_consent_version
+-- records which version was accepted, so the university can change the
+-- notice and re-request consent later).
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS privacy_consent_at TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS privacy_consent_version TEXT;
+-- Soft deactivation: accounts are deactivated, never deleted. Retention period
+-- is to be set by UPHSD (documented as TBD).
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_deactivated BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_profiles_deactivated ON public.profiles(is_deactivated);
+
+-- ---------------------------------------------------------------------------
 -- 2. SLA + triage columns
 -- ---------------------------------------------------------------------------
 
@@ -2348,6 +2625,10 @@ ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS escalation_level INTEGER NOT NULL DEFAULT 0;
 -- Why the requester said this is urgent (required for the urgent path).
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS priority_justification TEXT;
+-- When a supervisor verified the urgent flag (NULL = not yet verified).
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS urgent_verified_at TIMESTAMPTZ;
+-- The supervisor who verified urgency.
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS urgent_verified_by UUID REFERENCES public.profiles(id);
 -- student vs employee, so the two populations can be reported separately.
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS requester_pool TEXT;
 
@@ -2427,14 +2708,14 @@ BEGIN
   NEW.response_due_at := CASE NEW.priority
     WHEN 'urgent' THEN v_start + INTERVAL '4 hours'
     WHEN 'high'   THEN public.add_business_days(v_start, 1)
-    WHEN 'normal' THEN public.add_business_days(v_start, 2)
+    WHEN 'medium' THEN public.add_business_days(v_start, 2)
     ELSE               public.add_business_days(v_start, 3)
   END;
 
   NEW.resolve_due_at := CASE NEW.priority
     WHEN 'urgent' THEN public.add_business_days(v_start, 1)
     WHEN 'high'   THEN public.add_business_days(v_start, 3)
-    WHEN 'normal' THEN public.add_business_days(v_start, 5)
+    WHEN 'medium' THEN public.add_business_days(v_start, 5)
     ELSE               public.add_business_days(v_start, 7)
   END;
 
@@ -2593,3 +2874,146 @@ GRANT EXECUTE ON FUNCTION public.run_sla_escalation(TIMESTAMPTZ) TO service_role
 -- Safe to re-run.
 
 ALTER TYPE public.ticket_closure_reason ADD VALUE IF NOT EXISTS 'administrative_closure';
+
+-- ---------------------------------------------------------------------------
+-- System-wide audit log (append-only).
+--
+-- Records security-relevant and administrative events beyond ticket status
+-- changes: role changes, user deactivation, imports, SLA/settings changes,
+-- on-call changes, manual escalations, urgent verification.
+--
+-- Rows are inserted only via a SECURITY DEFINER function (or server action),
+-- never directly by clients. RLS allows admin/manager SELECT only; no
+-- UPDATE/DELETE is permitted by any role.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.audit_log (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  actor_id UUID REFERENCES public.profiles(id),
+  actor_role public.user_role,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id UUID,
+  details JSONB DEFAULT '{}'::jsonb,
+  ip_address TEXT
+);
+
+ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON public.audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON public.audit_log(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_action ON public.audit_log(action);
+
+-- Only admins and managers can read the audit log.
+DROP POLICY IF EXISTS "Admins and managers can read audit log" ON public.audit_log;
+CREATE POLICY "Admins and managers can read audit log" ON public.audit_log
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('admin', 'manager')
+    )
+  );
+
+-- No one can insert, update, or delete audit rows directly. Writes go through
+-- the write_audit_log() SECURITY DEFINER function.
+REVOKE ALL ON TABLE public.audit_log FROM authenticated;
+REVOKE ALL ON TABLE public.audit_log FROM anon;
+
+-- SECURITY DEFINER function to write audit entries. Called by server actions.
+CREATE OR REPLACE FUNCTION public.write_audit_log(
+  p_action TEXT,
+  p_target_type TEXT,
+  p_target_id UUID,
+  p_details JSONB DEFAULT '{}'::jsonb,
+  p_ip_address TEXT DEFAULT NULL
+) RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_actor_id UUID;
+  v_actor_role public.user_role;
+BEGIN
+  SELECT p.id, p.role INTO v_actor_id, v_actor_role
+  FROM public.profiles p
+  WHERE p.id = auth.uid();
+
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
+  END IF;
+
+  INSERT INTO public.audit_log
+    (actor_id, actor_role, action, target_type, target_id, details, ip_address)
+  VALUES
+    (v_actor_id, v_actor_role, p_action, p_target_type, p_target_id, p_details, p_ip_address)
+  RETURNING id INTO v_actor_id;
+
+  RETURN v_actor_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.write_audit_log(text, text, uuid, jsonb, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.write_audit_log(text, text, uuid, jsonb, text) TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- SLA policies: configurable targets per priority, editable by admin.
+-- Code reads this table and falls back to the constants in utils/tickets/sla.ts
+-- when rows are missing. Existing tickets' due dates are NOT recalculated.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.sla_policies (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  priority public.ticket_priority NOT NULL UNIQUE,
+  response_minutes INTEGER NOT NULL CHECK (response_minutes > 0),
+  resolution_minutes INTEGER NOT NULL CHECK (resolution_minutes > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.sla_policies ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_sla_policies_priority ON public.sla_policies(priority);
+
+-- Everyone can read; only admin/manager can write.
+DROP POLICY IF EXISTS "Authenticated users can read SLA policies" ON public.sla_policies;
+CREATE POLICY "Authenticated users can read SLA policies" ON public.sla_policies
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admin/manager can write SLA policies" ON public.sla_policies;
+CREATE POLICY "Admin/manager can write SLA policies" ON public.sla_policies
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('admin', 'manager')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('admin', 'manager')
+    )
+  );
+
+-- Seed from current constants.
+INSERT INTO public.sla_policies (priority, response_minutes, resolution_minutes) VALUES
+  ('urgent', 240, 1440),
+  ('high', 1440, 4320),
+  ('medium', 2880, 7200),
+  ('low', 4320, 10080)
+ON CONFLICT (priority) DO NOTHING;
+
+-- Keep updated_at fresh.
+DROP TRIGGER IF EXISTS trg_sla_policies_updated_at ON public.sla_policies;
+CREATE TRIGGER trg_sla_policies_updated_at
+  BEFORE UPDATE ON public.sla_policies
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+GRANT SELECT ON public.sla_policies TO anon, authenticated;

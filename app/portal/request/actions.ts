@@ -37,8 +37,8 @@ export async function submitRequest(formData: FormData) {
   const categoryId = formData.get("category_id") as string;
   const subject = formData.get("subject") as string;
   const description = formData.get("description") as string;
-  const priorityInput = (formData.get("priority") as string) || "normal";
-  const priority = isTicketPriority(priorityInput) ? priorityInput : "normal";
+  const priorityInput = (formData.get("priority") as string) || "medium";
+  const priority = isTicketPriority(priorityInput) ? priorityInput : "medium";
   const urgentReason = ((formData.get("urgent_reason") as string) || "").trim();
   const urgentAcknowledged = formData.get("urgent_ack") === "on";
 
@@ -144,4 +144,56 @@ export async function submitRequest(formData: FormData) {
   }
 
   redirect(`/portal/tickets/${data.id}`);
+}
+
+/**
+ * Non-blocking duplicate check: returns true when the signed-in requester
+ * already has an open ticket for the same service+category in the last 24h.
+ * Used to warn (not prevent) submission. Always filtered by requester_id so a
+ * caller can only probe their own tickets.
+ */
+export async function checkDuplicateTicket(
+  serviceId: string,
+  categoryId: string,
+): Promise<{ duplicate: boolean; ticketNumber?: string }> {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { duplicate: false };
+  }
+
+  const twentyFourHoursAgo = new Date(
+    Date.now() - 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  let data;
+  try {
+    const result = await supabase
+      .from("tickets")
+      .select("ticket_number, status")
+      .eq("requester_id", user.id)
+      .eq("service_id", serviceId)
+      .eq("category_id", categoryId)
+      .in("status", ["open", "in_progress", "reopened", "waiting_for_user"])
+      .gte("created_at", twentyFourHoursAgo)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    data = result.data;
+  } catch {
+    // Advisory-only: a transient DB error must not block submission.
+    return { duplicate: false };
+  }
+
+  if (!data || data.length === 0) {
+    return { duplicate: false };
+  }
+
+  return {
+    duplicate: true,
+    ticketNumber: data[0].ticket_number,
+  };
 }

@@ -49,5 +49,12 @@
     "vitest": "^2.1.0",
     "wrangler": "^4.126.0"
   },
-  "type": "module"
+  "type": "module",
+  "allowScripts": {
+    "@electric-sql/pglite@0.5.16": true,
+    "esbuild@0.28.1": true,
+    "esbuild@0.21.5": true,
+    "workerd@1.20260825.1": true,
+    "unrs-resolver@1.12.2": true
+  }
 }

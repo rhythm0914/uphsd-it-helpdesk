@@ -68,7 +68,7 @@ export default async function ITQueuePage({
         return "text-red-600 font-medium";
       case "high":
         return "text-orange-600 font-medium";
-      case "normal":
+      case "medium":
         return "text-foreground";
       case "low":
         return "text-foreground/60";
@@ -114,7 +114,7 @@ export default async function ITQueuePage({
           >
             <option value="all">All Priorities</option>
             <option value="low">Low</option>
-            <option value="normal">Normal</option>
+            <option value="medium">Medium</option>
             <option value="high">High</option>
             <option value="urgent">Urgent</option>
           </select>

@@ -20,6 +20,8 @@ import {
   BUSINESS_DAY_MINUTES,
   nextBusinessStart,
 } from "@/utils/business-hours";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import type { TicketPriority } from "@/utils/tickets/constants";
 
 export type SlaDelay =
@@ -32,6 +34,8 @@ export interface SlaTarget {
   resolve: SlaDelay;
 }
 
+/** Fallback targets from the brief. Used when the database table is missing
+ *  rows or is unreachable. Kept as the single source of defaults. */
 export const SLA_TARGETS: Record<TicketPriority, SlaTarget> = {
   urgent: {
     response: { kind: "hours", hours: 4 },
@@ -41,7 +45,7 @@ export const SLA_TARGETS: Record<TicketPriority, SlaTarget> = {
     response: { kind: "businessDays", days: 1 },
     resolve: { kind: "businessDays", days: 3 },
   },
-  normal: {
+  medium: {
     response: { kind: "businessDays", days: 2 },
     resolve: { kind: "businessDays", days: 5 },
   },
@@ -50,6 +54,43 @@ export const SLA_TARGETS: Record<TicketPriority, SlaTarget> = {
     resolve: { kind: "businessDays", days: 7 },
   },
 };
+
+/** Cache for DB-backed targets so a single page load doesn't hit the table
+ *  once per ticket. Null = not yet loaded; empty object = table exists but
+ *  has no rows (use constants). */
+let _dbTargets: Record<TicketPriority, SlaTarget> | null | undefined = undefined;
+
+/** Reads SLA targets from public.sla_policies, falling back to the constants
+ *  for any priority without a row. Never throws. */
+export async function getSlaTargets(): Promise<Record<TicketPriority, SlaTarget>> {
+  if (_dbTargets !== undefined) return _dbTargets;
+
+  try {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const { data } = await supabase
+      .from("sla_policies")
+      .select("priority, response_minutes, resolution_minutes");
+
+    const targets: Record<TicketPriority, SlaTarget> = { ...SLA_TARGETS };
+    for (const row of data || []) {
+      const priority = row.priority as TicketPriority;
+      const responseDays = row.response_minutes / (24 * 60);
+      const resolveDays = row.resolution_minutes / (24 * 60);
+      targets[priority] = {
+        response: { kind: "businessDays", days: responseDays },
+        resolve: { kind: "businessDays", days: resolveDays },
+      };
+    }
+    _dbTargets = targets;
+    return targets;
+  } catch {
+    // Table may not exist yet (migration not applied) or is unreachable.
+    _dbTargets = { ...SLA_TARGETS };
+    return _dbTargets;
+  }
+}
+
 
 /** The escalation clock for the urgent queue. */
 export const URGENT_RESPONSE_HOURS = 4;
@@ -79,7 +120,7 @@ export interface SlaDueDates {
 export function computeDueDates(priority: string, startedAt: Date): SlaDueDates {
   const target = SLA_TARGETS[(priority as TicketPriority) in SLA_TARGETS
     ? (priority as TicketPriority)
-    : "normal"];
+    : "medium"];
 
   return {
     responseDueAt: new Date(applyDelay(startedAt.getTime(), target.response)),
@@ -137,7 +178,7 @@ export const MINUTES_PER_BUSINESS_DAY = BUSINESS_DAY_MINUTES;
 export function describeResponseTarget(priority: string): string {
   const target = SLA_TARGETS[(priority as TicketPriority) in SLA_TARGETS
     ? (priority as TicketPriority)
-    : "normal"];
+    : "medium"];
 
   switch (target.response.kind) {
     case "hours":

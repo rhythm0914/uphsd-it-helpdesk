@@ -115,6 +115,20 @@ export default async function AdminDashboardPage() {
               <span className="font-medium">Archive & Export</span>
               <span className="text-foreground/60">→</span>
             </Link>
+            <Link
+              href="/portal/admin/audit-log"
+              className="flex items-center justify-between rounded-lg border border-border p-4 hover:border-brand-primary transition-colors"
+            >
+              <span className="font-medium">Audit Log</span>
+              <span className="text-foreground/60">→</span>
+            </Link>
+            <Link
+              href="/portal/admin/sla-policies"
+              className="flex items-center justify-between rounded-lg border border-border p-4 hover:border-brand-primary transition-colors"
+            >
+              <span className="font-medium">SLA Policies</span>
+              <span className="text-foreground/60">→</span>
+            </Link>
           </div>
         </div>
 

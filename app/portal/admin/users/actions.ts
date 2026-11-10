@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Database } from "@/types/database";
+import { writeAuditLog } from "@/utils/audit/server";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -140,6 +141,13 @@ export async function updateUser(formData: FormData) {
   if (roleError) {
     return { error: roleError.message };
   }
+
+  await writeAuditLog({
+    action: "change_user_role",
+    targetType: "profile",
+    targetId: userId,
+    details: { new_role: role },
+  });
 
   // Non-privileged profile fields are updated through the normal (RLS- and
   // column-grant-constrained) path.

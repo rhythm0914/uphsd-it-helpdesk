@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { submitRequest } from "./actions";
+import { submitRequest, checkDuplicateTicket } from "./actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ServiceCategoryOption } from "@/types/database";
 
@@ -16,10 +16,13 @@ export function RequestForm({
 }) {
   const [selectedService, setSelectedService] = useState("");
   const [loadedService, setLoadedService] = useState("");
-  const [priority, setPriority] = useState("normal");
+  const [priority, setPriority] = useState("medium");
   const [urgentAcknowledged, setUrgentAcknowledged] = useState(false);
   const [categories, setCategories] = useState<ServiceCategoryOption[]>([]);
   const [categoriesError, setCategoriesError] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    ticketNumber: string;
+  } | null>(null);
 
   // Derived loading state: a service is selected but its categories have not
   // finished loading yet. This avoids setting state synchronously inside the
@@ -62,7 +65,30 @@ export function RequestForm({
       setCategories([]);
       setCategoriesError(false);
       setLoadedService("");
+      setDuplicateWarning(null);
     }
+  }
+
+  /** Check for a recent open ticket with the same service+category (non-blocking). */
+  async function checkDuplicate(serviceId: string, categoryId: string) {
+    if (!serviceId || !categoryId) {
+      setDuplicateWarning(null);
+      return;
+    }
+    setDuplicateWarning(null);
+    try {
+      const result = await checkDuplicateTicket(serviceId, categoryId);
+      if (result.duplicate) {
+        setDuplicateWarning({ ticketNumber: result.ticketNumber ?? "" });
+      }
+    } catch {
+      // Silent failure: duplicate warning is advisory only.
+    }
+  }
+
+  // Re-check when a category is chosen.
+  function handleCategoryChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    void checkDuplicate(selectedService, e.target.value);
   }
 
   return (
@@ -85,6 +111,16 @@ export function RequestForm({
 
       {!hasLoadError && !isEmpty && (
         <div className="rounded-2xl border border-border bg-background p-6 space-y-6">
+          {duplicateWarning && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm text-amber-700">
+                You already have an open request
+                <span className="font-mono">{duplicateWarning.ticketNumber}</span>
+                for this service and category. Submitting again may create a duplicate.
+              </p>
+            </div>
+          )}
+
           <div>
             <label htmlFor="service_id" className="block text-sm font-medium mb-2">
               Service <span className="text-brand-primary">*</span>
@@ -115,6 +151,7 @@ export function RequestForm({
               name="category_id"
               required
               disabled={!selectedService || categoriesLoading}
+              onChange={handleCategoryChange}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">
@@ -181,7 +218,7 @@ export function RequestForm({
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
             >
               <option value="low">Low</option>
-              <option value="normal">Normal</option>
+              <option value="medium">Medium</option>
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>

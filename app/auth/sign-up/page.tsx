@@ -116,6 +116,24 @@ export default async function SignUpPage({
             />
           </div>
 
+          <div className="flex items-start gap-2 mb-4">
+            <input
+              id="privacyConsent"
+              name="privacyConsent"
+              type="checkbox"
+              required
+              className="w-4 h-4 rounded border-border bg-background text-brand-primary focus:ring-brand-primary mt-0.5"
+            />
+            <label htmlFor="privacyConsent" className="text-sm text-foreground/60 leading-none">
+              I have read and agree to the{" "}
+              <Link href="/privacy" className="font-medium underline hover:text-brand-primary">
+                Privacy Notice
+              </Link>
+              {" "}
+              and consent to UPHSD processing my personal data for IT support.
+            </label>
+          </div>
+
           <SubmitButton
             idleLabel="Create Account"
             pendingLabel="Creating Account…"

@@ -29,8 +29,10 @@ const VALID_PAYLOAD: Record<TicketAction, Record<string, unknown>> = {
   reject: { reason: "Duplicate of IT-2026-000042." },
   verify_fixed: { rating: 5 },
   report_still_broken: { reason: "The connection dropped again this morning." },
-  acknowledge_reopen: {},
+  acknowledge_reopen: { reopen_cause: "account_lockout" },
   close_no_response: {},
+  escalate: { reason: "Cannot resolve without vendor support." },
+  cancel: {},
 };
 
 const ACTORS: { label: string; actor: ActorContext; kind: "staff" | "requester" | "system" | null }[] = [

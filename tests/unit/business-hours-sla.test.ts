@@ -102,7 +102,7 @@ describe("SLA targets", () => {
     expect(SLA_TARGETS.urgent.response).toEqual({ kind: "hours", hours: 4 });
     expect(SLA_TARGETS.urgent.resolve).toEqual({ kind: "businessDays", days: 1 });
     expect(SLA_TARGETS.high.resolve).toEqual({ kind: "businessDays", days: 3 });
-    expect(SLA_TARGETS.normal.resolve).toEqual({ kind: "businessDays", days: 5 });
+    expect(SLA_TARGETS.medium.resolve).toEqual({ kind: "businessDays", days: 5 });
     expect(URGENT_RESPONSE_HOURS).toBe(4);
   });
 
@@ -113,17 +113,17 @@ describe("SLA targets", () => {
     expect(responseDueAt.toISOString()).toBe("2026-11-06T12:00:00.000Z");
   });
 
-  it("moves normal requests across the weekend", () => {
+  it("moves medium requests across the weekend", () => {
     const friday10 = new Date(utc("2026-11-06T02:00:00Z"));
-    const { responseDueAt, resolveDueAt } = computeDueDates("normal", friday10);
+    const { responseDueAt, resolveDueAt } = computeDueDates("medium", friday10);
     // 2 business days: Tue 10:00; 5 business days: Fri 10:00.
     expect(responseDueAt.toISOString()).toBe("2026-11-10T02:00:00.000Z");
     expect(resolveDueAt.toISOString()).toBe("2026-11-13T02:00:00.000Z");
   });
 
-  it("falls back to normal for an unknown priority", () => {
+  it("falls back to medium for an unknown priority", () => {
     const start = new Date(utc("2026-11-09T02:00:00Z"));
-    expect(computeDueDates("nonsense", start)).toEqual(computeDueDates("normal", start));
+    expect(computeDueDates("nonsense", start)).toEqual(computeDueDates("medium", start));
   });
 });
 
@@ -149,6 +149,6 @@ describe("describeResponseTarget", () => {
   it("phrases each priority for the request form", () => {
     expect(describeResponseTarget("urgent")).toBe("within 4 hours");
     expect(describeResponseTarget("high")).toBe("within 1 business day");
-    expect(describeResponseTarget("normal")).toBe("within 2 business days");
+    expect(describeResponseTarget("medium")).toBe("within 2 business days");
   });
 });

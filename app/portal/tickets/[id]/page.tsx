@@ -104,7 +104,7 @@ export default async function TicketDetailPage({
         return "text-red-600 font-medium";
       case "high":
         return "text-orange-600 font-medium";
-      case "normal":
+      case "medium":
         return "text-foreground";
       case "low":
         return "text-foreground/60";

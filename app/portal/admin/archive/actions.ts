@@ -278,7 +278,7 @@ export async function downloadCsvTemplate() {
     "Email",
     "Cannot access email",
     "User reports inability to log in to university email",
-    "normal",
+    "medium",
     "open",
     "2026-08-27",
   ];

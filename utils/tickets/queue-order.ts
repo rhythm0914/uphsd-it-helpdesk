@@ -16,7 +16,7 @@ const STATUS_WEIGHT: Record<string, number> = {
 const PRIORITY_WEIGHT: Record<string, number> = {
   urgent: 0,
   high: 1,
-  normal: 2,
+  medium: 2,
   low: 3,
 };
 

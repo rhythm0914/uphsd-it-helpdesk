@@ -1,5 +1,5 @@
 import { getReports } from "./actions";
-import { statusBadgeClass, statusLabel } from "@/utils/tickets/constants";
+import { statusBadgeClass, statusLabel, closureReasonLabel } from "@/utils/tickets/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +25,28 @@ export default async function ReportsPage() {
           <p className="text-3xl font-semibold mt-2">{reports.avgResolutionTime} days</p>
         </div>
         <div className="rounded-2xl border border-border bg-background p-6">
+          <p className="text-sm text-foreground/60">Avg. First Response</p>
+          <p className="text-3xl font-semibold mt-2">{reports.avgFirstResponseHours} hrs</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-background p-6">
+          <p className="text-sm text-foreground/60">SLA Compliance</p>
+          <p className="text-3xl font-semibold mt-2">{reports.slaComplianceRate}%</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-background p-6">
           <p className="text-sm text-foreground/60">Open Tickets</p>
           <p className="text-3xl font-semibold mt-2">{reports.ticketsByStatus.open || 0}</p>
         </div>
         <div className="rounded-2xl border border-border bg-background p-6">
           <p className="text-sm text-foreground/60">Resolved Tickets</p>
           <p className="text-3xl font-semibold mt-2">{reports.ticketsByStatus.resolved || 0}</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-background p-6">
+          <p className="text-sm text-foreground/60">Total Escalations</p>
+          <p className="text-3xl font-semibold mt-2">{reports.totalEscalations}</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-background p-6">
+          <p className="text-sm text-foreground/60">Avg. Satisfaction</p>
+          <p className="text-3xl font-semibold mt-2">{reports.avgRating} / 5</p>
         </div>
       </div>
 
@@ -59,6 +75,20 @@ export default async function ReportsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-background p-6">
+        <h2 className="text-lg font-semibold mb-4">Tickets by Closure Type</h2>
+        <div className="space-y-3">
+          {Object.entries(reports.ticketsByClosureType).map(([closureType, count]) => (
+            <div key={closureType} className="flex items-center justify-between">
+              <span className="text-sm font-medium capitalize">
+                {closureReasonLabel(closureType)}
+              </span>
+              <span className="text-sm font-medium">{count as number}</span>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -43,3 +43,17 @@ jobs:
       # cannot quietly stop checking anything.
       - name: Verify migrations and SQL behaviour
         run: npm run verify:sql && npm run verify:sql -- --mutation-test
+
+      # Playwright E2E tests against a seeded Supabase project. Requires
+      # E2E_STUDENT_A_EMAIL/PASSWORD, E2E_STUDENT_B_EMAIL/PASSWORD and
+      # E2E_STAFF_EMAIL/PASSWORD secrets plus a seeded database.
+      - name: End-to-end tests
+        run: npm run test:e2e
+        env:
+          E2E_STUDENT_A_EMAIL: ${{ secrets.E2E_STUDENT_A_EMAIL }}
+          E2E_STUDENT_A_PASSWORD: ${{ secrets.E2E_STUDENT_A_PASSWORD }}
+          E2E_STUDENT_B_EMAIL: ${{ secrets.E2E_STUDENT_B_EMAIL }}
+          E2E_STUDENT_B_PASSWORD: ${{ secrets.E2E_STUDENT_B_PASSWORD }}
+          E2E_STAFF_EMAIL: ${{ secrets.E2E_STAFF_EMAIL }}
+          E2E_STAFF_PASSWORD: ${{ secrets.E2E_STAFF_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: http://localhost:3000

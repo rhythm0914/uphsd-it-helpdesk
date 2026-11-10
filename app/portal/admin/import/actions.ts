@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { generateTicketNumber } from "@/utils/ticket-number";
 import type { Database } from "@/types/database";
-import { TICKET_PRIORITIES, TICKET_STATUSES } from "@/utils/tickets/constants";
+import { TICKET_PRIORITIES, TICKET_STATUSES, normalizePriority } from "@/utils/tickets/constants";
+import { writeAuditLog } from "@/utils/audit/server";
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -31,7 +32,7 @@ function validateRow(row: Record<string, unknown>) {
   const category = normalizeString(row.category);
   const subject = normalizeString(row.subject);
   const description = normalizeString(row.description);
-  const priority = normalizeString(row.priority).toLowerCase();
+  const priority = normalizePriority(normalizeString(row.priority).toLowerCase());
   const status = normalizeString(row.status).toLowerCase();
   const createdAt = normalizeString(row.created_at);
 
@@ -325,7 +326,7 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
     const categoryName = normalizeString(row.category).toLowerCase();
     const subject = normalizeString(row.subject);
     const description = normalizeString(row.description);
-    const priority = normalizeString(row.priority).toLowerCase();
+    const priority = normalizePriority(normalizeString(row.priority).toLowerCase());
     const status = normalizeString(row.status).toLowerCase();
     const createdAt = normalizeString(row.created_at);
 
@@ -382,6 +383,19 @@ export async function confirmImport(validRows: Record<string, unknown>[]) {
     error_report: errors.length > 0 ? errors.join("\n") : null,
   });
 
+  await writeAuditLog({
+    action: "import_tickets",
+    targetType: "import",
+    targetId: undefined,
+    details: {
+      filename,
+      imported,
+      duplicates,
+      rejected,
+      total: validRows.length,
+    },
+  });
+
   if (auditError) {
     return {
       success: true,
@@ -417,7 +431,7 @@ export async function downloadCsvTemplate() {
     "Email",
     "Cannot access email",
     "User reports inability to log in to university email",
-    "normal",
+    "medium",
     "open",
     "2026-08-27",
   ];

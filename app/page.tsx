@@ -94,12 +94,12 @@ const faqItems = [
   {
     question: "How do I track my request?",
     answer:
-      "Open Track in the portal and enter your Request ID, or pick the request from the list of your recent submissions. You will see its current status, the conversation, and every status change.",
+      "Sign in, then open Track in the portal and enter your Request ID, or pick the request from your recent submissions. Tracking requires login so only you and the IT team can see your request. You will see its current status, the conversation, and every status change.",
   },
   {
     question: "What happens when IT marks my request resolved?",
     answer:
-      "You are asked to confirm the outcome: choose \"Fix works\" to close it as Verified Fixed and leave a 1-5 rating, or \"Still broken\" to explain what is wrong. IT staff cannot close a request themselves.",
+      "You are asked to confirm the outcome: choose \"Fix works\" to close it as Verified Fixed and leave a 1-5 rating, or \"Still broken\" to explain what is wrong. IT staff cannot close a request themselves. If you do not respond, you get one reminder after 3 days and the request closes as No Response after 5 days — that close is not counted as a fix.",
   },
   {
     question: "What if the problem comes back?",
@@ -119,7 +119,7 @@ const faqItems = [
   {
     question: "What counts as urgent?",
     answer:
-      "Urgent means work, class, or an institutional deadline is blocked right now. Choosing Urgent asks you to state what is blocked, and the request is reviewed by a supervisor. Misusing it slows the queue for everyone.",
+      "Urgent means work, class, or an institutional deadline is blocked right now. Choosing Urgent asks you to state what is blocked, and the request is reviewed by a supervisor. Urgent requests alert the Supervisor and on-call staff immediately, 24/7. Misusing it slows the queue for everyone.",
   },
 ];
 
@@ -343,10 +343,10 @@ export default async function Home() {
                       <span className="text-xs font-medium text-foreground/50 uppercase tracking-wider">
                         Request Status
                       </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                        <ClockIcon width={12} height={12} />
-                        Resolved
-                      </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                          <ClockIcon width={12} height={12} />
+                          Resolved (pending your verification)
+                        </span>
                     </div>
                     <div className="space-y-3">
                       <div>

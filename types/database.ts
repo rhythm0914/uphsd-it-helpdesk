@@ -62,6 +62,9 @@ export interface Profile {
   avatar_url?: string | null;
   created_at?: string;
   updated_at?: string;
+  privacy_consent_at?: string | null;
+  privacy_consent_version?: string | null;
+  is_deactivated?: boolean;
 }
 
 /** Row shape of public.services. */

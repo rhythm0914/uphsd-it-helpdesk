@@ -141,15 +141,25 @@ export function closureReasonLabel(reason: string | null | undefined): string | 
 /* Priorities                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const TICKET_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
+export const TICKET_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
+
+/** Legacy priority value kept for backward compatibility when reading existing tickets. */
+export const LEGACY_PRIORITY_NORMAL = "normal";
 
 export const PRIORITY_LABELS: Record<TicketPriority, string> = {
   low: "Low",
-  normal: "Normal",
+  medium: "Medium",
   high: "High",
   urgent: "Urgent",
 };
+
+/** Maps any priority value (including legacy "normal") to a current TicketPriority. */
+export function normalizePriority(value: unknown): TicketPriority {
+  if (value === LEGACY_PRIORITY_NORMAL) return "medium";
+  if (isTicketPriority(value)) return value;
+  return "medium";
+}
 
 export function isTicketPriority(value: unknown): value is TicketPriority {
   return typeof value === "string" && (TICKET_PRIORITIES as readonly string[]).includes(value);
@@ -170,6 +180,10 @@ export const TICKET_ACTIONS = [
   "report_still_broken",
   "acknowledge_reopen",
   "close_no_response",
+  "verify_urgent",
+  "downgrade_urgent",
+  "escalate",
+  "cancel",
 ] as const;
 
 export type TicketAction = (typeof TICKET_ACTIONS)[number];
@@ -270,6 +284,30 @@ export const TICKET_TRANSITIONS: Record<TicketAction, TransitionSpec> = {
     from: ["resolved", "waiting_for_user"],
     to: "closed",
     actor: ["system"],
+    requires: [],
+  },
+  verify_urgent: {
+    from: ["open", "in_progress", "waiting_for_user", "reopened"],
+    to: "auto",
+    actor: ["staff"],
+    requires: [],
+  },
+  downgrade_urgent: {
+    from: ["open", "in_progress", "waiting_for_user", "reopened"],
+    to: "auto",
+    actor: ["staff"],
+    requires: [],
+  },
+  escalate: {
+    from: ["open", "in_progress", "waiting_for_user", "reopened"],
+    to: "auto",
+    actor: ["staff"],
+    requires: ["reason"],
+  },
+  cancel: {
+    from: ["open", "waiting_for_user"],
+    to: "closed",
+    actor: ["requester"],
     requires: [],
   },
 };

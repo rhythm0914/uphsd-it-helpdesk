@@ -39,9 +39,17 @@ const helper: {
   // Cron entry point (see triggers.crons in wrangler.jsonc). The reminder /
   // auto-close / escalation passes run inside Postgres; this only triggers
   // them with the service-role key, which is a Worker secret and never
-  // reaches the browser.
+  // reaches the browser. `scheduled()` is a Cloudflare Worker cron handler —
+  // it cannot be invoked via a public HTTP fetch route.
   async scheduled(_controller, env, ctx) {
     setWorkerEnv(env);
+
+    if (!env.RESEND_API_KEY) {
+      console.warn(
+        "[scheduled] RESEND_API_KEY is not configured — email delivery disabled; in-app notifications only.",
+      );
+    }
+
     ctx.waitUntil(
       runScheduledJobs(env as ScheduledEnv).catch((error) => {
         console.error("[scheduled] maintenance pass failed", error);

@@ -293,16 +293,45 @@ to Resolved with its original timestamp.
 
 ## Known gaps
 
-- **No email.** Every notification is in-app. The 3-day reminder and the
-  escalations are only visible when the user signs in.
-- **SLA targets are placeholders** (see the table above).
+- **Email is optional.** Reminders and escalations are in-app by default; email
+  delivery works only when `RESEND_API_KEY` is set as a Worker secret. Without it,
+  email is skipped with a warning and in-app only is used.
+- **SLA targets are unconfirmed placeholders.** They are now managed through
+  `public.sla_policies` (editable by admin in `/portal/admin/sla-policies`) with
+  code falling back to the built-in constants.
 - **The cron needs a secret.** `SUPABASE_SERVICE_ROLE_KEY` must be set on the
   Worker before the automation runs; until then `scheduled()` is a no-op.
 - **Only the local Postgres run is proven.**
   `schema.sql` and all migrations execute cleanly against real Postgres and the
-  22 behaviour checks pass (Phase 9). Still unproven is Supabase's own
-  environment: RLS enforcement as `authenticated`, PostgREST's handling of the
-  RPC, and any role or extension difference from the local run.
-- **No automated end-to-end test** of the workflow: the unit tests cover the
-  state machine, business hours and job rules, not a real browser session.
+  behaviour checks pass. Still unproven is Supabase's own environment: RLS
+  enforcement as `authenticated`, PostgREST's handling of the RPC, and any role
+  or extension difference from the local run.
+- **No automated end-to-end test** of the workflow: Playwright E2E tests exist
+  in `tests/e2e/` but require a seeded Supabase project and `E2E_*` secrets to
+  run. They are not yet executed in CI.
 - **On-call scheduling** is a boolean duty flag, not a roster with shifts.
+
+## Changes since the paper (Phases 15-16)
+
+- **Priorities** are `Urgent / High / Medium / Low` (was `normal` internally).
+- **Urgent handling**: supervisor verification/downgrade, on-call alert 24/7,
+  business-hours skip.
+- **Manual escalation**: any staff member can escalate to the supervisor with a
+  reason; audit-logged.
+- **Reopen diagnosis**: cause (wrong credentials, account lockout, account sync,
+  other + note) recorded when acknowledging a reopened ticket.
+- **KPI recording**: first-response time, SLA compliance rate, escalations,
+  reopens, satisfaction rating in the Supervisor report page.
+- **System-wide audit log** (`public.audit_log`): role changes, user
+  deactivation, imports, SLA changes, on-call changes, manual escalations, urgent
+  verification. Admin-only read page at `/portal/admin/audit-log`.
+- **AI knowledge base**: published articles matching the current workflow.
+- **Duplicate warning** on the request form (24h, same service/category,
+  non-blocking).
+- **Student cancel**: closes as `Cancelled by requester` while Open or Awaiting
+  Student.
+- **Privacy consent** checkbox at sign-up; accounts deactivated, not deleted.
+- **Password recovery**: Supabase Auth email flow only (no security questions),
+  non-enumerating responses, per-email/IP rate limiting, admin-assisted recovery.
+- **Closure type** derived view (`public.ticket_closure_types`): Verified Fixed /
+  No Response / Rejected / Cancelled by requester.

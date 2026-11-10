@@ -23,7 +23,6 @@ test.describe("Public authentication", () => {
     await page.goto("/auth/sign-up");
     await expect(page.locator("#fullName")).toBeVisible();
     await expect(page.locator("#email")).toBeVisible();
-    await expect(page.locator("#role")).toBeVisible();
     await expect(page.locator("#password")).toBeVisible();
     await expect(page.locator("#confirmPassword")).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toHaveText("Create Account");
@@ -33,7 +32,6 @@ test.describe("Public authentication", () => {
     await page.goto("/auth/sign-up");
     await page.fill("#fullName", "Test User");
     await page.fill("#email", "test@gmail.com");
-    await page.selectOption("#role", "student");
     await page.fill("#password", "password123");
     await page.fill("#confirmPassword", "password123");
     await page.click('button[type="submit"]');
@@ -44,7 +42,6 @@ test.describe("Public authentication", () => {
     await page.goto("/auth/sign-up");
     await page.fill("#fullName", "Test User");
     await page.fill("#email", "test@perpetual.edu.ph");
-    await page.selectOption("#role", "student");
     await page.fill("#password", "short");
     await page.fill("#confirmPassword", "short");
     await page.click('button[type="submit"]');
@@ -55,7 +52,6 @@ test.describe("Public authentication", () => {
     await page.goto("/auth/sign-up");
     await page.fill("#fullName", "Test User");
     await page.fill("#email", "test@perpetual.edu.ph");
-    await page.selectOption("#role", "student");
     await page.fill("#password", "password123");
     await page.fill("#confirmPassword", "differentpassword");
     await page.click('button[type="submit"]');

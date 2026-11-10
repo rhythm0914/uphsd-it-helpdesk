@@ -128,10 +128,23 @@ notifies the supervisor once.
 
 ## Notifications and automation
 
-There is **no email**. Every notification is in-app (`public.notifications`,
-inbox at `/portal/notifications`, unread count in the portal header). A trigger
-on `ticket_status_history` writes them inside the same transaction as the
+In-app notifications are the base channel (`public.notifications`, inbox at
+`/portal/notifications`, unread count in the portal header). A trigger on
+`ticket_status_history` writes them inside the same transaction as the
 transition, so "the requester was notified" is true rather than best-effort.
+
+**Email channel (optional).** Email delivery is available behind a
+provider-agnostic notifier interface (`utils/notifications/`). When
+`RESEND_API_KEY` is set as a Worker secret, the following transitions also send
+email: Resolved → verify request, 3-day reminder, Awaiting Student request,
+Rejection, Reopened (to technician), and Escalation/Urgent alerts (to
+Supervisor/on-call). Delivery attempts are logged in
+`public.notification_delivery` (channel, status, error). Email never blocks a
+ticket transition: if the key is missing or the provider fails, a warning is
+logged and in-app remains the only channel.
+
+**Without `RESEND_API_KEY`**, email is disabled with a console warning and the
+system is in-app only — exactly the behavior before this channel was added.
 
 An hourly cron (`triggers.crons = ["0 * * * *"]`) calls the `scheduled()` export
 in `cloudflare/worker-entry.ts`, which invokes two Postgres functions:
@@ -141,7 +154,8 @@ in `cloudflare/worker-entry.ts`, which invokes two Postgres functions:
 
 Both are `SECURITY DEFINER`, reject callers that are not `service_role`, run in
 one transaction, and are idempotent, so a replayed cron cannot double-close or
-double-notify.
+double-notify. `scheduled()` is a Cloudflare Worker cron handler and cannot be
+invoked via a public HTTP fetch route.
 
 **Cutover guard.** The no-response job ignores tickets whose waiting period began
 before `2026-11-11T00:00:00Z`. Phase 1 migrated every legacy staff-closed ticket
@@ -151,6 +165,9 @@ historical backlog.
 **Requires a secret.** `SUPABASE_SERVICE_ROLE_KEY` must be set on the Worker
 (`wrangler secret put SUPABASE_SERVICE_ROLE_KEY`). Without it `scheduled()`
 reports "skipped" and the site keeps working; the automation simply does not run.
+
+`RESEND_API_KEY` is optional (`wrangler secret put RESEND_API_KEY`). Without it,
+email notifications are skipped with a warning; in-app only is used.
 
 ---
 
@@ -241,7 +258,7 @@ need to see why a particular rule exists.
 | `npx tsc --noEmit` | Type check |
 | `npm test` | Vitest unit tests |
 | `npm run verify:sql` | Apply schema.sql to embedded Postgres and check behaviour |
-| `npm run test:e2e` | Playwright (auth smoke tests) |
+| `npm run test:e2e` | Playwright E2E tests against a seeded Supabase project |
 
 CI (`.github/workflows/ci.yml`) runs `npm ci` → lint → `build:vinext` → `tsc` →
 `npm test` → `npm run verify:sql`.
@@ -299,10 +316,59 @@ docs/
 
 ---
 
+## End-to-end tests
+
+Playwright E2E tests live in `tests/e2e/`. They exercise the full ticket
+workflow through the browser: sign-up, request submission, staff triage,
+verification, rejection, and data isolation.
+
+### Prerequisites
+
+The tests require a **seeded Supabase project** with:
+
+| User | Email | Role |
+|------|-------|------|
+| Student A | `E2E_STUDENT_A_EMAIL` | student |
+| Student B | `E2E_STUDENT_B_EMAIL` | student |
+| Staff | `E2E_STAFF_EMAIL` | it_staff / admin / manager |
+
+Plus active `services` and `ticket_categories` rows (the seed data inserted by
+`supabase/schema.sql` covers this).
+
+Set these environment variables before running:
+
+```bash
+export E2E_STUDENT_A_EMAIL=studentA@perpetual.edu.ph
+export E2E_STUDENT_A_PASSWORD=password123
+export E2E_STUDENT_B_EMAIL=studentB@perpetual.edu.ph
+export E2E_STUDENT_B_PASSWORD=password123
+export E2E_STAFF_EMAIL=staff@perpetual.edu.ph
+export E2E_STAFF_PASSWORD=password123
+```
+
+### Running
+
+```bash
+npm run test:e2e
+```
+
+This starts `npm run dev` and runs the Playwright suite against
+`http://localhost:3000`. Set `PLAYWRIGHT_BASE_URL` to test against a deployed
+preview or production URL instead.
+
+### CI
+
+The CI workflow (`.github/workflows/ci.yml`) runs the E2E tests when all six
+`E2E_*` secrets are configured. Without them, the E2E job is skipped.
+
 ## Known limitations
 
-- **No email delivery.** Reminders and escalations are in-app only.
-- **SLA targets are unconfirmed placeholders.**
+- **Email is optional.** Reminders and escalations are in-app by default; email
+  delivery works only when `RESEND_API_KEY` is set as a Worker secret. Without it,
+  email is skipped with a warning and in-app only is used.
+- **SLA targets are unconfirmed placeholders.** They can now be managed by
+  admins in the SLA Policies admin page (`/portal/admin/sla-policies`), stored
+  in `public.sla_policies`, with code falling back to the built-in constants.
 - **The cron needs `SUPABASE_SERVICE_ROLE_KEY`** to do anything.
 - **The SQL is reviewed, not proven.** It has not been executed against a live
   Postgres by an automated test.
@@ -312,4 +378,124 @@ docs/
 - The AI assistant is separate from the ticket workflow and never changes ticket
   state.
 
+## Changes since the paper
+
+The system has been aligned beyond the project paper in these areas (see
+`docs/PAPER_CORRECTIONS.md`):
+
+- **Priorities** are `Urgent / High / Medium / Low` (paper said "Normal"; code
+  used "normal" internally until Phase 15).
+- **Urgent handling** adds supervisor verification/downgrade, on-call alert
+  24/7, and business-hours skip.
+- **Manual escalation** lets any staff member escalate to the supervisor with a
+  reason; escalations are audit-logged.
+- **Reopen diagnosis** records the cause (wrong credentials, account lockout,
+  account sync, other) when a reopened ticket is acknowledged.
+- **KPI recording** adds first-response time, SLA compliance rate, escalations,
+  reopens, and satisfaction rating to the Supervisor report page.
+- **System-wide audit log** records role changes, user deactivation, imports,
+  SLA changes, on-call changes, manual escalations, and urgent verification.
+- **AI knowledge base** has published articles matching the current workflow.
+- **Duplicate warning** on the request form when the same user has an open
+  ticket with the same service/category in the last 24h (non-blocking).
+- **Student cancel** closes a request as `Cancelled by requester` while Open or
+  Awaiting Student.
+- **Privacy consent** checkbox at sign-up; accounts are deactivated, not deleted.
+- **Password recovery** uses Supabase Auth email flow only (no security
+  questions), with non-enumerating responses, per-email/IP rate limiting, and
+  admin-assisted recovery for lost mailboxes.
+- **Closure type** is exposed as a derived view (`public.ticket_closure_types`)
+  mapping status + closure_reason to Verified Fixed / No Response / Rejected /
+  Cancelled by requester.
+
 See `docs/CHANGELOG_ALIGNMENT.md` for the reasoning behind each decision.
+
+---
+
+## Deploy order (do not execute against production)
+
+1. **Backup** the existing Supabase project (`vrnkzglwzwojrxlpofss`) and export current `public.tickets`, `public.profiles`, `public.ticket_status_history`.
+2. **Apply `supabase/upgrade/add_enum_values.sql` on its own** to the staging Supabase project (must commit in its own transaction; Postgres cannot add an enum value and use it in the same transaction).
+3. **Apply `supabase/schema.sql`** (idempotent, safe to re-run).
+4. **Apply `supabase/upgrade/backfill_normal_to_medium.sql`** (converts existing `normal` tickets to `medium`; runs after schema.sql so `medium` is committed).
+5. **Run `npm run verify:sql`** against staging — all invariants must PASS.
+5. **Run `npm run verify:sql -- --mutation-test`** — the verifier corrupts three invariants on purpose and must fail, proving the checks cannot quietly stop checking anything.
+6. **Set Worker secrets** (never commit these):
+   - `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`
+   - `wrangler secret put RESEND_API_KEY` (optional; without it, email is skipped with a warning, in-app only)
+7. **Deploy the Worker:** `npm run build:vinext && npm run deploy:vinext`
+8. **Confirm cron trigger** is active in the Cloudflare dashboard (`0 * * * *`).
+9. **Supabase dashboard settings:**
+   - Authentication → Settings: Enable email confirmations (ON)
+   - Authentication → URL Configuration: Site URL and redirect URLs include `https://uphsd-it-helpdesk.rycanano.workers.dev/auth/callback`
+   - SMTP: configured if email notifications are desired
+10. **Smoke tests** (see below).
+
+## Manual smoke-test script
+
+Run these against the deployed URL after deploy. Each step should produce the
+stated result.
+
+### 1. Auth
+
+| Step | Expected result |
+|------|----------------|
+| Sign up with `studentA@perpetual.edu.ph` | Account created, redirect to sign-in with "check_email" message |
+| Sign up with `attacker@gmail.com` | Rejected with domain error |
+| Sign up with `user@perpetual.edu.ph.evil.com` | Rejected (exact domain match only) |
+| Leave the Privacy Notice checkbox unchecked | Rejected with consent error |
+| Sign in with confirmed credentials | Redirected to `/portal` |
+
+### 2. Ticket workflow (requester)
+
+| Step | Expected result |
+|------|----------------|
+| Submit a new request | Receives `IT-YYYY-NNNNNN` tracking number; status Open |
+| Track at `/portal/track` (requires sign-in) | Sees the request in the list |
+| IT marks resolved | Receives "Verify your request" in-app notification |
+| Choose "Fix works" + rating 1-5 | Ticket closes as Closed (Verified Fixed) |
+| Choose "Still broken" + reason | Ticket reopens with the same ID |
+
+### 3. Ticket workflow (staff)
+
+| Step | Expected result |
+|------|----------------|
+| Assign a technician | Ticket moves to Assigned / In Progress |
+| Resolve with a note | Ticket moves to Resolved (staff cannot close directly) |
+| Request more information | Ticket moves to Awaiting Student |
+| Reject with reason | Ticket moves to Rejected (terminal) |
+| Verify an urgent request | Urgency verified; supervisor notified |
+| Downgrade an urgent request | Returns to normal queue; requester notified |
+| Escalate a ticket with a reason | Escalation logged; supervisor notified |
+| Cancel a request (Open or Awaiting Student) | Ticket closes as Cancelled by requester |
+
+### 4. Automation (cron)
+
+| Step | Expected result |
+|------|----------------|
+| Wait for the hourly cron to fire | `run_no_response_job` sends reminders at 3 days, closes at 5 |
+| Replay the cron | No ticket is touched twice (idempotent) |
+| Worker logs | `[scheduled] maintenance pass completed: ...` |
+
+### 5. Email (if `RESEND_API_KEY` is configured)
+
+| Step | Expected result |
+|------|----------------|
+| Check `public.notification_delivery` | Rows with `channel = 'email'`, `status = 'sent'` |
+| Temporarily unset `RESEND_API_KEY` | Email skipped with warning; in-app only; transitions still work |
+
+### 6. Data isolation
+
+| Step | Expected result |
+|------|----------------|
+| Student A opens Student B's ticket by URL | "Ticket Not Found" |
+| Student A tracks Student B's ticket ID | "No request with that ID belongs to your account" |
+
+### 7. Admin
+
+| Step | Expected result |
+|------|----------------|
+| Open `/portal/admin/audit-log` | Lists role changes, imports, escalations, urgent verification |
+| Open `/portal/admin/sla-policies` | Lists priorities with response/resolution targets; editable |
+| Open `/portal/admin/reports` | Shows KPI cards: total tickets, avg resolution, first response, SLA compliance, escalations, reopens, avg rating |
+

@@ -158,14 +158,14 @@ WITH checks AS (
             CASE t.priority
               WHEN 'urgent' THEN t.sla_started_at + INTERVAL '4 hours'
               WHEN 'high'   THEN public.add_business_days(t.sla_started_at, 1)
-              WHEN 'normal' THEN public.add_business_days(t.sla_started_at, 2)
+              WHEN 'medium' THEN public.add_business_days(t.sla_started_at, 2)
               ELSE               public.add_business_days(t.sla_started_at, 3)
             END)
           OR t.resolve_due_at IS DISTINCT FROM (
             CASE t.priority
               WHEN 'urgent' THEN public.add_business_days(t.sla_started_at, 1)
               WHEN 'high'   THEN public.add_business_days(t.sla_started_at, 3)
-              WHEN 'normal' THEN public.add_business_days(t.sla_started_at, 5)
+              WHEN 'medium' THEN public.add_business_days(t.sla_started_at, 5)
               ELSE               public.add_business_days(t.sla_started_at, 7)
             END)
         )),

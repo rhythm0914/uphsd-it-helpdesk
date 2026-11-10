@@ -22,7 +22,7 @@ describe("sortQueueTickets", () => {
 
   it("orders by priority when status weight ties", () => {
     const rows = [
-      row("in_progress", "normal", "2026-11-10T10:00:00Z", "normal"),
+      row("in_progress", "medium", "2026-11-10T10:00:00Z", "medium"),
       row("in_progress", "urgent", "2026-11-01T10:00:00Z", "urgent"),
       row("in_progress", "high", "2026-11-05T10:00:00Z", "high"),
       row("in_progress", "low", "2026-11-09T10:00:00Z", "low"),
@@ -30,16 +30,16 @@ describe("sortQueueTickets", () => {
     expect(sortQueueTickets(rows).map((r) => r.id)).toEqual([
       "urgent",
       "high",
-      "normal",
+      "medium",
       "low",
     ]);
   });
 
   it("orders newest first when status and priority tie", () => {
     const rows = [
-      row("open", "normal", "2026-11-01T10:00:00Z", "old"),
-      row("open", "normal", "2026-11-10T10:00:00Z", "new"),
-      row("open", "normal", "2026-11-05T10:00:00Z", "mid"),
+      row("open", "medium", "2026-11-01T10:00:00Z", "old"),
+      row("open", "medium", "2026-11-10T10:00:00Z", "new"),
+      row("open", "medium", "2026-11-05T10:00:00Z", "mid"),
     ];
     expect(sortQueueTickets(rows).map((r) => r.id)).toEqual(["new", "mid", "old"]);
   });
@@ -56,9 +56,9 @@ describe("sortQueueTickets", () => {
 
   it("keeps unknown statuses and priorities deterministic and last", () => {
     const rows = [
-      row("mystery", "normal", "2026-11-10T10:00:00Z", "unknown-status"),
+      row("mystery", "medium", "2026-11-10T10:00:00Z", "unknown-status"),
       row("open", "mystery", "2026-11-09T10:00:00Z", "unknown-priority"),
-      row("open", "normal", "2026-11-08T10:00:00Z", "known"),
+      row("open", "medium", "2026-11-08T10:00:00Z", "known"),
     ];
     // Unknown statuses sort with the normal group; unknown priorities sort last.
     expect(sortQueueTickets(rows).map((r) => r.id)).toEqual([
@@ -76,7 +76,7 @@ describe("isPinned", () => {
   });
 
   it("does not pin ordinary tickets", () => {
-    expect(isPinned({ status: "open", priority: "normal", created_at: "" })).toBe(false);
+    expect(isPinned({ status: "open", priority: "medium", created_at: "" })).toBe(false);
     expect(isPinned({ status: "resolved", priority: "high", created_at: "" })).toBe(false);
   });
 });
