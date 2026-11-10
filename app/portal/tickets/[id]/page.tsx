@@ -4,6 +4,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { TicketReply } from "./ticket-reply";
+import { TicketVerification } from "./ticket-verification";
+import {
+  closureReasonLabel,
+  statusBadgeClass,
+  statusLabel,
+} from "@/utils/tickets/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -69,23 +75,6 @@ export default async function TicketDetailPage({
 
   const isWaitingForUser = ticket.status === "waiting_for_user";
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "in_progress":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "resolved":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "closed":
-        return "bg-gray-50 text-gray-700 border-gray-200";
-      case "waiting_for_user":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
@@ -119,8 +108,8 @@ export default async function TicketDetailPage({
               <span className="font-mono text-sm text-foreground/60">
                 {ticket.ticket_number}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                {ticket.status.replace(/_/g, " ")}
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>
+                {statusLabel(ticket.status)}
               </span>
             </div>
             <h1 className="text-2xl font-semibold">{ticket.subject}</h1>
@@ -159,6 +148,34 @@ export default async function TicketDetailPage({
             {ticket.description}
           </p>
         </div>
+
+        {ticket.status === "closed" && (
+          <div className="mb-8 rounded-lg border border-border bg-surface p-4">
+            <p className="text-sm font-medium">
+              Closed
+              {ticket.closure_reason
+                ? ` — ${closureReasonLabel(ticket.closure_reason)}`
+                : ""}
+            </p>
+            {ticket.closure_reason === "no_response" && (
+              <p className="mt-1 text-sm text-foreground/60">
+                This request was closed automatically after 5 days without a response. It is
+                not recorded as a verified fix.
+              </p>
+            )}
+          </div>
+        )}
+
+        {ticket.status === "rejected" && ticket.rejection_reason && (
+          <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-800">
+              This request was rejected
+            </p>
+            <p className="mt-1 text-sm text-red-700 whitespace-pre-wrap">
+              {ticket.rejection_reason}
+            </p>
+          </div>
+        )}
 
         {ticket.assigned_to_profile && (
           <div className="mb-8">
@@ -204,7 +221,9 @@ export default async function TicketDetailPage({
           )}
         </div>
 
-        {ticket.status !== "closed" && (
+        {ticket.status === "resolved" && <TicketVerification ticketId={ticket.id} />}
+
+        {ticket.status !== "closed" && ticket.status !== "rejected" && (
           <TicketReply ticketId={ticket.id} isWaitingForUser={isWaitingForUser} />
         )}
 
@@ -217,9 +236,8 @@ export default async function TicketDetailPage({
                   key={entry.id}
                   className="rounded-lg border border-border bg-background px-4 py-3 text-sm"
                 >
-                  <span className="font-medium text-foreground/60">
-                    {entry.old_status?.replace(/_/g, " ") || "—"} →{" "}
-                    {entry.new_status?.replace(/_/g, " ")}
+                  <span className="font-medium text-foreground/60">                      {statusLabel(entry.old_status, { short: true })} →{" "}
+                      {statusLabel(entry.new_status, { short: true })}
                   </span>
                   <span className="text-foreground/50">
                     {" "}

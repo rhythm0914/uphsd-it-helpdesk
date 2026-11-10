@@ -5,14 +5,17 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { generateTicketNumber } from "@/utils/ticket-number";
 import type { Database } from "@/types/database";
+import { TICKET_PRIORITIES, TICKET_STATUSES } from "@/utils/tickets/constants";
 
 async function getSupabase() {
   const cookieStore = await cookies();
   return createClient(cookieStore);
 }
 
-const ALLOWED_STATUSES = ["open", "in_progress", "waiting_for_user", "resolved", "closed"];
-const ALLOWED_PRIORITIES = ["low", "normal", "high", "urgent"];
+// Import validation reads the shared workflow lists so a CSV can never inject a
+// status the state machine does not know about.
+const ALLOWED_STATUSES: readonly string[] = TICKET_STATUSES;
+const ALLOWED_PRIORITIES: readonly string[] = TICKET_PRIORITIES;
 const MAX_SUBJECT_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 5000;
 

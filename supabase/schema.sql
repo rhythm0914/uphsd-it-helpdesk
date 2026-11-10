@@ -608,3 +608,27 @@ CREATE POLICY "Admins can view import audit records" ON public.imports
 -- System can insert import audit records
 CREATE POLICY "System can insert import audit records" ON public.imports
   FOR INSERT WITH CHECK (true);
+
+-- =====================================================================
+-- PHASE 1 WORKFLOW (BPMN alignment) — applied by migrations
+-- =====================================================================
+-- This base schema file is the Phase 3 baseline. The incremental changes that
+-- implement the BPMN ticket workflow are versioned migrations and MUST be
+-- applied after this file, in this order:
+--
+--   migrations/20261110_01_add_ticket_status_values.sql
+--     adds the `reopened` and `rejected` enum values to public.ticket_status.
+--
+--   migrations/20261110_02_phase1_ticket_state_machine.sql
+--     adds closure_reason / rejection_reason / rejection_category /
+--     reopened_count / resolved_at / awaiting_student_since, the
+--     public.ticket_closure_reason enum, public.ticket_feedback, structured
+--     audit columns (actor_role, reason), the single state-changing function
+--     public.transition_ticket(), and revokes direct client writes on
+--     tickets.status so the workflow cannot be bypassed.
+--
+-- Status identifiers are stored as: open, in_progress, waiting_for_user,
+-- resolved, closed, reopened, rejected. Their user-facing BPMN labels are
+-- defined once in utils/tickets/constants.ts ("Assigned / In Progress",
+-- "Awaiting Student", etc.).
+-- =====================================================================

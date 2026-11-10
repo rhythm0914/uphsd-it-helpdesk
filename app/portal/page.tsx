@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/utils/format-date";
+import { statusBadgeClass, statusLabel } from "@/utils/tickets/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -69,23 +70,6 @@ export default async function PortalPage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "in_progress":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "resolved":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "closed":
-        return "bg-gray-50 text-gray-700 border-gray-200";
-      case "waiting_for_user":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
@@ -127,7 +111,7 @@ export default async function PortalPage() {
           <p className="text-3xl font-semibold mt-2">{openCount || 0}</p>
         </div>
         <div className="rounded-2xl border border-border bg-background p-6">
-          <p className="text-sm text-foreground/60">In Progress</p>
+          <p className="text-sm text-foreground/60">Assigned / In Progress</p>
           <p className="text-3xl font-semibold mt-2">{inProgressCount || 0}</p>
         </div>
         <div className="rounded-2xl border border-border bg-background p-6">
@@ -153,8 +137,8 @@ export default async function PortalPage() {
                     <span className="font-mono text-sm text-foreground/60">
                       {ticket.ticket_number}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                      {ticket.status.replace(/_/g, " ")}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>
+                      {statusLabel(ticket.status, { short: true })}
                     </span>
                   </div>
                   <p className="mt-1 text-sm font-medium truncate">{ticket.subject}</p>

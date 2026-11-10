@@ -40,7 +40,13 @@ export async function getReports() {
     supabase.from("tickets").select("priority", { count: "exact" }).order("priority"),
     supabase.from("tickets").select("service_id", { count: "exact" }),
     supabase.from("tickets").select("created_at", { count: "exact" }).gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-    supabase.from("tickets").select("created_at, closed_at").eq("status", "closed"),
+    // Only verified fixes count toward resolution time. A "No Response" close is
+    // not a service success and must not be reported as one.
+    supabase
+      .from("tickets")
+      .select("created_at, closed_at, closure_reason")
+      .eq("status", "closed")
+      .eq("closure_reason", "verified_fixed"),
   ]);
 
   const ticketsByStatus: Record<string, number> = {};
@@ -65,16 +71,16 @@ export async function getReports() {
   });
 
   let avgResolutionTime = 0;
-  if (resolutionTimeResult.data && resolutionTimeResult.data.length > 0) {
-    const totalTime = resolutionTimeResult.data.reduce((sum: number, ticket) => {
-      if (ticket.closed_at) {
-        const created = new Date(ticket.created_at).getTime();
-        const closed = new Date(ticket.closed_at).getTime();
-        return sum + (closed - created);
-      }
-      return sum;
+  const verifiedFixes = (resolutionTimeResult.data || []).filter(
+    (ticket) => ticket.closed_at && ticket.closure_reason === "verified_fixed",
+  );
+  if (verifiedFixes.length > 0) {
+    const totalTime = verifiedFixes.reduce((sum: number, ticket) => {
+      const created = new Date(ticket.created_at).getTime();
+      const closed = new Date(ticket.closed_at as string).getTime();
+      return sum + (closed - created);
     }, 0);
-    avgResolutionTime = Math.round(totalTime / resolutionTimeResult.data.length / (1000 * 60 * 60 * 24));
+    avgResolutionTime = Math.round(totalTime / verifiedFixes.length / (1000 * 60 * 60 * 24));
   }
 
   return {

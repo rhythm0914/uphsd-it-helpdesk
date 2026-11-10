@@ -3,22 +3,22 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import {
-  isAllowedPriority,
-  isAllowedStatus,
-  isITStaffRole,
-  isTransitionAllowed,
-} from "./ticket-rules";
+import { isITStaff } from "@/utils/authorization";
+import { isTicketPriority } from "@/utils/tickets/constants";
+import { transitionTicket } from "@/app/portal/tickets/transition";
 
-// Refresh every surface that reflects ticket state after a successful
-// mutation: the queue list, the staff detail page, and the requester's
-// own ticket view. Called with the affected ticket id.
+// Staff-side ticket actions.
+//
+// Every state change delegates to transitionTicket(), which is the single
+// server-side transition entry point. This file never writes `tickets.status`
+// itself, and the database no longer grants clients that column, so the
+// workflow cannot be bypassed.
+
 function revalidateTicket(ticketId: string) {
   revalidatePath("/portal/queue");
   revalidatePath(`/portal/queue/${ticketId}`);
   revalidatePath(`/portal/tickets/${ticketId}`);
 }
-
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -27,10 +27,12 @@ async function getSupabase() {
 
 async function requireStaff() {
   const supabase = await getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return { supabase, user: null, error: "Unauthorized" as const };
+    return { supabase, user: null, role: null, error: "Unauthorized" as const };
   }
 
   const { data: profile } = await supabase
@@ -39,105 +41,94 @@ async function requireStaff() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || !isITStaffRole(profile.role)) {
-    return { supabase, user, error: "Forbidden" as const };
+  if (!profile || !isITStaff(profile.role)) {
+    return { supabase, user, role: null, error: "Forbidden" as const };
   }
 
-  return { supabase, user, error: null as "Forbidden" | null };
+  return { supabase, user, role: profile.role as string, error: null as "Forbidden" | null };
 }
 
-export async function assignTicket(ticketId: string, staffId: string) {
+/** Triage: assign a technician (and optionally set priority). */
+export async function assignTicket(ticketId: string, staffId: string, priority?: string) {
   const ctx = await requireStaff();
   if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  const { data: ticket } = await ctx.supabase
-    .from("tickets")
-    .select("status")
-    .eq("id", ticketId)
-    .single();
-
-  if (!ticket) return { error: "Ticket not found" };
-
-  // Assigning opens the ticket for work (open -> in_progress is the legal path).
-  if (!isTransitionAllowed(ticket.status, "in_progress")) {
-    return { error: `Cannot assign a ticket in status "${ticket.status}"` };
-  }
-
-  const { error } = await ctx.supabase
-    .from("tickets")
-    .update({
-      assigned_to: staffId,
-      status: "in_progress",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", ticketId);
-
-  if (error) return { error: error.message };
-
-  const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
-    ticket_id: ticketId,
-    old_status: ticket.status,
-    new_status: "in_progress",
-    changed_by: ctx.user.id,
-    notes: "Assigned to staff member",
+  const result = await transitionTicket(ticketId, "assign", {
+    assigned_to: staffId,
+    ...(priority ? { priority } : {}),
   });
 
-  if (histError) return { error: histError.message };
-
+  if (result.error) return { error: result.error };
   revalidateTicket(ticketId);
   return { success: true };
 }
 
-export async function updateTicketStatus(ticketId: string, status: string, notes?: string) {
+/** Staff action: mark the ticket Resolved (pending the requester's verification). */
+export async function resolveTicket(ticketId: string, resolutionNote: string) {
   const ctx = await requireStaff();
   if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  if (!isAllowedStatus(status)) {
-    return { error: "Invalid status value" };
-  }
-
-  const { data: ticket } = await ctx.supabase
-    .from("tickets")
-    .select("status")
-    .eq("id", ticketId)
-    .single();
-
-  if (!ticket) return { error: "Ticket not found" };
-
-  if (!isTransitionAllowed(ticket.status, status)) {
-    return { error: `Cannot change status from "${ticket.status}" to "${status}"` };
-  }
-
-  const { error } = await ctx.supabase
-    .from("tickets")
-    .update({
-      status: status,
-      updated_at: new Date().toISOString(),
-      ...(status === "closed" ? { closed_at: new Date().toISOString() } : {}),
-    })
-    .eq("id", ticketId);
-
-  if (error) return { error: error.message };
-
-  const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
-    ticket_id: ticketId,
-    old_status: ticket.status,
-    new_status: status,
-    changed_by: ctx.user.id,
-    notes: notes || `Status changed to ${status}`,
+  const result = await transitionTicket(ticketId, "resolve", {
+    resolution_note: resolutionNote,
   });
 
-  if (histError) return { error: histError.message };
-
+  if (result.error) return { error: result.error };
   revalidateTicket(ticketId);
-  return { success: true, status };
+  return { success: true };
 }
 
+/** Staff action: reject with a required reason. Terminal. */
+export async function rejectTicket(
+  ticketId: string,
+  rejectionCategory: string,
+  reason: string,
+) {
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
+
+  const result = await transitionTicket(ticketId, "reject", {
+    rejection_category: rejectionCategory,
+    reason,
+  });
+
+  if (result.error) return { error: result.error };
+  revalidateTicket(ticketId);
+  return { success: true };
+}
+
+/** Staff action: ask the requester for more information. */
+export async function requestMoreInfo(ticketId: string, message: string) {
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
+
+  const result = await transitionTicket(ticketId, "request_info", { message });
+
+  if (result.error) return { error: result.error };
+  revalidateTicket(ticketId);
+  return { success: true, status: result.status };
+}
+
+/** Staff action: acknowledge a reopened ticket and resume work. */
+export async function acknowledgeReopen(ticketId: string) {
+  const ctx = await requireStaff();
+  if (ctx.error || !ctx.user) return { error: ctx.error };
+
+  const result = await transitionTicket(ticketId, "acknowledge_reopen", {});
+
+  if (result.error) return { error: result.error };
+  revalidateTicket(ticketId);
+  return { success: true };
+}
+
+/**
+ * Priority is a triage attribute, not a workflow state, so it is updated
+ * directly. The database grants UPDATE only on this column set for staff.
+ */
 export async function updateTicketPriority(ticketId: string, priority: string) {
   const ctx = await requireStaff();
   if (ctx.error || !ctx.user) return { error: ctx.error };
 
-  if (!isAllowedPriority(priority)) {
+  if (!isTicketPriority(priority)) {
     return { error: "Invalid priority value" };
   }
 
@@ -151,10 +142,7 @@ export async function updateTicketPriority(ticketId: string, priority: string) {
 
   const { error } = await ctx.supabase
     .from("tickets")
-    .update({
-      priority: priority,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ priority, updated_at: new Date().toISOString() })
     .eq("id", ticketId);
 
   if (error) return { error: error.message };
@@ -163,7 +151,8 @@ export async function updateTicketPriority(ticketId: string, priority: string) {
   return { success: true };
 }
 
-export async function addWorkRemark(ticketId: string, message: string, isInternal: boolean = false) {
+/** Public reply or internal note. Not a state change. */
+export async function addWorkRemark(ticketId: string, message: string, isInternal = false) {
   const ctx = await requireStaff();
   if (ctx.error || !ctx.user) return { error: ctx.error };
 
@@ -171,7 +160,6 @@ export async function addWorkRemark(ticketId: string, message: string, isInterna
   if (!trimmed) return { error: "Message cannot be empty" };
   if (trimmed.length > 5000) return { error: "Message is too long" };
 
-  // Verify the ticket exists & is accessible to staff before inserting.
   const { data: ticket } = await ctx.supabase
     .from("tickets")
     .select("id")
@@ -192,61 +180,3 @@ export async function addWorkRemark(ticketId: string, message: string, isInterna
   revalidateTicket(ticketId);
   return { success: true };
 }
-
-export async function requestMoreInfo(ticketId: string, message: string) {
-  const ctx = await requireStaff();
-  if (ctx.error || !ctx.user) return { error: ctx.error };
-
-  const trimmed = (message || "").trim();
-  if (!trimmed) return { error: "Please describe what information you need" };
-  if (trimmed.length > 5000) return { error: "Message is too long" };
-
-  const { data: ticket } = await ctx.supabase
-    .from("tickets")
-    .select("status")
-    .eq("id", ticketId)
-    .single();
-
-  if (!ticket) return { error: "Ticket not found" };
-
-  const alreadyWaiting = ticket.status === "waiting_for_user";
-  if (!alreadyWaiting && !isTransitionAllowed(ticket.status, "waiting_for_user")) {
-    return { error: `Cannot set a ticket in status "${ticket.status}" to Waiting for User` };
-  }
-
-  // 1) The requester-visible information request message.
-  const { error: msgError } = await ctx.supabase.from("ticket_messages").insert({
-    ticket_id: ticketId,
-    sender_id: ctx.user.id,
-    message: trimmed,
-    is_internal: false,
-  });
-  if (msgError) return { error: msgError.message };
-
-  // 2) Move the ticket to WAITING_FOR_USER (unless it already is) + audit it.
-  if (!alreadyWaiting) {
-    const { error } = await ctx.supabase
-      .from("tickets")
-      .update({
-        status: "waiting_for_user",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", ticketId);
-
-    if (error) return { error: error.message };
-
-    const { error: histError } = await ctx.supabase.from("ticket_status_history").insert({
-      ticket_id: ticketId,
-      old_status: ticket.status,
-      new_status: "waiting_for_user",
-      changed_by: ctx.user.id,
-      notes: "Additional information requested from requester",
-    });
-
-    if (histError) return { error: histError.message };
-  }
-
-  revalidateTicket(ticketId);
-  return { success: true, status: "waiting_for_user" };
-}
-

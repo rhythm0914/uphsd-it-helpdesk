@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TicketManagement } from "../[id]/ticket-management";
 import { getITStaff } from "@/app/portal/queue/lib";
 import { formatDateTime } from "@/utils/format-date";
+import { statusBadgeClass, statusLabel } from "@/utils/tickets/constants";
 
 interface TicketStatusHistory {
   id: string;
@@ -109,23 +110,6 @@ export default async function ITQueueTicketPage({
 
   const { staff } = await getITStaff();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "in_progress":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "resolved":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "closed":
-        return "bg-gray-50 text-gray-700 border-gray-200";
-      case "waiting_for_user":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
@@ -161,8 +145,8 @@ export default async function ITQueueTicketPage({
                   <span className="font-mono text-sm text-foreground/60">
                     {ticket.ticket_number}
                   </span>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                    {ticket.status.replace(/_/g, " ")}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>
+                    {statusLabel(ticket.status)}
                   </span>
                 </div>
                 <h1 className="text-2xl font-semibold">{ticket.subject}</h1>
@@ -229,8 +213,8 @@ export default async function ITQueueTicketPage({
                 statusHistory.map((history: TicketStatusHistory) => (
                   <div key={history.id} className="flex gap-4">
                     <div className="flex-shrink-0">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(history.new_status)}`}>
-                        {history.new_status.replace(/_/g, " ")}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(history.new_status)}`}>
+                        {statusLabel(history.new_status)}
                       </span>
                     </div>
                     <div className="flex-1">

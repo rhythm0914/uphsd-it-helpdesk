@@ -247,7 +247,7 @@ export function ImportManagement() {
             <ul className="mt-2 text-sm text-foreground/70 space-y-1 list-disc list-inside">
               <li>Required columns: ticket_number, requester_email, service, category, subject, description, priority, status, created_at</li>
               <li>Priority must be one of: low, normal, high, urgent</li>
-              <li>Status must be one of: open, in_progress, waiting_for_user, resolved, closed</li>
+              <li>Status must be one of: open, in_progress, waiting_for_user, resolved, closed, reopened, rejected</li>
               <li>requester_email must match an existing profile email</li>
               <li>service and category must match existing active services/categories</li>
               <li>Maximum subject length: {MAX_SUBJECT_LENGTH} characters</li>

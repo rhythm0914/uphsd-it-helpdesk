@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/utils/format-date";
 import type { Service, TicketWithRelations } from "@/types/database";
+import {
+  TICKET_STATUSES,
+  TICKET_STATUS_SHORT_LABELS,
+  statusBadgeClass,
+  statusLabel,
+} from "@/utils/tickets/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -56,23 +62,6 @@ export default async function ITQueuePage({
   const ticketsError = ticketsResult.error;
   const services: Service[] = (servicesResult.services || []) as Service[];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "in_progress":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "resolved":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "closed":
-        return "bg-gray-50 text-gray-700 border-gray-200";
-      case "waiting_for_user":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
@@ -111,11 +100,11 @@ export default async function ITQueuePage({
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
           >
             <option value="all">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="waiting_for_user">Waiting for User</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
+            {TICKET_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {TICKET_STATUS_SHORT_LABELS[status]}
+              </option>
+            ))}
           </select>
 
           <select
@@ -202,8 +191,8 @@ export default async function ITQueuePage({
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                        {ticket.status.replace(/_/g, " ")}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>
+                        {statusLabel(ticket.status, { short: true })}
                       </span>
                     </td>
                     <td className="px-6 py-4">

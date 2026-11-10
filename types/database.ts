@@ -1,6 +1,14 @@
 // Shared domain types for the UPHSD IT Help Desk, mirroring the database
 // enums in supabase/schema.sql (user_role, ticket_status, ticket_priority)
-// and the workflow rules in app/portal/queue/ticket-rules.ts.
+// and the workflow rules in utils/tickets/constants.ts.
+import type {
+  ClosureReason,
+  TicketPriority,
+  TicketStatus,
+} from "@/utils/tickets/constants";
+
+export type { TicketStatus, TicketPriority, ClosureReason };
+
 export type UserRole = "student" | "employee" | "it_staff" | "admin" | "manager";
 
 /** Minimal stand-in for Supabase generated DB types (enum unions only). */
@@ -25,15 +33,6 @@ export const USER_ROLES: readonly UserRole[] = [
 export function isUserRole(value: unknown): value is UserRole {
   return typeof value === "string" && (USER_ROLES as readonly string[]).includes(value);
 }
-
-export type TicketStatus =
-  | "open"
-  | "in_progress"
-  | "waiting_for_user"
-  | "resolved"
-  | "closed";
-
-export type TicketPriority = "low" | "normal" | "high" | "urgent";
 
 /** Row shape of public.knowledge_articles (Phase 8 AI Assistant KB). */
 export interface KnowledgeArticle {
@@ -99,7 +98,29 @@ export interface Ticket {
   status: TicketStatus;
   created_at: string;
   updated_at: string;
+  /** Set when the technician marks the ticket Resolved. */
+  resolved_at: string | null;
+  /** Set only when the ticket is Closed. */
   closed_at: string | null;
+  /** Only set on Closed: why it was closed. */
+  closure_reason: ClosureReason | null;
+  /** Only set on Rejected. */
+  rejection_reason: string | null;
+  rejection_category: string | null;
+  /** Increments every time the requester chooses "Still broken". */
+  reopened_count: number;
+  /** Set while the ticket is Awaiting Student. */
+  awaiting_student_since: string | null;
+}
+
+/** Row shape of public.ticket_feedback (requester satisfaction rating). */
+export interface TicketFeedback {
+  id: string;
+  ticket_id: string;
+  requester_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
 }
 
 /** Shape of the /api/service-categories response items. */
@@ -139,7 +160,18 @@ export interface TicketWithRelations extends Omit<Ticket, "assigned_to"> {
 }
 
 /** Ticket list row restricted to the columns the archive/export code uses. */
-export type ArchivedTicket = Pick<Ticket, "id" | "ticket_number" | "subject" | "description" | "priority" | "status" | "created_at" | "updated_at" | "closed_at"> &
+export type ArchivedTicket = Pick<
+  Ticket,
+  | "id"
+  | "ticket_number"
+  | "subject"
+  | "description"
+  | "priority"
+  | "status"
+  | "created_at"
+  | "updated_at"
+  | "closed_at"
+> &
   Pick<TicketWithRelations, "service" | "category" | "requester" | "assigned_to_profile">;
 
 /** A CSV/JSON export row produced by exportTickets(). */
@@ -217,5 +249,3 @@ export interface AssetMovement {
   performed_by_profile?: { full_name: string | null } | null;
   created_at: string;
 }
-
-

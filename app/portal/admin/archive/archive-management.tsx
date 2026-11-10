@@ -5,6 +5,7 @@ import { getArchivedTickets, exportTickets, getExportFilters } from "./actions";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDate } from "@/utils/format-date";
 import type { ArchivedTicket } from "@/types/database";
+import { TICKET_STATUSES, TICKET_STATUS_SHORT_LABELS } from "@/utils/tickets/constants";
 
 interface FilterOption {
   id: string;
@@ -116,11 +117,11 @@ export function ArchiveManagement() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
               >
                 <option value="all">All Statuses</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="waiting_for_user">Waiting for User</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
+                {TICKET_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {TICKET_STATUS_SHORT_LABELS[status]}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

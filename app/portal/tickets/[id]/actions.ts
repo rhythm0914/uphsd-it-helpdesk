@@ -3,28 +3,34 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { isITStaffRole } from "@/app/portal/queue/ticket-rules";
+import { isITStaff } from "@/utils/authorization";
+import { transitionTicket } from "../transition";
 
 async function getSupabase() {
   const cookieStore = await cookies();
   return createClient(cookieStore);
 }
 
+function revalidateTicket(ticketId: string) {
+  revalidatePath("/portal");
+  revalidatePath(`/portal/tickets/${ticketId}`);
+  revalidatePath(`/portal/queue/${ticketId}`);
+  revalidatePath("/portal/queue");
+}
+
 /**
- * Requester (or staff) replies to an existing ticket — the requester never
- * needs to file a new ticket to provide more information.
+ * Reply to a ticket.
  *
- * The message is always inserted as PUBLIC (requester-visible). Internal notes
- * are a staff-only capability and live in the IT queue's remark UI.
- *
- * When the ticket's own requester replies to a WAITING_FOR_USER ticket, the
- * ticket is returned to IN_PROGRESS and the transition is audited via the
- * SECURITY DEFINER `requester_provide_info` RPC (staff-scoped history inserts
- * can't be done directly by a requester).
+ * A staff reply or a requester reply on a non-waiting ticket is just a message.
+ * A requester reply on an Awaiting Student ticket is a workflow transition, so
+ * it goes through transitionTicket() — which also inserts the message, in the
+ * same transaction as the status change.
  */
 export async function sendTicketReply(ticketId: string, message: string) {
   const supabase = await getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) return { error: "Unauthorized" };
 
@@ -37,11 +43,11 @@ export async function sendTicketReply(ticketId: string, message: string) {
     .select("role")
     .eq("id", user.id)
     .single();
-  const isStaff = isITStaffRole(profile?.role);
+  const isStaff = isITStaff(profile?.role);
 
   const { data: ticket } = await supabase
     .from("tickets")
-    .select("requester_id, status")
+    .select("requester_id, status, assigned_to")
     .eq("id", ticketId)
     .single();
 
@@ -50,8 +56,15 @@ export async function sendTicketReply(ticketId: string, message: string) {
   const isRequester = ticket.requester_id === user.id;
   if (!isRequester && !isStaff) return { error: "Forbidden" };
 
-  // Insert the public reply. RLS enforces sender = auth.uid() and that the
-  // user can access this ticket; internal messages are never authored here.
+  // The requester answering an information request moves the ticket back into
+  // the working queue. transitionTicket() inserts the message and the audit row.
+  if (isRequester && ticket.status === "waiting_for_user") {
+    const result = await transitionTicket(ticketId, "student_reply", { message: trimmed });
+    if (result.error) return { error: result.error };
+    revalidateTicket(ticketId);
+    return { success: true };
+  }
+
   const { error: msgError } = await supabase.from("ticket_messages").insert({
     ticket_id: ticketId,
     sender_id: user.id,
@@ -60,19 +73,32 @@ export async function sendTicketReply(ticketId: string, message: string) {
   });
   if (msgError) return { error: msgError.message };
 
-  // Keep the queue/detail surfaces in sync after a reply.
-  revalidatePath(`/portal/tickets/${ticketId}`);
-  revalidatePath(`/portal/queue/${ticketId}`);
-  revalidatePath("/portal/queue");
+  revalidateTicket(ticketId);
+  return { success: true };
+}
 
-  // A requester providing info returns a WAITING_FOR_USER ticket to IN_PROGRESS
-  // and records the transition in history (SECURITY DEFINER RPC).
-  if (isRequester && ticket.status === "waiting_for_user") {
-    const { error: rpcError } = await supabase.rpc("requester_provide_info", {
-      p_ticket_id: ticketId,
-    });
-    if (rpcError) return { error: rpcError.message };
-  }
+/**
+ * Requester confirms the fix AND rates the service in one atomic action.
+ * The rating is only ever writable through this transition.
+ */
+export async function verifyFix(ticketId: string, rating: number, comment?: string) {
+  const result = await transitionTicket(ticketId, "verify_fixed", {
+    rating,
+    ...(comment ? { comment } : {}),
+  });
 
+  if (result.error) return { error: result.error };
+
+  revalidateTicket(ticketId);
+  return { success: true };
+}
+
+/** Requester reports the issue is still broken: same ticket, reopened. */
+export async function reportStillBroken(ticketId: string, reason: string) {
+  const result = await transitionTicket(ticketId, "report_still_broken", { reason });
+
+  if (result.error) return { error: result.error };
+
+  revalidateTicket(ticketId);
   return { success: true };
 }
