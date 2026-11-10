@@ -231,6 +231,15 @@ isolation between students, the no-response cutover/reminder/close/idempotency
 rules, all four SLA windows, weekend skipping, single-shot escalation to the
 supervisor, rejection, and the client-supplied-role attack.
 
+`supabase/verify/alignment_checks.sql` is the same rigour applied to the real
+database: 21 read-only invariants covering the honesty of the backfill, the
+column grants, the cycle counters, recomputed SLA due dates, and the grants on
+the two job functions. The harness seeds pre-migration rows before applying the
+migrations, so the upgrade path is exercised against legacy data rather than an
+empty tablespace. `--mutation-test` then corrupts three of those invariants and
+fails the run unless the verifier reports them, because a check that cannot fail
+is not a check.
+
 ---
 
 ## Migration order

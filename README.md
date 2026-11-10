@@ -217,7 +217,10 @@ the transaction that adds it.
 Verification: `npm run verify:sql` applies `schema.sql` and every migration to a
 real Postgres (PGlite, in-process) and asserts the workflow rules — grants, the
 state machine, the no-response job, SLA maths and escalation. It needs no
-Supabase project and no credentials. `supabase/verify/phase2_checks.sql` holds
+Supabase project and no credentials. `supabase/verify/alignment_checks.sql` is the
+read-only script to run on the real database after migrating: 21 invariants
+covering the backfill, the column grants, cycle counters and recomputed SLA due
+dates. `supabase/verify/phase2_checks.sql` holds
 read-only queries to run against the real database after applying the
 migrations.
 

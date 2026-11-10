@@ -63,12 +63,72 @@ async function applyFile(label, sql) {
   if (verbose) console.log(`  ok  ${label}`);
 }
 
+/**
+ * Rows a live database already holds, written before the migrations run. The
+ * upgrade path matters more than a greenfield install: the backfill, the cycle
+ * rows and the SLA targets all have to cope with tickets that predate them.
+ */
+async function seedLegacy() {
+  // These users predate the version of handle_new_user() that is broken, so the
+  // trigger is off for the seed rather than pretending the old one worked.
+  await db.exec('ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created');
+  await db.query(
+    `INSERT INTO auth.users (id, email) VALUES ($1, 'legacy-student@uphsd.edu.ph'),
+                                                   ($2, 'legacy-tech@uphsd.edu.ph')`,
+    [U.student, U.tech],
+  );
+  await db.query(
+    `INSERT INTO public.profiles (id, email, full_name, role)
+     VALUES ($1, 'legacy-student@uphsd.edu.ph', 'Legacy Student', 'student'),
+            ($2, 'legacy-tech@uphsd.edu.ph', 'Legacy Tech', 'it_staff')`,
+    [U.student, U.tech],
+  );
+  await db.query(`INSERT INTO public.services (id, name) VALUES ($1, 'Network')`, [SERVICE]);
+  await db.query(`INSERT INTO public.ticket_categories (id, name) VALUES ($1, 'Connectivity')`, [CATEGORY]);
+
+  // Closed by staff under the old workflow, with no requester verification.
+  await db.query(
+    `INSERT INTO public.tickets
+       (ticket_number, requester_id, service_id, category_id, subject, description,
+        priority, status, created_at, closed_at)
+     VALUES ('LEGACY-001', $1, $2, $3, 'Old closed ticket', 'Details',
+             'normal', 'closed', '2026-08-01T00:00:00Z', '2026-08-20T00:00:00Z')`,
+    [U.student, SERVICE, CATEGORY],
+  );
+  // Still open, and already past its (future) resolution target.
+  await db.query(
+    `INSERT INTO public.tickets
+       (ticket_number, requester_id, service_id, category_id, subject, description,
+        priority, status, created_at)
+     VALUES ('LEGACY-002', $1, $2, $3, 'Old open ticket', 'Details',
+             'high', 'open', now() - INTERVAL '30 days')`,
+    [U.student, SERVICE, CATEGORY],
+  );
+  await db.exec('ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created');
+}
+
+/** Runs supabase/verify/alignment_checks.sql and fails if any invariant breaks. */
+async function runAlignmentChecks() {
+  const sql = readFileSync(join(root, 'supabase/verify/alignment_checks.sql'), 'utf8');
+  const { rows } = await db.query(sql);
+  const failed = rows.filter((r) => r.result !== 'PASS');
+  console.log(`Verification script: ${rows.length - failed.length}/${rows.length} PASS`);
+  for (const f of failed) {
+    console.log(`  FAIL  ${f.check_name} (${f.offenders} offenders)`);
+  }
+  if (failed.length) throw new Error(`${failed.length} invariant(s) failed after the migrations`);
+  console.log('');
+}
+
 async function main() {
   console.log('Bootstrapping Supabase auth stubs...');
   await db.exec(BOOTSTRAP);
 
   console.log('Applying schema.sql...');
   await applyFile('supabase/schema.sql', readFileSync(join(root, 'supabase/schema.sql'), 'utf8'));
+
+  console.log('Seeding pre-migration rows (simulating a live database)...');
+  await seedLegacy();
 
   const migrations = readdirSync(join(root, 'supabase/migrations'))
     .filter((f) => f.endsWith('.sql'))
@@ -90,6 +150,7 @@ async function main() {
 
   console.log(`\nAll ${migrations.length} migrations applied cleanly, twice.\n`);
 
+  await runAlignmentChecks();
   await runChecks();
 }
 
@@ -683,10 +744,45 @@ async function runChecks() {
 
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);
+
+  if (process.argv.includes('--mutation-test')) await mutationTest();
   if (failed.length) {
     console.log('\nFailures:');
     for (const f of failed) console.log(`  - ${f.name}: ${f.err}`);
     process.exitCode = 1;
+  }
+}
+
+/**
+ * A check that cannot fail is not a check. Corrupt three invariants and confirm
+ * the verification script reports exactly those, then discard the database.
+ */
+async function mutationTest() {
+  console.log('\nMutation test: corrupting three invariants on purpose...');
+  await db.exec(`
+    UPDATE public.tickets SET reopened_count = reopened_count + 3;
+    UPDATE public.tickets SET resolve_due_at = resolve_due_at + INTERVAL '1 day';
+    UPDATE public.tickets SET status = 'closed', closure_reason = NULL WHERE status = 'resolved';
+  `);
+
+  const sql = readFileSync(join(root, 'supabase/verify/alignment_checks.sql'), 'utf8');
+  const { rows } = await db.query(sql);
+  const failedNames = new Set(rows.filter((r) => r.result === 'FAIL').map((r) => r.check_name));
+
+  const expected = [
+    'legacy staff-closed tickets were migrated',
+    'reopened_count matches the audit trail',
+    'due dates match the priority targets',
+  ];
+  const missed = expected.filter((n) => !failedNames.has(n));
+
+  console.log(`  verifier reported ${failedNames.size} failing invariant(s)`);
+  for (const n of failedNames) console.log(`    FAIL  ${n}`);
+  if (missed.length) {
+    console.log(`  MISSED (the check did not notice corruption): ${missed.join(', ')}`);
+    process.exitCode = 1;
+  } else {
+    console.log('  all three corruptions were detected.');
   }
 }
 
