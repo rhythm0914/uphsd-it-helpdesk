@@ -546,25 +546,19 @@ CREATE TRIGGER update_tickets_updated_at
 -- Trigger function to auto-create profile on auth user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
-DECLARE
-  v_role TEXT;
 BEGIN
-  v_role := COALESCE(
-    NULLIF(NEW.raw_user_meta_data->>'role', ''),
-    'student'
-  );
-
-  IF v_role NOT IN ('student', 'employee', 'it_staff', 'admin', 'manager') THEN
-    v_role := 'student';
-  END IF;
-
+  -- Public sign-up always creates a student. The role must never be read from
+  -- raw_user_meta_data: that value is supplied by the client, so honouring it
+  -- would let anyone register as an administrator. Staff roles are granted from
+  -- /portal/admin/users.
   INSERT INTO public.profiles (id, email, full_name, role)
   VALUES (
     NEW.id,
-    NEW.email,
+    COALESCE(NEW.email, ''),
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    v_role
-  );
+    'student'::public.user_role
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

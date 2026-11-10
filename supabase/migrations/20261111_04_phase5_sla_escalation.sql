@@ -246,8 +246,11 @@ BEGIN
     v_recipients := public.escalation_recipients()
       || ARRAY[t.assigned_to];
 
+    -- The cast is required: in INSERT ... SELECT an unquoted literal is typed
+    -- as `text`, and Postgres has no implicit text -> enum cast, so without it
+    -- the first escalation aborts the whole pass.
     INSERT INTO public.notifications (user_id, ticket_id, type, title, body)
-    SELECT DISTINCT u, t.id, 'ticket_escalated',
+    SELECT DISTINCT u, t.id, 'ticket_escalated'::public.notification_type,
       'Escalation: ' || t.ticket_number,
       v_reason || '. ' || t.subject
     FROM unnest(v_recipients) AS u

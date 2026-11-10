@@ -199,24 +199,61 @@ order, and an explicit list of what is unverified.
 
 ---
 
+## Phase 9 — Verification by execution
+
+Until this point the migrations had never been run anywhere. `scripts/verify-sql.mjs`
+(`npm run verify:sql`) builds a real Postgres in-process (PGlite), applies
+`schema.sql` and every migration in order — twice, to prove the files are
+geninely re-runnable — then acts as each user by setting the JWT claims and
+`SET ROLE`, the way PostgREST does.
+
+It found three defects that reading the SQL had not:
+
+1. **Sign-up was broken.** `handle_new_user()` inserted a `TEXT` variable into
+   `profiles.role`, which is an enum. Postgres has no implicit text-to-enum cast,
+   so every registration failed with 42804 and rolled back. Fixed in
+   `20261111_05_fix_handle_new_user.sql` and in `schema.sql`.
+2. **Sign-up could grant admin.** The same trigger took the role from
+   `raw_user_meta_data`, which the client controls: calling
+   `supabase.auth.signUp()` directly with `{"role":"admin"}` produced an
+   administrator. The trigger now always creates a student, and the application's
+   "ignored server-side" comment is finally true.
+3. **Escalation never ran.** `run_sla_escalation()` inserted a bare
+   `'ticket_escalated'` literal through `INSERT ... SELECT`, where Postgres types
+   it as `text`; the enum column rejected it and the whole pass aborted, so no
+   ticket would ever have escalated. Fixed with an explicit cast in `20261111_04`.
+
+The 22 checks cover the legacy-closed backfill, column-level grants blocking
+direct writes for requesters and staff alike, staff being unable to verify (and
+so unable to close), unknown actions, strangers, the full assign -> resolve ->
+verify -> rate path, reopen restarting the clock and preserving both cycles, RLS
+isolation between students, the no-response cutover/reminder/close/idempotency
+rules, all four SLA windows, weekend skipping, single-shot escalation to the
+supervisor, rejection, and the client-supplied-role attack.
+
+---
+
 ## Migration order
 
 Run in this order. The enum file must run **on its own**, because Postgres
 cannot use a new enum value in the transaction that adds it.
 
-1. `20260828_phase1_fix_profiles_role_escalation.sql` (historical)
-2. `20260829_phase1_ticket_workflow_reply_and_rls.sql` (historical)
-3. `20260830_phase8_knowledge_base.sql` (historical)
-4. `20260831_phase9_asset_management.sql` (historical)
-5. `20261110_01_add_ticket_status_values.sql` — **alone**
-6. `20261110_02_phase1_ticket_state_machine.sql`
-7. `20261111_01_phase2_notifications_and_cycles.sql`
-8. `20261111_02_enum_values.sql` — **alone**
-9. `20261111_03_phase4_no_response.sql`
-10. `20261111_04_phase5_sla_escalation.sql`
+  1. `20260828_phase1_fix_profiles_role_escalation.sql`
+  2. `20260829_phase1_ticket_workflow_reply_and_rls.sql`
+  3. `20260829_phase2_fix_ticket_number_generation.sql`
+  4. `20260830_phase8_knowledge_base.sql`
+  5. `20260831_phase9_asset_management.sql`
+  6. `20261110_01_add_ticket_status_values.sql` — **alone**
+  7. `20261110_02_phase1_ticket_state_machine.sql`
+  8. `20261111_01_phase2_notifications_and_cycles.sql`
+  9. `20261111_02_enum_values.sql` — **alone**
+  10. `20261111_03_phase4_no_response.sql`
+  11. `20261111_04_phase5_sla_escalation.sql`
+  12. `20261111_05_fix_handle_new_user.sql`
 
-Steps 5 and 8 are the "alone" ones. Verification queries for the workflow live
-in `supabase/verify/phase2_checks.sql`.
+Steps 6 and 9 are the "alone" ones. `npm run verify:sql` checks the whole chain;
+`supabase/verify/phase2_checks.sql` holds read-only queries to run against the
+real database after applying it.
 
 ---
 
@@ -227,8 +264,11 @@ in `supabase/verify/phase2_checks.sql`.
 - **SLA targets are placeholders** (see the table above).
 - **The cron needs a secret.** `SUPABASE_SERVICE_ROLE_KEY` must be set on the
   Worker before the automation runs; until then `scheduled()` is a no-op.
-- **The SQL has not been executed** against a live Postgres by the agent. It is
-  reviewed, not proven. Run the migrations and the verification queries.
+- **Only the local Postgres run is proven.**
+  `schema.sql` and all migrations execute cleanly against real Postgres and the
+  22 behaviour checks pass (Phase 9). Still unproven is Supabase's own
+  environment: RLS enforcement as `authenticated`, PostgREST's handling of the
+  RPC, and any role or extension difference from the local run.
 - **No automated end-to-end test** of the workflow: the unit tests cover the
   state machine, business hours and job rules, not a real browser session.
 - **On-call scheduling** is a boolean duty flag, not a roster with shifts.

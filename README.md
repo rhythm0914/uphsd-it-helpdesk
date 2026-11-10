@@ -201,18 +201,25 @@ Apply `supabase/schema.sql` first, then the migrations **in this order**. Steps
 marked "alone" must run on their own: Postgres cannot use a new enum value in
 the transaction that adds it.
 
-1. `20260828_phase1_fix_profiles_role_escalation.sql`
-2. `20260829_phase1_ticket_workflow_reply_and_rls.sql`
-3. `20260830_phase8_knowledge_base.sql`
-4. `20260831_phase9_asset_management.sql`
-5. `20261110_01_add_ticket_status_values.sql` — **alone**
-6. `20261110_02_phase1_ticket_state_machine.sql`
-7. `20261111_01_phase2_notifications_and_cycles.sql`
-8. `20261111_02_enum_values.sql` — **alone**
-9. `20261111_03_phase4_no_response.sql`
-10. `20261111_04_phase5_sla_escalation.sql`
+  1. `20260828_phase1_fix_profiles_role_escalation.sql`
+  2. `20260829_phase1_ticket_workflow_reply_and_rls.sql`
+  3. `20260829_phase2_fix_ticket_number_generation.sql`
+  4. `20260830_phase8_knowledge_base.sql`
+  5. `20260831_phase9_asset_management.sql`
+  6. `20261110_01_add_ticket_status_values.sql` — **alone**
+  7. `20261110_02_phase1_ticket_state_machine.sql`
+  8. `20261111_01_phase2_notifications_and_cycles.sql`
+  9. `20261111_02_enum_values.sql` — **alone**
+  10. `20261111_03_phase4_no_response.sql`
+  11. `20261111_04_phase5_sla_escalation.sql`
+  12. `20261111_05_fix_handle_new_user.sql`
 
-Verification queries: `supabase/verify/phase2_checks.sql`.
+Verification: `npm run verify:sql` applies `schema.sql` and every migration to a
+real Postgres (PGlite, in-process) and asserts the workflow rules — grants, the
+state machine, the no-response job, SLA maths and escalation. It needs no
+Supabase project and no credentials. `supabase/verify/phase2_checks.sql` holds
+read-only queries to run against the real database after applying the
+migrations.
 
 ---
 
@@ -226,6 +233,7 @@ Verification queries: `supabase/verify/phase2_checks.sql`.
 | `npm run lint` | ESLint |
 | `npx tsc --noEmit` | Type check |
 | `npm test` | Vitest unit tests |
+| `npm run verify:sql` | Apply schema + migrations to embedded Postgres, check behaviour |
 | `npm run test:e2e` | Playwright (auth smoke tests) |
 
 CI (`.github/workflows/ci.yml`) runs `npm ci` → lint → `build:vinext` → `tsc` →
