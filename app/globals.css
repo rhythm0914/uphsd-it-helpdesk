@@ -1,67 +1,170 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
+
+/* -------------------------------------------------------------------------- */
+/* UPHSD IT Help Desk — Design tokens                                         */
+/* Source of truth: the official UPHSD seal (maroon #6B1527 primary, white),  */
+/* with blue and gold from the Mother of Perpetual Help icon. Motto:          */
+/* "Character Building is Nation Building".                                   */
+/* Status colors are SEPARATE from brand colors. Maroon never signals error.  */
+/* -------------------------------------------------------------------------- */
 
 :root {
-  --background: #ffffff;
-  --foreground: #1A1A1A;
-  --surface: #FAFAFA;
-  --surface-muted: #F7F7F7;
-  --border: #E5E5E5;
+  /* Brand (seal) */
+  --maroon-50: #FBF3F4;
+  --maroon-100: #F6E4E8;
+  --maroon-600: #A02A40;
+  --maroon-700: #851C31;
+  --maroon-800: #6B1527;
+  --maroon-900: #4A0F1C;
+  --maroon-950: #2A0A10;
 
-  --brand-primary: #7C0000;
-  --brand-primary-hover: #5C0000;
-  --brand-gold: #FFB603;
-  --brand-gold-light: #FFF8E1;
+  --gold-100: #FBF1D0;
+  --gold-500: #C9A227;
 
-  --accent: var(--brand-primary);
-  --accent-light: var(--brand-gold);
+  --navy-100: #E6ECF6;
+  --navy-700: #1E3A6E;
 
-  --success: #16a34a;
-  --warning: #d97706;
-  --error: #dc2626;
-  --info: #2563eb;
+  /* Warm neutral scale */
+  --neutral-50: #FAF8F7;   /* background */
+  --neutral-100: #F5F2F1;
+  --neutral-200: #E7E2E0;  /* border */
+  --neutral-300: #D6CECB;
+  --neutral-400: #A89E9B;
+  --neutral-500: #8A7F7D;
+  --neutral-600: #6B6264;  /* muted text */
+  --neutral-700: #4A4142;
+  --neutral-800: #2E2829;
+  --neutral-900: #1F1A1B;  /* foreground */
+
+  /* Semantic */
+  --background: #FAF8F7;
+  --surface: #FFFFFF;
+  --border: #E7E2E0;
+  --foreground: #1F1A1B;
+  --muted-foreground: #6B6264;
+
+  --primary: #6B1527;        /* maroon-800 */
+  --primary-hover: #4A0F1C;  /* maroon-900 */
+  --primary-foreground: #FFFFFF;
+  --primary-light: #F6E4E8;  /* maroon-100 */
+
+  --secondary: #1E3A6E;      /* navy-700 */
+  --secondary-hover: #162C55;
+  --secondary-foreground: #FFFFFF;
+  --secondary-light: #E6ECF6; /* navy-100 */
+
+  --accent: #C9A227;         /* gold-500 — accent only, dark text on it */
+  --accent-foreground: #1F1A1B;
+  --accent-light: #FBF1D0;   /* gold-100 */
+
+  /* Status (separate from brand; maroon never signals error) */
+  --success: #14532d;
+  --success-light: #F0FDF4;
+  --success-foreground: #14532d;
+
+  --danger: #991B1B;
+  --danger-hover: #7F1D1D;
+  --danger-light: #FEF2F2;
+  --danger-foreground: #991B1B;
+
+  --warning: #92400E;
+  --warning-light: #FFFBEB;
+  --warning-foreground: #92400E;
+
+  --info: #1E3A6E;
+  --info-light: #E6ECF6;
+  --info-foreground: #1E3A6E;
+
+  /* Radius / elevation */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  --shadow: 0 1px 2px 0 rgb(31 26 27 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(31 26 27 / 0.08), 0 2px 4px -2px rgb(31 26 27 / 0.04);
+
+  /* Type scale */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 2rem;       /* 32px */
+  --text-4xl: 2.5rem;     /* 40px */
+  --text-5xl: 3.5rem;     /* 56px */
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
   --color-border: var(--border);
-  --color-brand-primary: var(--brand-primary);
-  --color-brand-primary-hover: var(--brand-primary-hover);
-  --color-brand-gold: var(--brand-gold);
-  --color-brand-gold-light: var(--brand-gold-light);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-mar-50: var(--maroon-50);
+  --color-mar-100: var(--maroon-100);
+  --color-mar-600: var(--maroon-600);
+  --color-mar-700: var(--maroon-700);
+  --color-mar-800: var(--maroon-800);
+  --color-mar-900: var(--maroon-900);
+  --color-mar-950: var(--maroon-950);
+
+  --color-gold-100: var(--gold-100);
+  --color-gold-500: var(--gold-500);
+
+  --color-nav-100: var(--navy-100);
+  --color-nav-700: var(--navy-700);
+
+  --color-neutral-50: var(--neutral-50);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-light: var(--secondary-light);
+
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-accent-light: var(--accent-light);
+
   --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-light: var(--danger-light);
+  --color-danger-foreground: var(--danger-foreground);
+
   --color-warning: var(--warning);
-  --color-error: var(--error);
+  --color-warning-light: var(--warning-light);
+  --color-warning-foreground: var(--warning-foreground);
+
   --color-info: var(--info);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-info-light: var(--info-light);
+  --color-info-foreground: var(--info-foreground);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1A0A0A;
-    --foreground: #F5F5F5;
-    --surface: #2A1515;
-    --surface-muted: #3A1F1F;
-    --border: #3A1F1F;
+  --radius-sm: var(--radius-sm);
+  --radius: var(--radius);
+  --radius-lg: var(--radius-lg);
 
-    --brand-primary: #9E1B1B;
-    --brand-primary-hover: #B91C1C;
-    --brand-gold: #FFB603;
-    --brand-gold-light: #5C4A1F;
-
-    --accent: var(--brand-primary);
-    --accent-light: var(--brand-gold);
-
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --info: #3b82f6;
-  }
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-source-serif-4);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 html {
@@ -71,73 +174,64 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: var(--brand-primary);
+  background: var(--primary);
   color: white;
 }
 
-/* Loading spinner dots-ring */
-@keyframes loader-dot-pulse {
-  0%, 80%, 100% {
-    opacity: 0.25;
-    transform: translateY(0);
-  }
-  40% {
-    opacity: 1;
-    transform: translateY(-3px);
-  }
+/* Base elements */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.animate-loader-dot {
-  animation: loader-dot-pulse 1.2s ease-in-out infinite;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-source-serif-4), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--foreground);
+}
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
+
+p { line-height: 1.6; }
+a { color: var(--secondary); text-underline-offset: 2px; }
+a:hover { color: var(--secondary-hover); }
+
+/* Focus ring — visible 2px offset ring (navy default; gold on maroon handled by components) */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--secondary), 0 0 0 4px transparent;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-loader-dot {
-    animation: none;
-    opacity: 0.6;
-  }
-}
-
-/* Route progress bar */
-@keyframes route-progress-indeterminate {
-  0% {
-    left: -35%;
-    width: 35%;
-  }
-  100% {
-    left: 100%;
-    width: 35%;
-  }
-}
-
-.animate-route-progress {
-  animation: route-progress-indeterminate 1.1s ease-in-out infinite;
-}
-
-/* Skeleton loaders (opacity-only pulse; no layout animation; honors reduced motion) */
+/* Skeleton */
 @keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
-
 .animate-skeleton {
   animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .animate-skeleton {
-    animation: none;
-    opacity: 0.55;
+  .animate-skeleton { animation: none; opacity: 0.55; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
