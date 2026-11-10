@@ -1,4 +1,11 @@
-export const ALLOWED_SIGNUP_ROLES = ["student", "employee"] as const;
+/**
+ * Public self-registration creates STUDENT accounts only.
+ *
+ * Employee and staff accounts are granted by an administrator from
+ * /portal/admin/users, so nobody can self-declare as an employee to reach
+ * employee-only reporting or a staff workspace.
+ */
+export const ALLOWED_SIGNUP_ROLES = ["student"] as const;
 
 export type AllowedSignupRole = (typeof ALLOWED_SIGNUP_ROLES)[number];
 
