@@ -15,7 +15,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # vinext needs Node >= 22: it imports `glob` from node:fs/promises,
+          # which Node 20 does not export. On 20 the build dies with
+          # "does not provide an export named 'glob'" before anything else runs.
+          node-version: 24
           cache: npm
 
       - name: Install
