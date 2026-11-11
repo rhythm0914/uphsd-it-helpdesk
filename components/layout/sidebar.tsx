@@ -99,6 +99,7 @@ export function Sidebar({
           <p className="text-xs text-neutral-500 capitalize">{userRole || ""}</p>
         </div>
     </aside>
+      </div>
   );
 }
 /**
