@@ -94,8 +94,9 @@ export function Sidebar({
             <span className={collapsed ? "hidden" : "block"}>Sign Out</span>
           </button>
         </form>
-          <p className="text-xs font-medium text-neutral-700">{userName || "User"}</p>
+        <div className="mt-2">
           <p className="text-xs text-neutral-500 capitalize">{userRole || ""}</p>
+        </div>
         </div>
       </div>
     </aside>
