@@ -95,10 +95,9 @@ export function Sidebar({
           </button>
         </form>
         <div className="mt-2">
+          <p className="text-xs font-medium text-neutral-700">{userName || "User"}</p>
           <p className="text-xs text-neutral-500 capitalize">{userRole || ""}</p>
         </div>
-        </div>
-      </div>
     </aside>
   );
 }
