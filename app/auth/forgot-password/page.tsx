@@ -1,7 +1,10 @@
-import { forgotPassword } from "../actions";
+﻿import { forgotPassword } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function ForgotPasswordPage({
   searchParams,
@@ -11,6 +14,15 @@ export default async function ForgotPasswordPage({
   const params = await searchParams;
   const error = params?.error;
   const message = params?.message;
+
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    redirect("/portal");
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
@@ -34,9 +46,7 @@ export default async function ForgotPasswordPage({
         <form action={forgotPassword} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-              <p className="text-sm text-red-700">
-                {decodeURIComponent(error)}
-              </p>
+              <p className="text-sm text-red-700">{decodeURIComponent(error)}</p>
             </div>
           )}
 
@@ -57,22 +67,21 @@ export default async function ForgotPasswordPage({
               id="email"
               name="email"
               required
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="you@perpetual.edu.ph"
             />
           </div>
 
-          <SubmitButton
-            idleLabel="Send Reset Link"
-            pendingLabel="Sending…"
-            className="w-full"
-          />
+          <SubmitButton idleLabel="Send Reset Link" pendingLabel="Sending…" className="w-full" />
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-foreground/60">
             Remember your password?{" "}
-            <Link href="/auth/sign-in" className="text-brand-primary hover:text-brand-primary-hover font-medium">
+            <Link
+              href="/auth/sign-in"
+              className="text-primary hover:text-primary-hover font-medium"
+            >
               Sign in
             </Link>
           </p>

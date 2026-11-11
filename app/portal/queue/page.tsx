@@ -1,4 +1,4 @@
-import { getITQueue, getServices } from "./lib";
+﻿import { getITQueue, getServices } from "./lib";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   statusBadgeClass,
   statusLabel,
 } from "@/utils/tickets/constants";
+import { isITStaff } from "@/utils/authorization";
 
 export const dynamic = "force-dynamic";
 
@@ -21,28 +22,23 @@ export default async function ITQueuePage({
 }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect("/auth/sign-in?next=%2Fportal%2Fqueue");
   }
 
-  let profile = null;
-  let role: string | null = null;
-
-  const { data: profileData } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  profile = profileData;
 
-  // A missing/unreadable profile must NOT redirect to /auth/sign-in (that
-  // recreates the auth redirect loop for an authenticated user). Fall back to
-  // the least-privilege behavior: no staff role -> redirected to /portal.
-  role = profile?.role || null;
-  if (role !== "it_staff" && role !== "admin" && role !== "manager") {
-    redirect("/portal");
+  const role = profile?.role || null;
+  if (!isITStaff(role)) {
+    redirect("/portal?error=forbidden");
   }
 
   const params = await searchParams;
@@ -81,9 +77,7 @@ export default async function ITQueuePage({
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">IT Staff Queue</h1>
-        <p className="mt-1 text-foreground/60">
-          Manage and process support requests
-        </p>
+        <p className="mt-1 text-foreground/60">Manage and process support requests</p>
       </div>
 
       {ticketsError && (
@@ -94,58 +88,27 @@ export default async function ITQueuePage({
 
       <div className="mb-6">
         <form method="get" className="flex flex-col md:flex-row gap-4">
-          <select
-            name="status"
-            defaultValue={filters.status}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
+          <select name="status" defaultValue={filters.status} className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="all">All Statuses</option>
             {TICKET_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {TICKET_STATUS_SHORT_LABELS[status]}
-              </option>
+              <option key={status} value={status}>{TICKET_STATUS_SHORT_LABELS[status]}</option>
             ))}
           </select>
-
-          <select
-            name="priority"
-            defaultValue={filters.priority}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
+          <select name="priority" defaultValue={filters.priority} className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="all">All Priorities</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
             <option value="urgent">Urgent</option>
           </select>
-
-          <select
-            name="service_id"
-            defaultValue={filters.service_id}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
+          <select name="service_id" defaultValue={filters.service_id} className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="all">All Services</option>
             {services.map((service: Service) => (
-              <option key={service.id} value={service.id}>
-                {service.name}
-              </option>
+              <option key={service.id} value={service.id}>{service.name}</option>
             ))}
           </select>
-
-          <input
-            type="text"
-            name="search"
-            placeholder="Search tickets..."
-            defaultValue={filters.search}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          />
-
-          <button
-            type="submit"
-            className="rounded-full bg-brand-primary px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
-          >
-            Filter
-          </button>
+          <input type="text" name="search" placeholder="Search tickets..." defaultValue={filters.search} className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+          <button type="submit" className="rounded-full bg-primary px-6 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover">Filter</button>
         </form>
       </div>
 
@@ -169,12 +132,8 @@ export default async function ITQueuePage({
                   <tr key={ticket.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-4">
                       <Link href={`/portal/queue/${ticket.id}`} className="block">
-                        <span className="font-mono text-sm text-brand-primary hover:text-brand-primary-hover">
-                          {ticket.ticket_number}
-                        </span>
-                        <p className="mt-1 text-sm font-medium truncate max-w-xs">
-                          {ticket.subject}
-                        </p>
+                        <span className="font-mono text-sm text-primary hover:text-primary-hover">{ticket.ticket_number}</span>
+                        <p className="mt-1 text-sm font-medium truncate max-w-xs">{ticket.subject}</p>
                       </Link>
                     </td>
                     <td className="px-6 py-4">
@@ -185,32 +144,14 @@ export default async function ITQueuePage({
                       <p className="text-sm">{ticket.service?.name || "N/A"}</p>
                       <p className="text-xs text-foreground/50">{ticket.category?.name || "N/A"}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-sm ${getPriorityColor(ticket.priority)}`}>
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>
-                        {statusLabel(ticket.status, { short: true })}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm">{ticket.assigned_to_profile?.full_name || "Unassigned"}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-foreground/60">
-                        {formatDate(ticket.created_at)}
-                      </p>
-                    </td>
+                    <td className="px-6 py-4"><span className={`text-sm ${getPriorityColor(ticket.priority)}`}>{ticket.priority}</span></td>
+                    <td className="px-6 py-4"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>{statusLabel(ticket.status, { short: true })}</span></td>
+                    <td className="px-6 py-4"><p className="text-sm">{ticket.assigned_to_profile?.full_name || "Unassigned"}</p></td>
+                    <td className="px-6 py-4"><p className="text-sm text-foreground/60">{formatDate(ticket.created_at)}</p></td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center">
-                    <p className="text-sm text-foreground/60">No tickets found</p>
-                  </td>
-                </tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center"><p className="text-sm text-foreground/60">No tickets found</p></td></tr>
               )}
             </tbody>
           </table>

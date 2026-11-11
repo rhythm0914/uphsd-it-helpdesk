@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
@@ -33,7 +33,7 @@ export async function markNotificationRead(formData: FormData): Promise<void> {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in?next=" + encodeURIComponent("/portal/notifications"));
+    redirect("/auth/sign-in?next=%2Fportal%2Fnotifications");
   }
 
   const id = formData.get("id");
@@ -59,7 +59,7 @@ export async function markAllNotificationsRead(): Promise<void> {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in?next=" + encodeURIComponent("/portal/notifications"));
+    redirect("/auth/sign-in?next=%2Fportal%2Fnotifications");
   }
 
   const { error } = await supabase
@@ -72,3 +72,4 @@ export async function markAllNotificationsRead(): Promise<void> {
 
   revalidate();
 }
+

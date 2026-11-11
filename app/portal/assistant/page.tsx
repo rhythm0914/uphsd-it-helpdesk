@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { AI_DISCLOSURE, AI_PRIVACY_NOTICE_PATH } from "@/utils/ai/transparency";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "IT Assistant — UPHSD IT Help Desk",
+  title: "IT Assistant â€” UPHSD IT Help Desk",
 };
 
 export default async function AssistantPage() {
@@ -19,7 +19,7 @@ export default async function AssistantPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect("/auth/sign-in?next=%2Fportal%2Fassistant");
   }
 
   return (
@@ -33,9 +33,9 @@ export default async function AssistantPage() {
         </div>
         <p className="mt-1 text-sm sm:text-base text-foreground/60">
           Ask IT questions, get guidance, and find the right service. The assistant can&apos;t
-          perform actions — for hands-on help, submit an IT request.
+          perform actions â€” for hands-on help, submit an IT request.
         </p>
-        {/* AI transparency disclosure — visible before first interaction. */}
+        {/* AI transparency disclosure â€” visible before first interaction. */}
         <div
           role="note"
           aria-label="AI disclosure"
@@ -55,7 +55,7 @@ export default async function AssistantPage() {
 
       <div className="mt-6 rounded-2xl border border-border bg-background p-4 sm:p-6">
         <p className="text-sm text-foreground/70">
-          Need hands-on IT support? The assistant only offers guidance — submit a request and IT
+          Need hands-on IT support? The assistant only offers guidance â€” submit a request and IT
           staff will take it from there.
         </p>
         <Link

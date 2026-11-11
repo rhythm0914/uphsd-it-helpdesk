@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -52,7 +52,9 @@ export function Sidebar({
   );
 
   const currentKey = React.useMemo(() => {
-    const match = visibleItems.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+    const match = visibleItems
+      .filter((i) => pathname === i.href || pathname.startsWith(i.href + "/"))
+      .sort((a, b) => b.href.length - a.href.length)[0];
     return match ? match.key : null;
   }, [pathname, visibleItems]);
 
@@ -99,7 +101,7 @@ export function Sidebar({
   );
 }
 /**
- * Mobile drawer — slides in from the left with an overlay.
+ * Mobile drawer â€” slides in from the left with an overlay.
  */
 export function MobileSidebarDrawer({
   open,
@@ -158,3 +160,4 @@ export function MobileSidebarDrawer({
     </>
   );
 }
+

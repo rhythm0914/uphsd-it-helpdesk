@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { RequestForm } from "./request-form";
@@ -11,7 +11,7 @@ export default async function RequestPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect("/auth/sign-in?next=%2Fportal%2Frequest");
   }
 
   const servicesResult = await supabase
@@ -41,3 +41,4 @@ export default async function RequestPage() {
     </div>
   );
 }
+

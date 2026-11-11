@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { formatDateTime } from "@/utils/format-date";
 import { statusBadgeClass, statusLabel } from "@/utils/tickets/constants";
 import { deriveSlaState, slaStateBadgeClass, slaStateLabel } from "@/utils/tickets/sla";
 import { CycleHistory } from "@/components/tickets/cycle-history";
+import { isITStaff } from "@/utils/authorization";
 
 interface TicketStatusHistory {
   id: string;
@@ -33,34 +34,27 @@ export default async function ITQueueTicketPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect(`/auth/sign-in?next=${encodeURIComponent(`/portal/queue/${id}`)}`);
   }
 
-  let profile = null;
-  let role: string | null = null;
-
-  const { data: profileData } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  profile = profileData;
 
-  // A missing/unreadable profile must NOT redirect to /auth/sign-in (that
-  // recreates the auth redirect loop for an authenticated user). Fall back to
-  // the least-privilege behavior: no staff role -> redirected to /portal.
-  role = profile?.role || null;
-  if (role !== "it_staff" && role !== "admin" && role !== "manager") {
-    redirect("/portal");
+  const role = profile?.role || null;
+  if (!isITStaff(role)) {
+    redirect("/portal?error=forbidden");
   }
-
-  const { id } = await params;
-
   const { data: ticket, error: ticketError } = await supabase
     .from("tickets")
     .select(`
@@ -179,7 +173,7 @@ export default async function ITQueueTicketPage({
                   >
                     {slaStateLabel(slaState)}
                     {ticket.resolve_due_at &&
-                      ` · resolve by ${formatDateTime(ticket.resolve_due_at)}`}
+                       · resolve by ${formatDateTime(ticket.resolve_due_at)}`}
                   </span>
                 )}
                 {ticket.escalation_level > 0 && (
@@ -268,7 +262,7 @@ export default async function ITQueueTicketPage({
                         {history.notes || `Status changed from ${history.old_status?.replace(/_/g, " ") || "none"} to ${history.new_status.replace(/_/g, " ")}`}
                       </p>
                       <p className="mt-1 text-xs text-foreground/50">
-                        {history.changed_by_profile?.full_name || "System"} • {formatDateTime(history.created_at)}
+                        {history.changed_by_profile?.full_name || "System"} â€¢ {formatDateTime(history.created_at)}
                       </p>
                     </div>
                   </div>
@@ -289,7 +283,7 @@ export default async function ITQueueTicketPage({
                     <div key={msg.id} className="border-b border-border pb-4 last:border-0">
                       <p className="text-sm text-foreground/70">{msg.message}</p>
                       <p className="mt-1 text-xs text-foreground/50">
-                        {msg.sender?.full_name || "Unknown"} • {formatDateTime(msg.created_at)}
+                        {msg.sender?.full_name || "Unknown"} â€¢ {formatDateTime(msg.created_at)}
                       </p>
                     </div>
                   ))
@@ -314,7 +308,7 @@ export default async function ITQueueTicketPage({
                     <div key={msg.id} className="border-b border-amber-200 pb-4 last:border-0">
                       <p className="text-sm text-foreground/70">{msg.message}</p>
                       <p className="mt-1 text-xs text-amber-600">
-                        {msg.sender?.full_name || "Unknown"} • {formatDateTime(msg.created_at)} •
+                        {msg.sender?.full_name || "Unknown"} â€¢ {formatDateTime(msg.created_at)} â€¢
                         Internal
                       </p>
                     </div>
@@ -338,3 +332,7 @@ export default async function ITQueueTicketPage({
     </div>
   );
 }
+
+
+
+

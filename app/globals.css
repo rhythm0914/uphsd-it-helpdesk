@@ -75,6 +75,11 @@
   --sidebar-active-bg: #851C31;
   --sidebar-active-text: #FFFFFF;
 
+  /* Legacy/compat aliases used across the app */
+  --color-brand-primary: #6B1527;
+  --color-brand-primary-hover: #4A0F1C;
+  --color-brand-primary-light: #F6E4E8;
+  --color-brand-gold: #F5B921;
   /* Focus ring */
   --focus-ring: #F5B921;
 
@@ -161,6 +166,11 @@
   --color-sidebar-active-bg: #851C31;
   --color-sidebar-active-text: #FFFFFF;
 
+  /* Legacy/compat aliases used across the app */
+  --color-brand-primary: #6B1527;
+  --color-brand-primary-hover: #4A0F1C;
+  --color-brand-primary-light: #F6E4E8;
+  --color-brand-gold: #F5B921;
   /* Focus ring */
   --color-focus-ring: #F5B921;
 
@@ -287,3 +297,4 @@ button {
     scroll-behavior: auto !important;
   }
 }
+

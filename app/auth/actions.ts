@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
@@ -17,34 +17,45 @@ export async function signIn(formData: FormData) {
   const supabase = await getSupabase();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const rawNext = formData.get("next");
+  const next = getValidatedReturnTo(typeof rawNext === "string" ? rawNext : null);
 
   if (!email || !password) {
-    redirect("/auth/sign-in?error=Email+and+password+are+required");
+    redirect("/auth/sign-in?error=Email+and+password+are+required&next=" + encodeURIComponent(next));
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    // If the account exists but its email is not yet confirmed, route the user
-    // to a focused state that pre-fills the resend-confirmation UI instead of a
-    // generic "wrong credentials" message.
     if (error.code === "email_not_confirmed") {
       redirect(
         "/auth/sign-in?error=email_not_confirmed&email=" +
-          encodeURIComponent(email),
+          encodeURIComponent(email) +
+          "&next=" +
+          encodeURIComponent(next),
       );
     }
-    redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
+    redirect(
+      "/auth/sign-in?error=" +
+        encodeURIComponent(error.message) +
+        "&next=" +
+        encodeURIComponent(next),
+    );
   }
 
-  // Honor a validated return-to destination when one was passed through the
-  // sign-in page (e.g. /portal/request after an unauthenticated click on the
-  // "Submit a Request" CTA). Falls back to /portal to preserve the original
-  // behavior and to prevent open redirects.
-  const next = getValidatedReturnTo(formData.get("next") as string | null);
+  // Only redirect after successful authentication/session establishment.
+  if (!data?.session || !data?.user) {
+    redirect(
+      "/auth/sign-in?error=" +
+        encodeURIComponent("Sign-in did not complete. Please try again.") +
+        "&next=" +
+        encodeURIComponent(next),
+    );
+  }
+
   redirect(next);
 }
 
@@ -72,13 +83,10 @@ export async function signUp(formData: FormData) {
     redirect("/auth/sign-up?error=Password+must+be+at+least+8+characters");
   }
 
-  // Case-insensitive exact-domain check, defined once in utils/auth/email-domain.
   if (!isUphsdEmail(email)) {
     redirect("/auth/sign-up?error=" + encodeURIComponent(UPHSD_EMAIL_ERROR));
   }
 
-  // Public sign-up creates students only; Employee and staff accounts are
-  // granted by an administrator (Phase 6). The submitted role is ignored.
   const normalizedRole = normalizeSignupRole("student");
 
   const redirectTo = `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback`;
@@ -107,13 +115,20 @@ export async function signUp(formData: FormData) {
 export async function resendConfirmation(formData: FormData) {
   const supabase = await getSupabase();
   const email = normalizeEmail((formData.get("email") as string) || "");
+  const rawNext = formData.get("next");
+  const next = getValidatedReturnTo(typeof rawNext === "string" ? rawNext : null);
 
   if (!email) {
-    redirect("/auth/sign-in?error=Email+is+required");
+    redirect("/auth/sign-in?error=Email+is+required&next=" + encodeURIComponent(next));
   }
 
   if (!isUphsdEmail(email)) {
-    redirect("/auth/sign-in?error=" + encodeURIComponent(UPHSD_EMAIL_ERROR));
+    redirect(
+      "/auth/sign-in?error=" +
+        encodeURIComponent(UPHSD_EMAIL_ERROR) +
+        "&next=" +
+        encodeURIComponent(next),
+    );
   }
 
   const { error } = await supabase.auth.resend({
@@ -122,15 +137,29 @@ export async function resendConfirmation(formData: FormData) {
   });
 
   if (error) {
-    redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
+    redirect(
+      "/auth/sign-in?error=" +
+        encodeURIComponent(error.message) +
+        "&next=" +
+        encodeURIComponent(next),
+    );
   }
 
-  redirect("/auth/sign-in?message=confirmation_sent");
+  redirect(
+    "/auth/sign-in?message=confirmation_sent&email=" +
+      encodeURIComponent(email) +
+      "&next=" +
+      encodeURIComponent(next),
+  );
 }
 
 export async function signOut() {
   const supabase = await getSupabase();
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Best effort: clear local session cookies even if remote sign-out fails.
+  }
   redirect("/");
 }
 
@@ -142,24 +171,16 @@ export async function forgotPassword(formData: FormData) {
     redirect("/auth/forgot-password?error=Email+is+required");
   }
 
-  // Recovery only works for @perpetual.edu.ph accounts (same server-side
-  // domain rule as sign-up).
   if (!isUphsdEmail(email)) {
     redirect("/auth/forgot-password?error=" + encodeURIComponent(UPHSD_EMAIL_ERROR));
   }
 
-  // Rate limit per email and per IP (best effort in serverless).
   const emailKey = `forgot:email:${normalizeEmail(email)}`;
   const emailLimit = checkRateLimit(emailKey);
   if (!emailLimit.allowed) {
     redirect("/auth/forgot-password?error=Too+many+requests.+Please+try+again+later.");
   }
 
-  // Route the recovery link through `/auth/callback` (PKCE token exchange),
-  // then on to `/auth/update-password`. Pointing `redirectTo` straight at
-  // `/auth/update-password` previously landed users on that page with a
-  // recovery `code` that was never exchanged, so `updateUser` failed for lack
-  // of a session (the reset never completed).
   const redirectTo =
     `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback?next=${encodeURIComponent("/auth/update-password")}`;
 
@@ -167,9 +188,6 @@ export async function forgotPassword(formData: FormData) {
     redirectTo,
   });
 
-  // Always return the same message whether or not the email exists, to
-  // prevent account enumeration. Supabase's resetPasswordForEmail does not
-  // reveal whether the email is registered.
   if (error) {
     redirect("/auth/forgot-password?error=" + encodeURIComponent(error.message));
   }
@@ -207,12 +225,6 @@ export async function updatePassword(formData: FormData) {
 
 /**
  * Admin-assisted recovery for users who lost access to their UPHSD mailbox.
- *
- * The admin confirms the user's identity in person, then triggers a
- * Supabase password-reset/invite for the verified account. The admin never
- * sees the user's password. Only admin/manager may call this.
- *
- * An audit log entry is written.
  */
 export async function adminAssistedRecovery(userId: string) {
   const supabase = await getSupabase();
@@ -234,7 +246,6 @@ export async function adminAssistedRecovery(userId: string) {
     return { error: "Admin or manager role required" };
   }
 
-  // Look up the target account.
   const { data: target } = await supabase
     .from("profiles")
     .select("id, email")
@@ -245,8 +256,6 @@ export async function adminAssistedRecovery(userId: string) {
     return { error: "Account not found" };
   }
 
-  // Trigger a password reset for the target account. Supabase sends the
-  // recovery email to the user's mailbox. The admin never sees a password.
   const redirectTo =
     `${process.env.NEXT_PUBLIC_BASE_URL || "https://uphsd-it-helpdesk.rycanano.workers.dev"}/auth/callback?next=${encodeURIComponent("/auth/update-password")}`;
 

@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
@@ -18,7 +18,7 @@ export async function submitRequest(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect("/auth/sign-in?next=%2Fportal%2Frequest");
   }
 
   // A request needs a confirmed address: it is where the Request ID lives and
@@ -197,3 +197,4 @@ export async function checkDuplicateTicket(
     ticketNumber: data[0].ticket_number,
   };
 }
+

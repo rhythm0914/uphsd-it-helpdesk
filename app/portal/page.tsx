@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,10 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function PortalPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect("/auth/sign-in?next=%2Fportal");
   }
 
   const { data: profile } = await supabase
@@ -22,13 +24,12 @@ export default async function PortalPage() {
     .eq("id", user.id)
     .single();
 
-  // A missing or unreadable profile must NOT be treated as "unauthenticated".
-  // The middleware has already verified a valid session here, so redirecting to
-  // /auth/sign-in would create a redirect loop. Fall back to a least-privilege
-  // default derived from auth user metadata instead.
-  const userMetadata: Record<string, unknown> = (user.user_metadata as Record<string, unknown>) || {};
+  const userMetadata: Record<string, unknown> =
+    (user.user_metadata as Record<string, unknown>) || {};
   const metadataRole = String(userMetadata.role || "student");
-  const fallbackRole = ["student", "employee", "it_staff", "admin", "manager"].includes(metadataRole)
+  const fallbackRole = ["student", "employee", "it_staff", "admin", "manager"].includes(
+    metadataRole,
+  )
     ? metadataRole
     : "student";
 
@@ -43,7 +44,6 @@ export default async function PortalPage() {
       updated_at: new Date().toISOString(),
     };
 
-  // Fetch ticket counts
   const { count: openCount } = await supabase
     .from("tickets")
     .select("*", { count: "exact", head: true })
@@ -62,7 +62,6 @@ export default async function PortalPage() {
     .eq("requester_id", user.id)
     .eq("status", "resolved");
 
-  // Fetch recent tickets
   const { data: recentTickets } = await supabase
     .from("tickets")
     .select("*")
@@ -92,14 +91,19 @@ export default async function PortalPage() {
           Welcome, {resolvedProfile?.full_name || "User"}
         </h1>
         <p className="mt-1 text-foreground/60">
-          {resolvedProfile?.role === "student" ? "Student" : resolvedProfile?.role === "employee" ? "Employee" : "User"} Portal
+          {resolvedProfile?.role === "student"
+            ? "Student"
+            : resolvedProfile?.role === "employee"
+              ? "Employee"
+              : "User"}{" "}
+          Portal
         </p>
       </div>
 
       <div className="mb-8">
         <Link
           href="/portal/request"
-          className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
+          className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-base font-medium text-on-primary transition-colors hover:bg-primary-hover"
         >
           Submit a Request
         </Link>
@@ -137,7 +141,9 @@ export default async function PortalPage() {
                     <span className="font-mono text-sm text-foreground/60">
                       {ticket.ticket_number}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass(ticket.status)}`}
+                    >
                       {statusLabel(ticket.status, { short: true })}
                     </span>
                   </div>
@@ -156,7 +162,7 @@ export default async function PortalPage() {
               <p className="text-sm text-foreground/60">No tickets yet</p>
               <Link
                 href="/portal/request"
-                className="mt-2 inline-flex items-center justify-center rounded-full bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
+                className="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
               >
                 Create your first request
               </Link>

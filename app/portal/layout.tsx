@@ -1,13 +1,14 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+﻿import { createClient } from "@/utils/supabase/server";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { ChatWidget } from "@/components/ui/chat-widget";
 import { isUserRole, type Profile } from "@/types/database";
 import Footer from "@/components/layout/footer";
 import { PortalShell } from "@/components/layout/portal-shell";
+import { getValidatedReturnTo } from "@/utils/authorization";
 
-export const dynamic = "auto";
+export const dynamic = "force-dynamic";
 
 export default async function PortalLayout({
   children,
@@ -16,10 +17,15 @@ export default async function PortalLayout({
 }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in");
+    const h = await headers();
+    const path = h.get("x-invoke-path") || h.get("x-pathname") || "/portal";
+    const next = getValidatedReturnTo(path, "/portal");
+    redirect(`/auth/sign-in?next=${encodeURIComponent(next)}`);
   }
 
   let profile: Pick<Profile, "role" | "full_name" | "email"> | null = null;
@@ -38,8 +44,7 @@ export default async function PortalLayout({
   }
 
   if (profileError || !profile) {
-    const { data } = await supabase.auth.getUser();
-    const userMetadata = (data.user?.user_metadata as Record<string, unknown>) || {};
+    const userMetadata = (user.user_metadata as Record<string, unknown>) || {};
     const fullName = (userMetadata.full_name as string) || "";
     const metadataRole = userMetadata.role;
     const role = isUserRole(metadataRole) ? metadataRole : "student";

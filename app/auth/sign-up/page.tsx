@@ -1,8 +1,11 @@
-import { signUp } from "../actions";
+﻿import { signUp } from "../actions";
 import Link from "next/link";
 import Image from "next/image";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { UPHSD_EMAIL_DOMAIN } from "@/utils/auth/email-domain";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function SignUpPage({
   searchParams,
@@ -11,6 +14,15 @@ export default async function SignUpPage({
 }) {
   const params = await searchParams;
   const error = params?.error;
+
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    redirect("/portal");
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
@@ -34,36 +46,34 @@ export default async function SignUpPage({
         <form action={signUp} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-              <p className="text-sm text-red-700">
-                {decodeURIComponent(error)}
-              </p>
+              <p className="text-sm text-red-700">{decodeURIComponent(error)}</p>
             </div>
           )}
 
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium mb-2">
-              Full Name <span className="text-brand-primary">*</span>
+              Full Name <span className="text-primary">*</span>
             </label>
             <input
               type="text"
               id="fullName"
               name="fullName"
               required
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="Juan Dela Cruz"
             />
           </div>
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
-              UPHSD Email <span className="text-brand-primary">*</span>
+              UPHSD Email <span className="text-primary">*</span>
             </label>
             <input
               type="email"
               id="email"
               name="email"
               required
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="you@perpetual.edu.ph"
             />
             <p className="mt-1 text-xs text-foreground/50">
@@ -71,9 +81,6 @@ export default async function SignUpPage({
             </p>
           </div>
 
-          {/* Self-registration creates student accounts only. Employee and
-              staff accounts are granted by an administrator, so there is no
-              account-type selector to misuse. */}
           <div className="rounded-lg border border-border bg-surface p-4">
             <p className="text-sm font-medium">Student account</p>
             <p className="mt-1 text-xs text-foreground/60">
@@ -85,7 +92,7 @@ export default async function SignUpPage({
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password <span className="text-brand-primary">*</span>
+              Password <span className="text-primary">*</span>
             </label>
             <input
               type="password"
@@ -93,17 +100,15 @@ export default async function SignUpPage({
               name="password"
               required
               minLength={8}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="Minimum 8 characters"
             />
-            <p className="mt-1 text-xs text-foreground/50">
-              Minimum 8 characters
-            </p>
+            <p className="mt-1 text-xs text-foreground/50">Minimum 8 characters</p>
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-              Confirm Password <span className="text-brand-primary">*</span>
+              Confirm Password <span className="text-primary">*</span>
             </label>
             <input
               type="password"
@@ -111,7 +116,7 @@ export default async function SignUpPage({
               name="confirmPassword"
               required
               minLength={8}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="Re-enter your password"
             />
           </div>
@@ -122,14 +127,13 @@ export default async function SignUpPage({
               name="privacyConsent"
               type="checkbox"
               required
-              className="w-4 h-4 rounded border-border bg-background text-brand-primary focus:ring-brand-primary mt-0.5"
+              className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary mt-0.5"
             />
             <label htmlFor="privacyConsent" className="text-sm text-foreground/60 leading-none">
               I have read and agree to the{" "}
-              <Link href="/privacy" className="font-medium underline hover:text-brand-primary">
+              <Link href="/privacy" className="font-medium underline hover:text-primary">
                 Privacy Notice
-              </Link>
-              {" "}
+              </Link>{" "}
               and consent to UPHSD processing my personal data for IT support.
             </label>
           </div>
@@ -144,7 +148,10 @@ export default async function SignUpPage({
         <div className="mt-6 text-center">
           <p className="text-sm text-foreground/60">
             Already have an account?{" "}
-            <Link href="/auth/sign-in" className="text-brand-primary hover:text-brand-primary-hover font-medium">
+            <Link
+              href="/auth/sign-in"
+              className="text-primary hover:text-primary-hover font-medium"
+            >
               Sign in
             </Link>
           </p>

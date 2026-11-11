@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -33,7 +33,7 @@ export default async function NotificationsPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in?next=" + encodeURIComponent("/portal/notifications"));
+    redirect("/auth/sign-in?next=%2Fportal%2Fnotifications");
   }
 
   // RLS already limits rows to the signed-in user; the filter is explicit so
@@ -61,7 +61,7 @@ export default async function NotificationsPage({
           <form action={markAllNotificationsRead}>
             <SubmitButton
               idleLabel="Mark all as read"
-              pendingLabel="Updating…"
+              pendingLabel="Updatingâ€¦"
               variant="outline"
             />
           </form>
@@ -141,3 +141,4 @@ export default async function NotificationsPage({
     </div>
   );
 }
+

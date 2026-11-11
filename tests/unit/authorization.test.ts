@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import {
   isITStaff,
   isAdmin,
@@ -7,6 +7,7 @@ import {
   ALLOWED_SIGNUP_ROLES,
   IT_STAFF_ROLES,
   ADMIN_ROLES,
+  getValidatedReturnTo,
 } from "@/utils/authorization";
 
 describe("authorization utilities", () => {
@@ -45,7 +46,6 @@ describe("authorization utilities", () => {
   describe("normalizeSignupRole", () => {
     it("always returns student, because public signup creates students only", () => {
       expect(normalizeSignupRole("student")).toBe("student");
-      // Employee is admin-granted: a self-declared employee is downgraded.
       expect(normalizeSignupRole("employee")).toBe("student");
       expect(normalizeSignupRole("admin")).toBe("student");
       expect(normalizeSignupRole("manager")).toBe("student");
@@ -71,7 +71,6 @@ describe("authorization utilities", () => {
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("admin");
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("manager");
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("it_staff");
-      // Employee is granted by an administrator, never self-selected.
       expect(ALLOWED_SIGNUP_ROLES).not.toContain("employee");
       expect(ALLOWED_SIGNUP_ROLES).toEqual(["student"]);
     });
@@ -80,6 +79,47 @@ describe("authorization utilities", () => {
       for (const role of ADMIN_ROLES) {
         expect(IT_STAFF_ROLES).toContain(role);
       }
+    });
+  });
+
+  describe("getValidatedReturnTo", () => {
+    it("accepts safe in-portal paths", () => {
+      expect(getValidatedReturnTo("/portal")).toBe("/portal");
+      expect(getValidatedReturnTo("/portal/queue")).toBe("/portal/queue");
+      expect(getValidatedReturnTo("/portal/queue/123")).toBe("/portal/queue/123");
+      expect(getValidatedReturnTo("/portal/request?from=home")).toBe("/portal/request?from=home");
+      expect(getValidatedReturnTo("/portal//queue")).toBe("/portal/queue");
+      expect(getValidatedReturnTo(null)).toBe("/portal");
+      expect(getValidatedReturnTo(undefined)).toBe("/portal");
+      expect(getValidatedReturnTo("")).toBe("/portal");
+    });
+
+    it("rejects open redirects and protocol/host tricks", () => {
+      expect(getValidatedReturnTo("//evil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("https://evil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("http://evil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("/\\evil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("\\\\evil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("javascript:alert(1)")).toBe("/portal");
+      expect(getValidatedReturnTo("mailto:test@example.com")).toBe("/portal");
+      expect(getValidatedReturnTo("evil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("/portal:evil")).toBe("/portal");
+    });
+
+    it("rejects encoded and traversal attacks", () => {
+      expect(getValidatedReturnTo("%2F%2Fevil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("/%2e%2e/secret")).toBe("/portal");
+      expect(getValidatedReturnTo("/portal/../admin")).toBe("/portal");
+      expect(getValidatedReturnTo("/portal/%2e%2e/%2e%2e/etc/passwd")).toBe("/portal");
+      expect(getValidatedReturnTo("/%5Cevil.com")).toBe("/portal");
+      expect(getValidatedReturnTo("/portal%0d%0aLocation:%20https://evil.com")).toBe("/portal");
+    });
+
+    it("rejects paths outside the portal allowlist", () => {
+      expect(getValidatedReturnTo("/")).toBe("/portal");
+      expect(getValidatedReturnTo("/auth/sign-in")).toBe("/portal");
+      expect(getValidatedReturnTo("/admin")).toBe("/portal");
+      expect(getValidatedReturnTo("/api/assistant")).toBe("/portal");
     });
   });
 });

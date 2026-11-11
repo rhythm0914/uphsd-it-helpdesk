@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useFormStatus } from "react-dom";
 import { Spinner } from "./spinner";
@@ -25,7 +25,7 @@ export function SubmitButton({
   const variantStyle =
     variant === "outline"
       ? "border border-border bg-background text-foreground hover:bg-surface"
-      : "bg-brand-primary text-white hover:bg-brand-primary-hover";
+      : "bg-primary text-on-primary hover:bg-primary-hover";
 
   return (
     <button

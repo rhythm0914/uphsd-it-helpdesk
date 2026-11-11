@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -18,13 +18,13 @@ interface TrackedTicket {
 }
 
 /**
- * Track Request — the page the public FAQ and the sign-in flow point at.
+ * Track Request â€” the page the public FAQ and the sign-in flow point at.
  *
  * Ownership is enforced twice: RLS limits readable rows to the requester's own
  * tickets (or staff), and the query is additionally filtered by requester_id so
  * staff browsing this page still only see their own submissions. A search for
  * someone else's Request ID therefore returns "not found", exactly like a
- * random string — the ID's existence is never leaked.
+ * random string â€” the ID's existence is never leaked.
  */
 export default async function TrackRequestPage({
   searchParams,
@@ -41,7 +41,7 @@ export default async function TrackRequestPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/sign-in?next=" + encodeURIComponent("/portal/track"));
+    redirect("/auth/sign-in?next=%2Fportal%2Ftrack");
   }
 
   const baseQuery = supabase
@@ -156,3 +156,4 @@ export default async function TrackRequestPage({
     </div>
   );
 }
+

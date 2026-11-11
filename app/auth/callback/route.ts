@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { getValidatedReturnTo } from "@/utils/authorization";
 import type { UserMetadata } from "@/types/database";
@@ -9,25 +9,16 @@ export async function GET(request: Request) {
   const token_hash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
 
-  console.log("[callback] invoked", { hasCode: !!code, hasTokenHash: !!token_hash, type });
-
-  // Destination after a successful exchange. `forgotPassword` passes
-  // `?next=/auth/update-password` for the reset flow; the value is validated to
-  // a safe same-origin path. Everything else (e.g. signup confirmation) falls
-  // back to the portal.
+  // Destination after a successful exchange. Validated to a safe same-origin
+  // /portal path. Recovery flows default to /auth/update-password.
   const next = getValidatedReturnTo(requestUrl.searchParams.get("next"));
 
-  const cookieStore = await import("next/headers").then(m => m.cookies());
+  const cookieStore = await import("next/headers").then((m) => m.cookies());
   const supabase = createClient(cookieStore);
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    console.log("[callback] exchangeCodeForSession result", { error: error ? { message: error.message, code: error.code } : null });
-
     if (!error) {
-      // Recovery (PKCE) carries `next=/auth/update-password`; signup/other
-      // flows default to `/portal`.
       return NextResponse.redirect(new URL(next, request.url));
     }
   }
@@ -38,10 +29,10 @@ export async function GET(request: Request) {
       type: type as "signup" | "recovery" | "magiclink" | "invite" | "email_change",
     });
 
-    console.log("[callback] verifyOtp result", { error: error ? { message: error.message, code: error.code } : null });
-
     if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (user) {
         const { data: existingProfile } = await supabase
@@ -60,11 +51,12 @@ export async function GET(request: Request) {
         }
       }
 
-      const destination =
-        type === "recovery" ? "/auth/update-password" : next;
+      const destination = type === "recovery" ? "/auth/update-password" : next;
       return NextResponse.redirect(new URL(destination, request.url));
     }
   }
 
-  return NextResponse.redirect(new URL("/auth/sign-in?error=invalid_or_expired_link", request.url));
+  return NextResponse.redirect(
+    new URL("/auth/sign-in?error=invalid_or_expired_link", request.url),
+  );
 }
