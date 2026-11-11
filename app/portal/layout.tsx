@@ -7,7 +7,7 @@ import { isUserRole, type Profile } from "@/types/database";
 import Footer from "@/components/layout/footer";
 import { PortalShell } from "@/components/layout/portal-shell";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "auto";
 
 export default async function PortalLayout({
   children,
