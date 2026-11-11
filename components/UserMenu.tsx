@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDownIcon, ExitIcon, PersonIcon } from "@radix-ui/react-icons";
-import { signOut } from "@/app/auth/actions";
+
 
 /**
  * Authenticated user profile button + dropdown.
@@ -11,7 +11,7 @@ import { signOut } from "@/app/auth/actions";
  * Used in the public landing-page nav (replacing the "Sign In" button when a
  * visitor is already signed in) and in the portal header (replacing the bare
  * Sign Out form). Renders the requester's own name and exposes only existing,
- * role-appropriate routes — it never invents routes or changes authorization.
+ * role-appropriate routes â€” it never invents routes or changes authorization.
  */
 export function UserMenu({
   name,
@@ -89,7 +89,7 @@ export function UserMenu({
               Dashboard
             </Link>
 
-            <form action={signOut} className="block w-full">
+            <form action="/auth/sign-out" method="post" className="block w-full">
               <button
                 type="submit"
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-foreground/70 hover:bg-surface hover:text-foreground transition-colors"
@@ -104,3 +104,4 @@ export function UserMenu({
     </div>
   );
 }
+
