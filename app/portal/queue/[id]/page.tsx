@@ -173,7 +173,7 @@ export default async function ITQueueTicketPage({
                   >
                     {slaStateLabel(slaState)}
                     {ticket.resolve_due_at &&
-                       · resolve by ${formatDateTime(ticket.resolve_due_at)}`}
+                      ` · resolve by ${formatDateTime(ticket.resolve_due_at)}`}
                   </span>
                 )}
                 {ticket.escalation_level > 0 && (
@@ -332,6 +332,7 @@ export default async function ITQueueTicketPage({
     </div>
   );
 }
+
 
 
 
