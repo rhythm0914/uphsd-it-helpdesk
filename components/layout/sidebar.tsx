@@ -63,7 +63,7 @@ export function Sidebar({
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-surface shadow-sm transition-width duration-200 ${collapsed ? "w-16" : "w-64"}`} aria-label="Main navigation">
       <div className="flex h-16 items-center justify-center gap-2 px-3 shrink-0">
-        <span className="text-source-serif-4 font-semibold text-primary tracking-tight">UPHSD</span>
+        <span className="font-serif font-semibold text-primary tracking-tight">UPHSD</span>
         <span className={navLinkClass}>IT Help Desk</span>
       </div>
 
@@ -88,7 +88,7 @@ export function Sidebar({
       </div>
 
       <div className="px-3 py-4 border-t border-border shrink-0">
-        <Link href="/auth/sign-out" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light hover:text-danger transition-colors">
+        <form action="/auth/sign-out" method="post" className="w-full"><button type="submit" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light transition-colors">
           <LogOut className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
           <span className={collapsed ? "hidden" : "block"}>Sign Out</span>
         </Link>
@@ -131,7 +131,7 @@ export function MobileSidebarDrawer({
       <div className="fixed inset-0 z-40 bg-neutral-900/40 backdrop-blur-sm" aria-hidden="true" onClick={onClose} />
       <aside className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col border-r border-border bg-surface shadow-xl" aria-label="Navigation menu">
         <div className="flex h-16 items-center justify-between gap-2 px-3 shrink-0">
-          <span className="text-source-serif-4 font-semibold text-primary tracking-tight">UPHSD</span>
+          <span className="font-serif font-semibold text-primary tracking-tight">UPHSD</span>
           <span className="block text-xs font-semibold text-neutral-900 tracking-wider uppercase">IT Help Desk</span>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors" aria-label="Close menu">
             <span className="sr-only">Close menu</span>
@@ -151,13 +151,17 @@ export function MobileSidebarDrawer({
           })}
         </nav>
         <div className="px-3 py-4 border-t border-border">
-          <Link href="/auth/sign-out" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light hover:text-danger transition-colors">
-            <X className="h-4 w-4 text-danger" aria-hidden="true" />
-            <span>Sign Out</span>
-          </Link>
+                    <form action="/auth/sign-out" method="post" className="w-full">
+            <button type="submit" onClick={onClose} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light transition-colors">
+              <LogOut className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
+              <span>Sign Out</span>
+            </button>
+          </form>
         </div>
       </aside>
     </>
   );
 }
+
+
 

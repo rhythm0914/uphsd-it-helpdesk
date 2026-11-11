@@ -29,7 +29,11 @@ export function isAuthPath(pathname: string): boolean {
 }
 
 export function shouldSkipAuthRedirectWhenAuthenticated(pathname: string): boolean {
-  return pathname.startsWith("/auth/update-password") || pathname === "/auth/callback";
+  return (
+    pathname.startsWith("/auth/update-password") ||
+    pathname === "/auth/callback" ||
+    pathname === "/auth/sign-out"
+  );
 }
 
 export function copyResponseCookies(from: NextResponse, to: NextResponse): NextResponse {
@@ -104,3 +108,4 @@ export async function getMiddlewareSession(request: NextRequest): Promise<Sessio
 
   return { supabase, response, user };
 }
+
