@@ -36,44 +36,47 @@
   --neutral-800: #2E2829;
   --neutral-900: #1F1A1B;  /* foreground */
 
-  /* Semantic */
+  /* Semantic colors (direct values for Tailwind v4 @theme inline resolution) */
   --background: #FAF8F7;
   --surface: #FFFFFF;
-  --border: #E7E2E0;
+  --surface-alt: #F7F3F1;
+  --border: #CFC7C5;
+  --border-strong: #8A8183;
   --foreground: #1F1A1B;
-  --muted-foreground: #6B6264;
+  --muted-foreground: #5E5557;
 
-  --primary: #6B1527;        /* maroon-800 */
-  --primary-hover: #4A0F1C;  /* maroon-900 */
-  --primary-foreground: #FFFFFF;
-  --primary-light: #F6E4E8;  /* maroon-100 */
-
-  --secondary: #1E3A6E;      /* navy-700 */
+  --primary: #6B1527;
+  --primary-hover: #4A0F1C;
+  --primary-active: #2A0A10;
+  --on-primary: #FFFFFF;
+  --secondary: #1E3A6E;
   --secondary-hover: #162C55;
-  --secondary-foreground: #FFFFFF;
-  --secondary-light: #E6ECF6; /* navy-100 */
+  --on-secondary: #FFFFFF;
+  --accent: #F5B921;
+  --on-accent: #2A0A10;
 
-  --accent: #C9A227;         /* gold-500 — accent only, dark text on it */
-  --accent-foreground: #1F1A1B;
-  --accent-light: #FBF1D0;   /* gold-100 */
-
-  /* Status (separate from brand; maroon never signals error) */
-  --success: #14532d;
-  --success-light: #F0FDF4;
-  --success-foreground: #14532d;
-
-  --danger: #991B1B;
-  --danger-hover: #7F1D1D;
-  --danger-light: #FEF2F2;
-  --danger-foreground: #991B1B;
-
-  --warning: #92400E;
-  --warning-light: #FFFBEB;
-  --warning-foreground: #92400E;
-
+  /* Status colors (separate from brand; maroon is never error) */
+  --success: #0F5132;
+  --success-bg: #DFF3E7;
+  --danger: #8B1A1A;
+  --danger-bg: #FCE4E4;
+  --warning: #6B4E00;
+  --warning-bg: #FFF3CC;
   --info: #1E3A6E;
-  --info-light: #E6ECF6;
-  --info-foreground: #1E3A6E;
+  --info-bg: #E6ECF6;
+
+  /* Disabled */
+  --disabled-bg: #E7E2E0;
+  --disabled-text: #6B6264;
+
+  /* Sidebar */
+  --sidebar-bg: #1E3A6E;
+  --sidebar-text: #FFFFFF;
+  --sidebar-active-bg: #851C31;
+  --sidebar-active-text: #FFFFFF;
+
+  /* Focus ring */
+  --focus-ring: #F5B921;
 
   /* Radius / elevation */
   --radius-sm: 6px;
@@ -96,72 +99,77 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
-  --color-foreground: var(--foreground);
-  --color-muted-foreground: var(--muted-foreground);
+  /* Background & surface */
+  --color-background: #FAF8F7;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F7F3F1;
+  --color-border: #CFC7C5;
+  --color-border-strong: #8A8183;
+  --color-foreground: #1F1A1B;
+  --color-muted-foreground: #5E5557;
 
-  --color-mar-50: var(--maroon-50);
-  --color-mar-100: var(--maroon-100);
-  --color-mar-600: var(--maroon-600);
-  --color-mar-700: var(--maroon-700);
-  --color-mar-800: var(--maroon-800);
-  --color-mar-900: var(--maroon-900);
-  --color-mar-950: var(--maroon-950);
+  /* Brand (official UPHSD seal) */
+  --color-mar-50: #FBF3F4;
+  --color-mar-100: #F6E4E8;
+  --color-mar-600: #A02A40;
+  --color-mar-700: #851C31;
+  --color-mar-800: #6B1527;
+  --color-mar-900: #4A0F1C;
+  --color-mar-950: #2A0A10;
 
-  --color-gold-100: var(--gold-100);
-  --color-gold-500: var(--gold-500);
+  --color-gold-400: #F5B921;
+  --color-gold-500: #C9A227;
+  --color-gold-100: #FBF1D0;
 
-  --color-nav-100: var(--navy-100);
-  --color-nav-700: var(--navy-700);
+  --color-navy-800: #1E3A6E;
+  --color-navy-100: #E6ECF6;
 
-  --color-neutral-50: var(--neutral-50);
-  --color-neutral-100: var(--neutral-100);
-  --color-neutral-200: var(--neutral-200);
-  --color-neutral-300: var(--neutral-300);
-  --color-neutral-400: var(--neutral-400);
-  --color-neutral-500: var(--neutral-500);
-  --color-neutral-600: var(--neutral-600);
-  --color-neutral-700: var(--neutral-700);
-  --color-neutral-800: var(--neutral-800);
-  --color-neutral-900: var(--neutral-900);
+  /* Semantic tokens (semantic color palette) */
+  --color-primary: #6B1527;
+  --color-primary-hover: #4A0F1C;
+  --color-primary-active: #2A0A10;
+  --color-on-primary: #FFFFFF;
+  --color-secondary: #1E3A6E;
+  --color-secondary-hover: #162C55;
+  --color-on-secondary: #FFFFFF;
+  --color-accent: #F5B921;
+  --color-accent-foreground: #2A0A10;
+  --color-accent-light: #FBF1D0;
 
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary-light: var(--primary-light);
+  /* Status (separate from brand; maroon is never error) */
+  --color-success: #0F5132;
+  --color-success-bg: #DFF3E7;
+  --color-success-foreground: #0F5132;
+  --color-danger: #8B1A1A;
+  --color-danger-hover: #7F1D1D;
+  --color-danger-foreground: #FFFFFF;
+  --color-danger-bg: #FCE4E4;
+  --color-warning: #6B4E00;
+  --color-warning-bg: #FFF3CC;
+  --color-warning-foreground: #6B4E00;
+  --color-info: #1E3A6E;
+  --color-info-bg: #E6ECF6;
+  --color-info-foreground: #1E3A6E;
 
-  --color-secondary: var(--secondary);
-  --color-secondary-hover: var(--secondary-hover);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary-light: var(--secondary-light);
+  /* States */
+  --color-disabled-bg: #E7E2E0;
+  --color-disabled-text: #6B6264;
 
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent-light: var(--accent-light);
+  /* Sidebar */
+  --color-sidebar-bg: #1E3A6E;
+  --color-sidebar-text: #FFFFFF;
+  --color-sidebar-active-bg: #851C31;
+  --color-sidebar-active-text: #FFFFFF;
 
-  --color-success: var(--success);
-  --color-success-light: var(--success-light);
-  --color-success-foreground: var(--success-foreground);
+  /* Focus ring */
+  --color-focus-ring: #F5B921;
 
-  --color-danger: var(--danger);
-  --color-danger-hover: var(--danger-hover);
-  --color-danger-light: var(--danger-light);
-  --color-danger-foreground: var(--danger-foreground);
+  /* Radius */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
 
-  --color-warning: var(--warning);
-  --color-warning-light: var(--warning-light);
-  --color-warning-foreground: var(--warning-foreground);
-
-  --color-info: var(--info);
-  --color-info-light: var(--info-light);
-  --color-info-foreground: var(--info-foreground);
-
-  --radius-sm: var(--radius-sm);
-  --radius: var(--radius);
-  --radius-lg: var(--radius-lg);
-
+  /* Typography */
   --font-sans: var(--font-inter);
   --font-serif: var(--font-source-serif-4);
   --font-mono: var(--font-jetbrains-mono);
@@ -208,10 +216,54 @@ p { line-height: 1.6; }
 a { color: var(--secondary); text-underline-offset: 2px; }
 a:hover { color: var(--secondary-hover); }
 
-/* Focus ring — visible 2px offset ring (navy default; gold on maroon handled by components) */
+/* Focus ring — visible 2px offset ring (gold accent) */
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--secondary), 0 0 0 4px transparent;
+  box-shadow: 0 0 0 2px var(--focus-ring), 0 0 0 4px transparent;
+}
+
+/* Base button styles — never override background, use utilities */
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Ensure buttons never collapse to 0 height */
+button[class*="bg-"]:not(.btn) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure buttons with text never collapse to 0 height */
+button:not(.btn) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Form submit buttons always visible */
+input[type="submit"],
+button[type="submit"] {
+  min-height: 44px;
+}
+
+/* Button reset — remove browser default styling so our utilities take over */
+button {
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 
 /* Skeleton */
