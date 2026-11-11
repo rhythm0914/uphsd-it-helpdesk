@@ -37,7 +37,7 @@ export function Stepper({
                 ) : (
                   <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-neutral-200 text-neutral-500">
                     {index + 1}
-                  </>
+                  </span>
                 )}
               </div>
               <span className={`text-sm font-medium ${completed || current ? "text-primary" : "text-neutral-500"}`}>
