@@ -27,14 +27,30 @@ async function handleSignOut(request: NextRequest) {
         },
       },
     });
+
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // best effort
+    }
     try {
       await supabase.auth.signOut();
     } catch {
-      // Best effort: still clear cookies/redirect.
+      // best effort
     }
   }
 
-  // Prevent caching of sign-out responses.
+  // Explicitly expire common Supabase auth cookie names/chunks if present.
+  for (const cookie of request.cookies.getAll()) {
+    if (cookie.name.includes("auth-token") || cookie.name.startsWith("sb-")) {
+      response.cookies.set(cookie.name, "", {
+        path: "/",
+        maxAge: 0,
+        expires: new Date(0),
+      });
+    }
+  }
+
   response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
   response.headers.set("Pragma", "no-cache");
   response.headers.set("Vary", "Cookie");

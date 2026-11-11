@@ -46,7 +46,6 @@ export async function signIn(formData: FormData) {
     );
   }
 
-  // Only redirect after successful authentication/session establishment.
   if (!data?.session || !data?.user) {
     redirect(
       "/auth/sign-in?error=" +
@@ -154,11 +153,17 @@ export async function resendConfirmation(formData: FormData) {
 }
 
 export async function signOut() {
-  const supabase = await getSupabase();
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Best effort: continue to clear local cookies.
+  }
   try {
     await supabase.auth.signOut();
   } catch {
-    // Best effort: clear local session cookies even if remote sign-out fails.
+    // Best effort.
   }
   redirect("/");
 }
@@ -223,9 +228,6 @@ export async function updatePassword(formData: FormData) {
   redirect("/auth/sign-in?message=password_updated");
 }
 
-/**
- * Admin-assisted recovery for users who lost access to their UPHSD mailbox.
- */
 export async function adminAssistedRecovery(userId: string) {
   const supabase = await getSupabase();
   const {
