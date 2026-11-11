@@ -88,11 +88,12 @@ export function Sidebar({
       </div>
 
       <div className="px-3 py-4 border-t border-border shrink-0">
-        <form action="/auth/sign-out" method="post" className="w-full"><button type="submit" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light transition-colors">
-          <LogOut className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
-          <span className={collapsed ? "hidden" : "block"}>Sign Out</span>
-        </Link>
-        <div className="mt-2">
+        <form action="/auth/sign-out" method="post" className="w-full">
+          <button type="submit" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light transition-colors">
+            <LogOut className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
+            <span className={collapsed ? "hidden" : "block"}>Sign Out</span>
+          </button>
+        </form>
           <p className="text-xs font-medium text-neutral-700">{userName || "User"}</p>
           <p className="text-xs text-neutral-500 capitalize">{userRole || ""}</p>
         </div>
