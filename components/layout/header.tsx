@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -38,7 +38,7 @@ export function Header({
             <Menu className="h-5 w-5" />
           </button>
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-source-serif-4 font-semibold text-primary tracking-tight">UPHSD</span>
+            <span className="font-serif font-semibold text-primary tracking-tight">UPHSD</span>
             <span className="hidden sm:inline text-xs font-semibold text-neutral-900 tracking-wider uppercase">IT Help Desk</span>
           </Link>
         </div>

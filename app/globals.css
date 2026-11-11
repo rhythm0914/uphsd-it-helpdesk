@@ -152,6 +152,7 @@
   --color-accent: #F5B921;
   --color-accent-hover: #E0A615;
   --color-accent-foreground: #2A0A10;
+  --color-on-accent: #2A0A10;
   --color-accent-light: #FBF1D0;
 
   /* Status (separate from brand; maroon is never error) */
@@ -162,6 +163,7 @@
   --color-danger-hover: #7F1D1D;
   --color-danger-light: #FCE4E4;
   --color-danger-foreground: #FFFFFF;
+  --color-on-danger: #FFFFFF;
   --color-danger-bg: #FCE4E4;
   --color-warning: #6B4E00;
   --color-warning-bg: #FFF3CC;
@@ -311,5 +313,7 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
+
 
 
