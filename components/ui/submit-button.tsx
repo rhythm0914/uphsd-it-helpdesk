@@ -25,7 +25,7 @@ export function SubmitButton({
   const variantStyle =
     variant === "outline"
       ? "border border-border bg-background text-foreground hover:bg-surface"
-      : "bg-primary text-on-primary hover:bg-primary-hover";
+      : "bg-primary text-on-primary hover:bg-primary-hover hover:text-on-primary";
 
   return (
     <button
@@ -45,3 +45,4 @@ export function SubmitButton({
     </button>
   );
 }
+

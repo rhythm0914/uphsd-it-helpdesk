@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { ChatWidget } from "@/components/ui/chat-widget";
 import { createClient } from "@/utils/supabase/server";
@@ -99,7 +99,7 @@ const faqItems = [
   {
     question: "What happens when IT marks my request resolved?",
     answer:
-      "You are asked to confirm the outcome: choose \"Fix works\" to close it as Verified Fixed and leave a 1-5 rating, or \"Still broken\" to explain what is wrong. IT staff cannot close a request themselves. If you do not respond, you get one reminder after 3 days and the request closes as No Response after 5 days — that close is not counted as a fix.",
+      "You are asked to confirm the outcome: choose \"Fix works\" to close it as Verified Fixed and leave a 1-5 rating, or \"Still broken\" to explain what is wrong. IT staff cannot close a request themselves. If you do not respond, you get one reminder after 3 days and the request closes as No Response after 5 days â€” that close is not counted as a fix.",
   },
   {
     question: "What if the problem comes back?",
@@ -126,7 +126,7 @@ const faqItems = [
 export default async function Home() {
   // Authenticated state for the landing-page nav. Signed-in users see their
   // profile button; signed-out users keep the Sign In link. This reads the
-  // existing session/profile — no new auth logic or schema.
+  // existing session/profile â€” no new auth logic or schema.
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
@@ -184,7 +184,7 @@ export default async function Home() {
             ) : (
               <Link
                 href="/auth/sign-in"
-                className="inline-flex items-center justify-center rounded-full bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover sm:px-5"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:text-on-primary transition-colors hover:bg-primary-hover sm:px-5"
               >
                 Sign In
               </Link>
@@ -213,13 +213,13 @@ export default async function Home() {
                 <div className="mt-8 flex flex-col sm:flex-row gap-4">
                   <Link
                     href="/portal/request"
-                    className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
+                    className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-3.5 text-base font-medium text-on-primary hover:text-on-primary transition-colors hover:bg-primary-hover"
                   >
                     Submit a Request
                   </Link>
                   <Link
                     href="#services"
-                    className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-surface"
+                    className="inline-flex items-center justify-center rounded-full border border-primary/30 bg-surface px-8 py-3.5 text-base font-medium text-primary transition-colors hover:bg-primary-light"
                   >
                     View Services
                   </Link>
@@ -462,7 +462,7 @@ export default async function Home() {
                     IT Help Desk Business Hours
                   </h3>
                   <p className="text-sm text-foreground/70">
-                    Monday – Friday, 8:00 AM – 5:00 PM
+                    Monday â€“ Friday, 8:00 AM â€“ 5:00 PM
                   </p>
                 </div>
               </div>
@@ -485,13 +485,13 @@ export default async function Home() {
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/portal/request"
-                  className="inline-flex items-center justify-center rounded-full bg-brand-primary px-8 py-3.5 text-base font-medium text-white transition-colors hover:bg-brand-primary-hover"
+                  className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-3.5 text-base font-medium text-on-primary hover:text-on-primary transition-colors hover:bg-primary-hover"
                 >
                   Submit a Request
                 </Link>
                  <Link
                    href="/auth/sign-in"
-                   className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-surface"
+                   className="inline-flex items-center justify-center rounded-full border border-primary/30 bg-surface px-8 py-3.5 text-base font-medium text-primary transition-colors hover:bg-primary-light"
                  >
                    Sign In
                  </Link>
@@ -512,7 +512,7 @@ export default async function Home() {
                 University of Perpetual Help System DALTA
               </p>
               <p className="mt-1 text-sm text-white/70">
-                Monday – Friday, 8:00 AM – 5:00 PM
+                Monday â€“ Friday, 8:00 AM â€“ 5:00 PM
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-6 text-sm text-white/70">
@@ -541,3 +541,4 @@ export default async function Home() {
     </div>
   );
 }
+

@@ -241,6 +241,18 @@ h6 { font-size: var(--text-base); }
 p { line-height: 1.6; }
 a { color: var(--primary); text-underline-offset: 2px; }
 a:hover { color: var(--primary-hover); }
+a[class*="bg-primary"],
+a[class*="bg-brand-primary"],
+a[class*="bg-danger"] {
+  color: var(--on-primary);
+}
+a[class*="bg-primary"]:hover,
+a[class*="bg-brand-primary"]:hover,
+a[class*="bg-danger"]:hover {
+  color: var(--on-primary);
+}
+a[class*="bg-accent"] { color: var(--on-accent); }
+a[class*="bg-accent"]:hover { color: var(--on-accent); }
 
 /* Focus ring — visible 2px offset ring (gold accent) */
 :focus-visible {
@@ -313,6 +325,7 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
 
 
 
