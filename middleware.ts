@@ -14,7 +14,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/auth/sign-up") ||
     pathname.startsWith("/auth/forgot-password") ||
     pathname.startsWith("/auth/update-password") ||
-    pathname === "/auth/sign-out" ||
     pathname === "/auth/callback";
 
   const isPortalRoute = pathname.startsWith("/portal");
