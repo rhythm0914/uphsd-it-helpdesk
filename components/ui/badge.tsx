@@ -19,12 +19,12 @@ const base =
 
 const variants: Record<string, string> = {
   primary: "bg-primary-light text-primary border-primary/20",
-  secondary: "bg-info-bg text-secondary border-secondary/20",
+  secondary: "bg-accent-light text-accent-foreground border-accent/30",
   ghost: "bg-neutral-100 text-neutral-700 border-neutral-200",
   success: "bg-success-bg text-success-foreground border-success/20",
   danger: "bg-danger-bg text-danger-foreground border-danger/20",
   warning: "bg-warning-bg text-warning-foreground border-warning/20",
-  info: "bg-info-bg text-info-foreground border-info/20",
+  info: "bg-info-bg text-info-foreground border-info/30",
 };
 
 const sizes = {
@@ -45,3 +45,4 @@ export function Badge({
     />
   );
 }
+

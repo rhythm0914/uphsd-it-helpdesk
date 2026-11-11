@@ -21,8 +21,8 @@
   --gold-100: #FBF1D0;
   --gold-500: #C9A227;
 
-  --navy-100: #E6ECF6;
-  --navy-700: #1E3A6E;
+  --navy-100: #FBF1D0;
+  --navy-700: #6B1527;
 
   /* Warm neutral scale */
   --neutral-50: #FAF8F7;   /* background */
@@ -49,9 +49,9 @@
   --primary-hover: #4A0F1C;
   --primary-active: #2A0A10;
   --on-primary: #FFFFFF;
-  --secondary: #1E3A6E;
-  --secondary-hover: #162C55;
-  --on-secondary: #FFFFFF;
+  --secondary: #C9A227;
+  --secondary-hover: #A8861F;
+  --on-secondary: #2A0A10;
   --accent: #F5B921;
   --on-accent: #2A0A10;
 
@@ -62,18 +62,18 @@
   --danger-bg: #FCE4E4;
   --warning: #6B4E00;
   --warning-bg: #FFF3CC;
-  --info: #1E3A6E;
-  --info-bg: #E6ECF6;
+  --info: #7A5C12;
+  --info-bg: #FBF1D0;
 
   /* Disabled */
   --disabled-bg: #E7E2E0;
   --disabled-text: #6B6264;
 
   /* Sidebar */
-  --sidebar-bg: #1E3A6E;
+  --sidebar-bg: #6B1527;
   --sidebar-text: #FFFFFF;
-  --sidebar-active-bg: #851C31;
-  --sidebar-active-text: #FFFFFF;
+  --sidebar-active-bg: #4A0F1C;
+  --sidebar-active-text: #F5B921;
 
   /* Legacy/compat aliases used across the app */
   --color-brand-primary: #6B1527;
@@ -126,8 +126,8 @@
   --color-gold-500: #C9A227;
   --color-gold-100: #FBF1D0;
 
-  --color-navy-800: #1E3A6E;
-  --color-navy-100: #E6ECF6;
+  --color-navy-800: #6B1527;
+  --color-navy-100: #FBF1D0;
 
   /* Neutral scale (Tailwind utilities) */
   --color-neutral-50: #FAF8F7;
@@ -146,9 +146,9 @@
   --color-primary-active: #2A0A10;
   --color-primary-light: #F6E4E8;
   --color-on-primary: #FFFFFF;
-  --color-secondary: #1E3A6E;
-  --color-secondary-hover: #162C55;
-  --color-on-secondary: #FFFFFF;
+  --color-secondary: #C9A227;
+  --color-secondary-hover: #A8861F;
+  --color-on-secondary: #2A0A10;
   --color-accent: #F5B921;
   --color-accent-hover: #E0A615;
   --color-accent-foreground: #2A0A10;
@@ -168,19 +168,19 @@
   --color-warning: #6B4E00;
   --color-warning-bg: #FFF3CC;
   --color-warning-foreground: #6B4E00;
-  --color-info: #1E3A6E;
-  --color-info-bg: #E6ECF6;
-  --color-info-foreground: #1E3A6E;
+  --color-info: #7A5C12;
+  --color-info-bg: #FBF1D0;
+  --color-info-foreground: #7A5C12;
 
   /* States */
   --color-disabled-bg: #E7E2E0;
   --color-disabled-text: #6B6264;
 
   /* Sidebar */
-  --color-sidebar-bg: #1E3A6E;
+  --color-sidebar-bg: #6B1527;
   --color-sidebar-text: #FFFFFF;
-  --color-sidebar-active-bg: #851C31;
-  --color-sidebar-active-text: #FFFFFF;
+  --color-sidebar-active-bg: #4A0F1C;
+  --color-sidebar-active-text: #F5B921;
 
   /* Legacy/compat aliases used across the app */
   --color-brand-primary: #6B1527;
@@ -239,8 +239,8 @@ h5 { font-size: var(--text-lg); }
 h6 { font-size: var(--text-base); }
 
 p { line-height: 1.6; }
-a { color: var(--secondary); text-underline-offset: 2px; }
-a:hover { color: var(--secondary-hover); }
+a { color: var(--primary); text-underline-offset: 2px; }
+a:hover { color: var(--primary-hover); }
 
 /* Focus ring — visible 2px offset ring (gold accent) */
 :focus-visible {
@@ -313,6 +313,7 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
 
 
 
