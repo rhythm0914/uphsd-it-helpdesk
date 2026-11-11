@@ -56,11 +56,13 @@ export function Sidebar({
     return match ? match.key : null;
   }, [pathname, visibleItems]);
 
+  const navLinkClass = collapsed ? "hidden" : "block text-xs font-semibold text-neutral-900 tracking-wider uppercase";
+
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-surface shadow-sm transition-width duration-200 ${collapsed ? "w-16" : "w-64"}`} aria-label="Main navigation">
       <div className="flex h-16 items-center justify-center gap-2 px-3 shrink-0">
         <span className="text-source-serif-4 font-semibold text-primary tracking-tight">UPHSD</span>
-        <span className={collapsed ? "hidden" : "block text-xs font-semibold text-neutral-900 tracking-wider uppercase">IT Help Desk</span>
+        <span className={navLinkClass}>IT Help Desk</span>
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto" aria-label="Primary navigation">

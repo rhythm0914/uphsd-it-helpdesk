@@ -8,7 +8,7 @@ import { Badge } from "./badge";
  * (separate from brand colors). Each status uses color + text label, never
  * color alone. The label is passed explicitly so the meaning is always in text.
  */
-const STATUS_VARIANTS: Record<string, "success" | "danger" | "warning" | "info"> = {
+const STATUS_VARIANTS: Record<string, "success" | "danger" | "warning" | "info" | "ghost"> = {
   open: "info",
   in_progress: "info",
   waiting_for_user: "warning",

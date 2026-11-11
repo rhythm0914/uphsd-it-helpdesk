@@ -11,7 +11,7 @@ export function Tooltip({ children, label }: TooltipProps) {
   const [open, setOpen] = React.useState(false);
   return (
     <div className="relative inline-block" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      {React.cloneElement(children as React.ReactElement, {
+      {React.cloneElement(children as React.ReactElement<any>, {
         "aria-label": label,
       })}
       {open && (

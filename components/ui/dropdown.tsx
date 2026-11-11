@@ -78,11 +78,11 @@ export function Dropdown({
           className={`absolute z-50 mt-2 w-56 rounded-lg border border-border bg-surface shadow-md ring-1 ring-neutral-900/10 ${className}`}
         >
           {items.map((item, index) =>
-            React.cloneElement(item, {
+            React.cloneElement(item as React.ReactElement<any>, {
               key: index,
               role: "menuitem",
               tabIndex: focusedIndex === index ? 0 : -1,
-              "aria-disabled": item.props.disabled,
+              "aria-disabled": (item.props as Record<string, unknown> | undefined)?.disabled,
               onClick: () => setOpen(false),
               onKeyDown: (e: React.KeyboardEvent) => {
                 if (e.key === "Escape") setOpen(false);
@@ -97,7 +97,7 @@ export function Dropdown({
               },
               className: `flex w-full items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 focus:outline-none focus:bg-neutral-100 focus:ring-1 focus:ring-secondary disabled:text-neutral-400 disabled:cursor-not-allowed ${
                 focusedIndex === index ? "bg-neutral-100 text-primary" : ""
-              } ${item.props.className ?? ""}`,
+              } ${((item.props as Record<string, unknown> | undefined)?.className ?? "")}`,
             })
           )}
         </div>
@@ -106,9 +106,11 @@ export function Dropdown({
   );
 }
 
-interface MenuItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+interface MenuItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  label?: string;
+}
 
-export function MenuItem({ className = "", disabled, ...props }: MenuItemProps) {
+export function MenuItem({ className = "", disabled, label, ...props }: MenuItemProps) {
   return (
     <button
       type="button"
@@ -117,6 +119,8 @@ export function MenuItem({ className = "", disabled, ...props }: MenuItemProps) 
         ${disabled ? "text-neutral-400 cursor-not-allowed" : "text-neutral-700 hover:bg-neutral-100"}
         transition-colors ${className}`}
       {...props}
-    />
+    >
+      {label}
+    </button>
   );
 }
