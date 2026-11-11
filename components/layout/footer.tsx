@@ -1,8 +1,8 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 /**
  * Site footer. Address and hours come from the task specification (Molino
- * campus). No phone numbers or emails are invented — none exist in the repo,
+ * campus). No phone numbers or emails are invented â€” none exist in the repo,
  * so visitors are directed to the official UPHSD site for current contact
  * details.
  */
@@ -13,12 +13,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12 mb-12">
           <div className="col-span-1 lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-source-serif-4 font-semibold text-primary tracking-tight text-lg">UPHSD</span>
+              <span className="font-serif font-semibold text-primary tracking-tight text-lg">UPHSD</span>
               <span className="text-xs font-semibold text-neutral-900 tracking-wider uppercase">IT Help Desk</span>
             </div>
             <p className="text-sm text-neutral-600 leading-relaxed mb-6">
               The IT service portal for students and employees of the University
-              of Perpetual Help System DALTA – Molino Campus. Submit requests,
+              of Perpetual Help System DALTA â€“ Molino Campus. Submit requests,
               track progress, and confirm when a problem is actually fixed.
             </p>
             <p className="text-sm text-neutral-600">
@@ -39,7 +39,7 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-neutral-900 uppercase tracking-wider mb-4">Office Hours</h3>
             <p className="text-sm text-neutral-600 leading-relaxed">
-              Monday – Friday, 8:00 AM – 5:00 PM<br />
+              Monday â€“ Friday, 8:00 AM â€“ 5:00 PM<br />
               <span className="font-medium text-neutral-900">Urgent requests:</span> handled around the clock
             </p>
           </div>
